@@ -44,6 +44,8 @@ contract TimeBasedEscrow {
     function changeOwner(address newOwner) external onlyOwner {
         require(newOwner != address(0), "New owner is the zero address");
         ownerNominee = newOwner;
+        // Forgot to include the nominationDate = block.timestamp;
+        // nominationDate = block.timestamp;
         emit OwnerNominated(newOwner);
     }
 
