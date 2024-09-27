@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts@4.9.0/token/ERC721/ERC721.sol"; 
 import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts@4.9.0/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts@4.9.0/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
@@ -13,10 +14,10 @@ import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
 
 // Ownable contract: Custom
 contract Ownable {
-    address public _owner;
+    address private _owner;
     address public ownerNominee;
     uint256 public nominationDate;
-
+    
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event OwnerNominated(address indexed newOwner);
     event NominationCancelled(address indexed cancelledBy);
@@ -38,23 +39,21 @@ contract Ownable {
         emit OwnerNominated(newOwner);
     }
 
-    // Revert ownership if it's been over 30 days since the transfer.
+    // Revert ownership
     function cancelTransfer() external onlyOwner {
-        require(block.timestamp >= nominationDate + 30 days, "Ownership transfer is still within the 30-day period");
         ownerNominee = address(0);
         nominationDate = 0;
         emit NominationCancelled(msg.sender);
     }
 
-    // Accept the ownership transfer
     function acceptOwnership() external {
         require(msg.sender == ownerNominee, "Only the nominee can accept ownership");
+        address previousOwner = _owner;
         _owner = ownerNominee;
         ownerNominee = address(0);
         nominationDate = 0;
-        emit OwnershipTransferred(_owner, ownerNominee);
+        emit OwnershipTransferred(previousOwner, _owner);
     }
-
     // Reject the ownership transfer
     function rejectOwnership() external {
         require(msg.sender == ownerNominee, "Only the nominee can reject ownership");
@@ -68,15 +67,48 @@ contract Ownable {
     }
 }
 
+// Repair potions are ERC20 tokens that can be used to repair NFTs
+contract RepairPotion is ERC20, Ownable {
+    address public poolContract;
+    constructor() ERC20("Repair Potion", "REPAIR") {
+        _mint(msg.sender, 10000);
+    }
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+
+    function decimals() public view override returns (uint8) {
+        return 0;
+    }
+
+    function setPoolContract(address _poolContract) public onlyOwner {
+        poolContract = _poolContract;
+    }
+
+    // Burn a repair potion to repair an NFT. Only the pool contract can call this function. Called by the pool contract's repair function.
+    function consume(uint256 tokenId) public {
+        require(msg.sender == poolContract, "Only the pool contract can repair NFTs");
+        address _tokenOwner = ERC721(poolContract).ownerOf(tokenId);        
+        require(balanceOf(_tokenOwner) >= 1, "Insufficient repair potions");
+        _burn(_tokenOwner, 1);
+    }
+}
+
 contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     uint256 public lastClaimTime;
     uint256 public claimPeriod = 5 minutes;
     uint256 public rewardRate; // r - daily prize amount
     uint256 public price;
+    uint256 public min_claims;
     
     address public paymentToken;
     address public rewardToken;
+    address public potionToken;
     uint256 public nextTokenId; // Unique ID for minted NFTs
+
+    mapping (uint256 => uint256) public health;
+    uint8 public min_health;
 
     struct Claimant {
         address addr;
@@ -86,20 +118,37 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     mapping(uint256 => bool) public hasClaimedInPeriod; // Tracks which NFTs have claimed in the current period
     Claimant[] public claimants;
     
-    constructor() ERC721("Reward Pool NFT", "RPNFT") {
+    event NFTMinted(address indexed minter, uint256 indexed tokenId);
+    event RewardClaimed(address indexed claimant, uint256 indexed tokenId);
+    event RewardDistributed(address indexed claimant, uint256 indexed tokenId, uint256 amount);
+    event TokenRepaired(address indexed owner, uint256 indexed tokenId);
+
+    constructor(address _potionContract) ERC721("Reward Pool NFT", "RPNFT") {
         nextTokenId = 1; // Start token IDs from 1
         paymentToken = address(0); // Default to native token
         price = 10000000000000000; // Default price to 10^16 wei (0.01 ether if on Ethereum or Arbitrum)
         rewardToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default ACM token
         rewardRate = 1500000000000000000000000; // Default reward rate is 1.5 million ACM
+        potionToken = _potionContract;
+        lastClaimTime = block.timestamp;
+        min_claims = 1;
+        min_health = 128;
     }
     
+    modifier hasSufficientBalance(uint256 amount) {
+        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
+        require(balance >= amount, "Insufficient funds for rewards");
+        _;
+    }
+
     // Mint function: allows minting NFTs with either ERC-20 or native token
-    function mint() public payable {
+    function mint() public payable nonReentrant {
         if (paymentToken == address(0)) {
             require(msg.value >= price, "Insufficient native token amount");
             if (msg.value > price) {
-                payable(msg.sender).transfer(msg.value - price);
+                uint256 amt = msg.value - price;
+                (bool success, ) = payable(msg.sender).call{value: amt}("");
+                require(success, "Ether transfer failed");
             }
         } else {
             require(IERC20(paymentToken).transferFrom(msg.sender, address(this), price), "ERC-20 transfer failed");
@@ -107,27 +156,39 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         
         // Mint the NFT to the sender with a unique tokenId
         _safeMint(msg.sender, nextTokenId);
+        health[nextTokenId] = 255;
+        emit NFTMinted(msg.sender, nextTokenId);
         nextTokenId += 1; // Increment the token ID for the next mint
-        
-        // Call time check to finalize the period if needed
-        _checkAndFinalizePeriod();
     }
-    
+
+    // Repair function: allows NFT owners to repair their NFTs using a repair potion
+    function repair(uint256 tokenId) public nonReentrant {
+        require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
+        require(IERC20(potionToken).balanceOf(msg.sender) >= 1, "Insufficient repair potions");
+        require(health[tokenId] < 255, "NFT is already at full health");
+        // Use the consume function of the repair potion contract to burn one repair potion
+        RepairPotion(potionToken).consume(tokenId);
+        health[tokenId] += 1;
+        emit TokenRepaired(msg.sender, tokenId);
+    }
+
     // Claim reward function for NFT holders. Make sure to use reentrancy guard
     function claim(uint256 tokenId) public nonReentrant {
         require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(!hasClaimedInPeriod[tokenId], "Already claimed this period");
-        
-        // Call time check to finalize the period if needed
+
+        require(health[tokenId] > min_health, "NFT is too damaged");
+        health[tokenId] -= 1;
+
+        // If the period has not ended, register the claimant. Otherwise, if the period is over, the rewards will be distributed immediately. But we still thank the claimant for paying for the gas to finalize the period. So we reward them with an allotment equal to the full reward for a period.
         if (!_checkAndFinalizePeriod()) {
             // Register claim
             claimants.push(Claimant(msg.sender, tokenId));
             hasClaimedInPeriod[tokenId] = true;
         } else {
-            // A new period has started, so instead of registering the claim, we reward the claimant immediately, also thanking them for paying for the gas to finalize the period. Thus we reward them with the full reward for a period.
-            _distributeReward(msg.sender, rewardRate);
+            _distributeReward(msg.sender, tokenId, rewardRate);
         }
-        
+        emit RewardClaimed(msg.sender, tokenId);
     }
 
     // External view check if past the claim period
@@ -152,42 +213,43 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     // External view to get the current reward rate per claimant
     function currentRewardRate() external view returns (uint256) {
+        if (claimants.length == 0) {
+            return 0;
+        }
         return rewardRate / claimants.length;
     }
     
     // Check if it's time to finalize the current claim period
     function _checkAndFinalizePeriod() internal returns (bool) {
         if (block.timestamp > lastClaimTime + claimPeriod) {
-            _finalizeClaims();
-            lastClaimTime = block.timestamp;
-            return true;
+            if (claimants.length >= min_claims) {
+                uint256 reward = rewardRate / claimants.length;
+                
+                for (uint256 i = 0; i < claimants.length; i++) { 
+                    Claimant memory claimant = claimants[i];
+                    address addr = claimant.addr;
+                    uint256 tokenId = claimant.tokenId;
+                    _distributeReward(addr, tokenId, reward);
+                    hasClaimedInPeriod[tokenId] = false;
+                }
+                lastClaimTime = block.timestamp;
+                delete claimants;        
+                return true;
+            }
         }
         return false;
     }
-    
-    // Finalize claims for the current period and distribute rewards
-    function _finalizeClaims() internal {
-        uint256 reward = rewardRate / claimants.length;
         
-        for (uint256 i = 0; i < claimants.length; i++) { 
-            Claimant memory claimant = claimants[i];
-            address addr = claimant.addr;
-            uint256 tokenId = claimant.tokenId;
-            _distributeReward(addr, reward);
-            hasClaimedInPeriod[tokenId] = false;
-        }
-        delete claimants;        
-    }
-    
-    function _distributeReward(address claimant, uint256 reward) internal {
-        // Logic to distribute reward tokens (e.g., ERC-20 transfers)
+    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal hasSufficientBalance(reward) {
         if (rewardToken == address(0)) {
-            payable(claimant).transfer(reward);
+            (bool success, ) = payable(claimant).call{value: reward}("");
+            require(success, "Native token transfer failed");
         } else {
-            IERC20(rewardToken).transfer(claimant, reward);
+            require(IERC20(rewardToken).transfer(claimant, reward), "ERC20 transfer failed");
         }
-    }
-    
+        emit RewardDistributed(claimant, tokenId, reward);
+    }    
+
     // Function for token URI (optional) if you want to attach metadata to the NFTs: Need to set before finalizing...
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Non-existent token");
@@ -196,6 +258,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     
     // Owner can set the payment token and price
     function setPaymentToken(address _paymentToken) public onlyOwner {
+        require(_paymentToken == address(0) || IERC20(_paymentToken).totalSupply() > 0, "Invalid payment token");
         paymentToken = _paymentToken;
     }
 
@@ -206,6 +269,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     // Owner can set the reward token and rate
     function setRewardToken(address _rewardToken) public onlyOwner {
+        require(_rewardToken == address(0) || IERC20(_rewardToken).totalSupply() > 0, "Invalid reward token");
         rewardToken = _rewardToken;
     }
 
@@ -214,6 +278,22 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         rewardRate = _rewardRate;
     }
     
+    // Owner can set the claim period
+    function setClaimPeriod(uint256 _claimPeriod) public onlyOwner {
+        claimPeriod = _claimPeriod;
+    }
+
+    // Owner can set the minimum number of claims required to finalize a period
+    function setMinClaims(uint256 _min_claims) public onlyOwner {
+        require(_min_claims > 0, "Minimum claims must be greater than zero");
+        min_claims = _min_claims;
+    }
+
+    // Owner can set the minimum health required to claim rewards
+    function setMinHealth(uint8 _min_health) public onlyOwner {
+        min_health = _min_health;
+    }
+
     // Override required for Solidity (for ERC721Enumerable)
     function _beforeTokenTransfer(
         address from,
@@ -230,7 +310,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     }
 
     // Withdraw function for the owner to withdraw any ERC-20 tokens
-    function withdraw(address _token) public onlyOwner {
+    function withdraw(address _token) public onlyOwner nonReentrant {
         if (_token == address(0)) {
             payable(owner()).transfer(address(this).balance);
         } else {
@@ -238,4 +318,3 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
     }
 }
-
