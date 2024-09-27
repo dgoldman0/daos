@@ -3,16 +3,17 @@ pragma solidity ^0.8.0;
 
 // Summary: This contract is a simple implementation of a reward pool NFT that allows users to mint NFTs and claim rewards. The contract has a claim period, and rewards are distributed to NFT holders at the end of each period. The contract can be used with either native tokens or ERC-20 tokens for minting and rewards. The contract also allows the owner to set the payment token, price, and reward rate.
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol"; 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts@4.9.0/token/ERC721/ERC721.sol"; 
+import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts@4.9.0/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
 
 // Still need to review. 
 
 // Ownable contract: Custom
 contract Ownable {
-    address public owner;
+    address public _owner;
     address public ownerNominee;
     uint256 public nominationDate;
 
@@ -21,11 +22,11 @@ contract Ownable {
     event NominationCancelled(address indexed cancelledBy);
 
     constructor() {
-        owner = msg.sender;
+        _owner = msg.sender;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not the owner");
+        require(msg.sender == _owner, "Not the owner");
         _;
     }
 
@@ -33,6 +34,7 @@ contract Ownable {
     function changeOwner(address newOwner) external onlyOwner {
         require(newOwner != address(0), "New owner is the zero address");
         ownerNominee = newOwner;
+        nominationDate = block.timestamp;   
         emit OwnerNominated(newOwner);
     }
 
@@ -47,10 +49,10 @@ contract Ownable {
     // Accept the ownership transfer
     function acceptOwnership() external {
         require(msg.sender == ownerNominee, "Only the nominee can accept ownership");
-        owner = ownerNominee;
+        _owner = ownerNominee;
         ownerNominee = address(0);
         nominationDate = 0;
-        emit OwnershipTransferred(owner, ownerNominee);
+        emit OwnershipTransferred(_owner, ownerNominee);
     }
 
     // Reject the ownership transfer
@@ -60,9 +62,13 @@ contract Ownable {
         nominationDate = 0;
         emit NominationCancelled(msg.sender);
     }
+
+    function owner() public view returns (address) {
+        return _owner;
+    }
 }
 
-contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
+contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     uint256 public lastClaimTime;
     uint256 public claimPeriod = 5 minutes;
     uint256 public rewardRate; // r - daily prize amount
@@ -78,13 +84,13 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     }
     
     mapping(uint256 => bool) public hasClaimedInPeriod; // Tracks which NFTs have claimed in the current period
-    address[] public claimants; // For distributing rewards
+    Claimant[] public claimants;
     
     constructor() ERC721("Reward Pool NFT", "RPNFT") {
         nextTokenId = 1; // Start token IDs from 1
         paymentToken = address(0); // Default to native token
         price = 10000000000000000; // Default price to 10^16 wei (0.01 ether if on Ethereum or Arbitrum)
-        rewardToken = address(0x0657fa37cdebb602b73ab437c62c48f02d8b3b8f); // Default ACM token
+        rewardToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default ACM token
         rewardRate = 1500000000000000000000000; // Default reward rate is 1.5 million ACM
     }
     
@@ -92,6 +98,9 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     function mint() public payable {
         if (paymentToken == address(0)) {
             require(msg.value >= price, "Insufficient native token amount");
+            if (msg.value > price) {
+                payable(msg.sender).transfer(msg.value - price);
+            }
         } else {
             require(IERC20(paymentToken).transferFrom(msg.sender, address(this), price), "ERC-20 transfer failed");
         }
@@ -115,7 +124,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
             claimants.push(Claimant(msg.sender, tokenId));
             hasClaimedInPeriod[tokenId] = true;
         } else {
-            // A new period has started, so instead of registering the claim, we reward the claimant immediately, also thanking them for paying for the gas to finalize the period.
+            // A new period has started, so instead of registering the claim, we reward the claimant immediately, also thanking them for paying for the gas to finalize the period. Thus we reward them with the full reward for a period.
             _distributeReward(msg.sender, rewardRate);
         }
         
@@ -147,7 +156,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     }
     
     // Check if it's time to finalize the current claim period
-    function _checkAndFinalizePeriod() internal {
+    function _checkAndFinalizePeriod() internal returns (bool) {
         if (block.timestamp > lastClaimTime + claimPeriod) {
             _finalizeClaims();
             lastClaimTime = block.timestamp;
@@ -162,9 +171,9 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         
         for (uint256 i = 0; i < claimants.length; i++) { 
             Claimant memory claimant = claimants[i];
-            address memory addr = claimant.addr;
-            uint256 memory tokenId = claimant.tokenId;
-            distributeReward(addr, reward);
+            address addr = claimant.addr;
+            uint256 tokenId = claimant.tokenId;
+            _distributeReward(addr, reward);
             hasClaimedInPeriod[tokenId] = false;
         }
         delete claimants;        
@@ -172,7 +181,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     
     function _distributeReward(address claimant, uint256 reward) internal {
         // Logic to distribute reward tokens (e.g., ERC-20 transfers)
-        if (paymentToken == address(0)) {
+        if (rewardToken == address(0)) {
             payable(claimant).transfer(reward);
         } else {
             IERC20(rewardToken).transfer(claimant, reward);
@@ -206,27 +215,27 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     }
     
     // Override required for Solidity (for ERC721Enumerable)
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override(ERC721, ERC721Enumerable) {
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
-    
+
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
     // Withdraw function for the owner to withdraw any ERC-20 tokens
-    function withdrawERC(address _token) public onlyOwner {
+    function withdraw(address _token) public onlyOwner {
         if (_token == address(0)) {
             payable(owner()).transfer(address(this).balance);
         } else {
             IERC20(_token).transfer(owner(), IERC20(_token).balanceOf(address(this)));
         }
-    }
-
-    // Withdraw function for the owner to withdraw any native tokens
-    function withdrawNative() public onlyOwner {
-        payable(owner()).transfer(address(this).balance);
     }
 }
 
