@@ -67,7 +67,7 @@ contract Ownable {
     }
 }
 
-// Repair potions are ERC20 tokens that can be used to repair NFTs
+// Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
 contract RepairPotion is ERC20, Ownable {
     address public poolContract;
     constructor() ERC20("Repair Potion", "REPAIR") {
