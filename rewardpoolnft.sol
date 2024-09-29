@@ -139,7 +139,7 @@ contract RepairPotion is ERC20, Ownable {
     }
 }
 
-contract NFTClaimManager is Ownable {
+contract ClaimManager is Ownable {
     address public controller; // Only the controller contract can modify data
 
     struct ClaimInfo {
@@ -154,7 +154,6 @@ contract NFTClaimManager is Ownable {
     }
 
     Claimant[] public claimants;
-
 
     // Mapping to store claim information for each NFT tokenId
     mapping(uint256 => ClaimInfo) private claimData;
@@ -265,7 +264,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     // Token information
     string private _baseTokenURI;
 
-    NFTClaimManager public claimManager;
+    ClaimManager public claimManager;
     
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
     event RewardClaimed(address indexed claimant, uint256 indexed tokenId);
@@ -480,7 +479,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
 
     // Owner can set the data manager contract
     function setClaimManager(address _claimManager) public onlyOwner {
-        claimManager = NFTClaimManager(_claimManager);
+        claimManager = ClaimManager(_claimManager);
     }
 
     // Override required for Solidity (for ERC721Enumerable)
