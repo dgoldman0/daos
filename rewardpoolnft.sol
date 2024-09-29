@@ -114,7 +114,7 @@ contract RepairPotion is ERC20, Ownable {
     }
 
     function setPoolContract(address _poolContract) public onlyOwner {
-        require(RewardPoolNFT(newController).isRewardPoolNFT(), "Invalid controller contract");
+        require(RewardPoolNFT(_poolContract).isRewardPoolNFT(), "Invalid controller contract");
         poolContract = _poolContract;
     }
 
@@ -149,6 +149,14 @@ contract NFTClaimManager is Ownable {
         uint8 health;
     }
 
+    struct Claimant {
+        address addr;
+        uint256 tokenId;
+    }
+
+    Claimant[] public claimants;
+
+
     // Mapping to store claim information for each NFT tokenId
     mapping(uint256 => ClaimInfo) private claimData;
 
@@ -163,17 +171,13 @@ contract NFTClaimManager is Ownable {
 
     // Set the controller during deployment
     constructor(address _controller) {
-        require(RewardPoolNFT(newController).isRewardPoolNFT(), "Invalid controller contract");
+        require(RewardPoolNFT(_controller).isRewardPoolNFT(), "Invalid controller contract");
         controller = _controller;
     }
 
     // Function to initialize claim data for a new NFT (only controller can call this)
     function initializeNFT(uint256 tokenId) external onlyController {
         claimData[tokenId] = ClaimInfo(0, false, 255); // default full health
-    }
-
-    function resetClaim(uint256 tokenId) external onlyController {
-        claimData[tokenId].hasClaimedInPeriod = false;
     }
 
     // Function to check if the tokenId has claimed in the current period
@@ -186,11 +190,23 @@ contract NFTClaimManager is Ownable {
         return claimData[tokenId].health;
     }
 
-    function claim(uint256 tokenId) external onlyController {
-        hasClaimedInPeriod[tokenId] = true;
-        claimData[tokenId].totalClaims += 1;
+    function getTotalClaims(uint256 tokenId) external view returns (uint256) {
+        return claimData[tokenId].totalClaims;
     }
 
+    function resetClaim(uint256 tokenId) external onlyController {
+        claimData[tokenId].hasClaimedInPeriod = false;
+    }
+
+    function claim(uint256 tokenId) external onlyController {
+        claimData[tokenId].totalClaims += 1;
+        claimData[tokenId].hasClaimedInPeriod = true;
+        claimData[tokenId].health -= 1;
+        // Add the claimant to the list of claimants
+        address addr = IERC721(controller).ownerOf(tokenId);
+        claimants.push(Claimant(addr, tokenId));
+    }
+    
     function getClaimantsCount() external view returns (uint256) {
         return claimants.length;
     }
@@ -318,19 +334,16 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(!claimManager.hasClaimedInPeriod(tokenId), "Already claimed this period");
         // The claim liimt is enforced until the period ends, preventing any more claimers. Then when the claim period is over, whoever tries to claim gets the special reward fund.
-        require(claimManager.totalClaims(tokenId) <= claimerLimit || isClaimReady(), "Claimer limit reached");
+        require(claimManager.getTotalClaims(tokenId) <= claimerLimit || isClaimReady(), "Claimer limit reached");
 
         require(claimManager.getHealth(tokenId) > min_health, "NFT is too damaged");
-        claimManager.updateClaim(tokenId);
-        claimManager.reduceHealth(tokenId);
+        claimManager.claim(tokenId);
     
-
         // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
-        if (!_checkAndFinalizePeriod()) {
-            claimants.push(Claimant(msg.sender, tokenId));
-        } else {
+        if (_checkAndFinalizePeriod()) {
             _distributeReward(msg.sender, tokenId, specialRewardRate);
         }
+        // Register either for this period or the next period
         claimManager.claim(tokenId);
         emit RewardClaimed(msg.sender, tokenId);
     }
@@ -347,31 +360,32 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
 
     // External view to get the number of claimants in the current period
     function claimantsCount() external view returns (uint256) {
-        return claimManager.claimantsCount();
+        return claimManager.getClaimantsCount();
     }
 
     // External view to get the claimants
-    function getClaimants() external view returns (Claimant[] memory) {
+    function getClaimants() external view returns (NFTClaimManager.Claimant[] memory) {
         return claimManager.getClaimants();
     }
 
     // External view to get the current reward rate per claimant
     function currentRewardRate() external view returns (uint256) {
-        if (claimants.length == 0) {
+        uint256 len = claimManager.getClaimantsCount();
+        if (len == 0) {
             return 0;
         }
-        return rewardRate / claimants.length;
+        return rewardRate / len;
     }
     
     // Check if it's time to finalize the current claim period
     function _checkAndFinalizePeriod() internal returns (bool) {
         if (block.timestamp > lastClaimTime + claimPeriod) {
-            uint256 len = claimManager.claimantsCount();
+            uint256 len = claimManager.getClaimantsCount();
             if (len >= min_claims) {
                 uint256 reward = rewardRate / len;
                 
                 for (uint256 i = 0; i < len; i++) { 
-                    Claimant memory claimant = claimManager.claimant(i);
+                    NFTClaimManager.Claimant memory claimant = claimManager.claimant(i);
                     address addr = claimant.addr;
                     uint256 tokenId = claimant.tokenId;
                     _distributeReward(addr, tokenId, reward);
@@ -457,7 +471,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
 
     // Owner can set the repair potion token
     function setPotionToken(address _potionToken) public onlyOwner {
-        potionToken = _potion
+        potionToken = _potionToken;
     }
 
     // Owner can set the claimer limit
