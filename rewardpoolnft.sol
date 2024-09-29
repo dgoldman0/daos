@@ -150,7 +150,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     address public rewardToken;
     address public potionToken;
     uint256 public nextTokenId; // Unique ID for minted NFTs
-    int256 public claimerLimit; // Limit of claimers per period
+    uint256 public claimerLimit; // Limit of claimers per period
 
     uint8 public min_health;
 
@@ -161,7 +161,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
 
     // Token information
     string private _baseTokenURI;
-    mapping (uint256 => uint256) public health;
+    mapping (uint256 => uint8) public health;
     mapping (uint256 => uint256) public totalClaims;
     
     mapping(uint256 => bool) public hasClaimedInPeriod; // Tracks which NFTs have claimed in the current period
@@ -188,12 +188,6 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         _baseTokenURI = "https://api.arcadium.fun/token/";
     }
     
-    modifier hasSufficientBalance(uint256 amount) {
-        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
-        require(balance >= amount, "Insufficient funds for rewards");
-        _;
-    }
-
     // Mint function: allows minting NFTs with either ERC-20 or native token
     function mint() public payable nonReentrant {
         if (paymentToken == address(0)) {
@@ -225,6 +219,11 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         emit TokenRepaired(msg.sender, tokenId);
     }
 
+    function hasSufficientBalance(uint256 amount) public view returns (bool) {
+        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
+        return balance >= amount;
+    }
+
     // Claim reward function for NFT holders. Make sure to use reentrancy guard
     function claim(uint256 tokenId) public nonReentrant {
         // Protect users from claiming when the contract doesn't have enough funds
@@ -252,7 +251,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     }
 
     // External view check if past the claim period
-    function isClaimReady() external view returns (bool) {
+    function isClaimReady() public view returns (bool) {
         return block.timestamp > lastClaimTime + claimPeriod;
     }
 
@@ -305,7 +304,8 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         return false;
     }
         
-    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal hasSufficientBalance(reward) {
+    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal {
+        require(hasSufficientBalance(reward), "Insufficient funds for rewards");
         if (rewardToken == address(0)) {
             (bool success, ) = payable(claimant).call{value: reward}("");
             require(success, "Native token transfer failed");
