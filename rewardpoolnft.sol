@@ -172,14 +172,13 @@ contract NFTClaimManager is Ownable {
         claimData[tokenId] = ClaimInfo(0, false, 255); // default full health
     }
 
+    function resetClaim(uint256 tokenId) external onlyController {
+        claimData[tokenId].hasClaimedInPeriod = false;
+    }
+
     // Function to check if the tokenId has claimed in the current period
     function hasClaimedInPeriod(uint256 tokenId) external view returns (bool) {
         return claimData[tokenId].hasClaimedInPeriod;
-    }
-
-    // Function to check the total claims for an NFT
-    function getTotalClaims(uint256 tokenId) external view returns (uint256) {
-        return claimData[tokenId].totalClaims;
     }
 
     // Function to get the health of an NFT
@@ -187,15 +186,25 @@ contract NFTClaimManager is Ownable {
         return claimData[tokenId].health;
     }
 
-    // Function to update the claim status for the tokenId (only controller can call this)
-    function updateClaim(uint256 tokenId) external onlyController {
+    function claim(uint256 tokenId) external onlyController {
+        hasClaimedInPeriod[tokenId] = true;
         claimData[tokenId].totalClaims += 1;
-        claimData[tokenId].hasClaimedInPeriod = true;
     }
 
-    // Reset claim period after a finalized reward period (only controller can call this)
-    function resetClaimPeriod(uint256 tokenId) external onlyController {
-        claimData[tokenId].hasClaimedInPeriod = false;
+    function getClaimantsCount() external view returns (uint256) {
+        return claimants.length;
+    }
+
+    function getClaimants() external view returns (Claimant[] memory) {
+        return claimants;
+    }
+
+    function claimant(uint256 index) external view returns (Claimant memory) {
+        return claimants[index];
+    }
+
+    function deleteClaimants() external onlyController {
+        delete claimants;
     }
 
     // Function to decrease health for each claim (only controller can call this)
@@ -211,16 +220,6 @@ contract NFTClaimManager is Ownable {
         if (claimData[tokenId].health > 255) {
             claimData[tokenId].health = 255; // Ensure health doesn't exceed max value
         }
-    }
-
-    // Function to check if the claim period is over for a given NFT
-    function isClaimPeriodOver(uint256 tokenId, uint256 claimPeriod) external view returns (bool) {
-        return block.timestamp > lastClaimTime[tokenId] + claimPeriod;
-    }
-
-    // Function to set the last claim time for a given tokenId (only controller can call this)
-    function setLastClaimTime(uint256 tokenId) external onlyController {
-        lastClaimTime[tokenId] = block.timestamp;
     }
 
     // Function to change the controller (only the contract's owner can call this)
@@ -243,22 +242,15 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     address public rewardToken;
     address public potionToken;
     uint256 public nextTokenId; // Unique ID for minted NFTs
-    uint256 public claimerLimit; // Limit of claimers per period
+    uint256 public claimerLimit; // Maximum number of claimants in a period
 
     uint8 public min_health;
 
-    struct Claimant {
-        address addr;
-        uint256 tokenId;
-    }
 
     // Token information
     string private _baseTokenURI;
-    mapping (uint256 => uint8) public health;
-    mapping (uint256 => uint256) public totalClaims;
-    
-    mapping(uint256 => bool) public hasClaimedInPeriod; // Tracks which NFTs have claimed in the current period
-    Claimant[] public claimants;
+
+    NFTClaimManager public claimManager;
     
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
     event RewardClaimed(address indexed claimant, uint256 indexed tokenId);
@@ -296,7 +288,7 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         
         // Mint the NFT to the sender with a unique tokenId
         _safeMint(msg.sender, nextTokenId);
-        health[nextTokenId] = 255;
+        claimManager.initializeNFT(nextTokenId);
         emit NFTMinted(msg.sender, nextTokenId);
         nextTokenId += 1; // Increment the token ID for the next mint
     }
@@ -305,10 +297,10 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     function repair(uint256 tokenId) public nonReentrant {
         require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(IERC20(potionToken).balanceOf(msg.sender) >= 1, "Insufficient repair potions");
-        require(health[tokenId] < 255, "NFT is already at full health");
+        require(claimManager.getHealth(tokenId) < 255, "NFT health is already full");
         // Use the consume function of the repair potion contract to burn one repair potion
         RepairPotion(potionToken).consume(tokenId);
-        health[tokenId] += 1;
+        claimManager.repairHealth(tokenId, 1);
         emit TokenRepaired(msg.sender, tokenId);
     }
 
@@ -324,22 +316,22 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         // In the rare case where the special reward rate is more than the reward rate, which could happen? 
         require(hasSufficientBalance(specialRewardRate), "Insufficient funds for special rewards");
         require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
-        require(!hasClaimedInPeriod[tokenId], "Already claimed this period");
+        require(!claimManager.hasClaimedInPeriod(tokenId), "Already claimed this period");
         // The claim liimt is enforced until the period ends, preventing any more claimers. Then when the claim period is over, whoever tries to claim gets the special reward fund.
-        require(totalClaims[tokenId] <= claimerLimit || isClaimReady(), "Claimer limit reached");
+        require(claimManager.totalClaims(tokenId) <= claimerLimit || isClaimReady(), "Claimer limit reached");
 
-        require(health[tokenId] > min_health, "NFT is too damaged");
-        health[tokenId] -= 1;
-        totalClaims[tokenId] += 1;
+        require(claimManager.getHealth(tokenId) > min_health, "NFT is too damaged");
+        claimManager.updateClaim(tokenId);
+        claimManager.reduceHealth(tokenId);
     
 
         // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
         if (!_checkAndFinalizePeriod()) {
             claimants.push(Claimant(msg.sender, tokenId));
-            hasClaimedInPeriod[tokenId] = true;
         } else {
             _distributeReward(msg.sender, tokenId, specialRewardRate);
         }
+        claimManager.claim(tokenId);
         emit RewardClaimed(msg.sender, tokenId);
     }
 
@@ -350,17 +342,17 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
 
     // External view check if the NFT has claimed in the current period
     function hasClaimed(uint256 tokenId) external view returns (bool) {
-        return hasClaimedInPeriod[tokenId];
+        return claimManager.hasClaimedInPeriod(tokenId);
     }
 
     // External view to get the number of claimants in the current period
     function claimantsCount() external view returns (uint256) {
-        return claimants.length;
+        return claimManager.claimantsCount();
     }
 
     // External view to get the claimants
     function getClaimants() external view returns (Claimant[] memory) {
-        return claimants;
+        return claimManager.getClaimants();
     }
 
     // External view to get the current reward rate per claimant
@@ -374,22 +366,23 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     // Check if it's time to finalize the current claim period
     function _checkAndFinalizePeriod() internal returns (bool) {
         if (block.timestamp > lastClaimTime + claimPeriod) {
-            if (claimants.length >= min_claims) {
-                uint256 reward = rewardRate / claimants.length;
+            uint256 len = claimManager.claimantsCount();
+            if (len >= min_claims) {
+                uint256 reward = rewardRate / len;
                 
-                for (uint256 i = 0; i < claimants.length; i++) { 
-                    Claimant memory claimant = claimants[i];
+                for (uint256 i = 0; i < len; i++) { 
+                    Claimant memory claimant = claimManager.claimant(i);
                     address addr = claimant.addr;
                     uint256 tokenId = claimant.tokenId;
                     _distributeReward(addr, tokenId, reward);
-                    hasClaimedInPeriod[tokenId] = false;
+                    claimManager.resetClaim(tokenId);
                 }
                 lastClaimTime = block.timestamp;
-                delete claimants;        
+                claimManager.deleteClaimants();
                 return true;
             } else {
                 // If there are not enough claimants just scratch the whole period.
-                delete claimants;
+                claimManager.deleteClaimants();
                 lastClaimTime = block.timestamp;
                 return false;
             }
@@ -460,6 +453,21 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     // Owner can set the minimum health required to claim rewards
     function setMinHealth(uint8 _min_health) public onlyOwner {
         min_health = _min_health;
+    }
+
+    // Owner can set the repair potion token
+    function setPotionToken(address _potionToken) public onlyOwner {
+        potionToken = _potion
+    }
+
+    // Owner can set the claimer limit
+    function setClaimerLimit(uint256 _claimerLimit) public onlyOwner {
+        claimerLimit = _claimerLimit;
+    }
+
+    // Owner can set the data manager contract
+    function setClaimManager(address _claimManager) public onlyOwner {
+        claimManager = NFTClaimManager(_claimManager);
     }
 
     // Override required for Solidity (for ERC721Enumerable)
