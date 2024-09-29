@@ -13,7 +13,7 @@ import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
 // Still need to review. 
 
 // Ownable contract: Custom
-contract Ownable {
+contract Ownable is ReentrancyGuard {
     address private _owner;
     address public ownerNominee;
     uint256 public nominationDate;
@@ -65,25 +65,68 @@ contract Ownable {
     function owner() public view returns (address) {
         return _owner;
     }
+
+    // Withdraw function for the owner to withdraw tokens held by the contract.
+    function withdraw(address _token) public onlyOwner nonReentrant {
+        if (_token == address(0)) {
+            payable(owner()).transfer(address(this).balance);
+        } else {
+            IERC20(_token).transfer(owner(), IERC20(_token).balanceOf(address(this)));
+        }
+    }
 }
 
 // Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
 contract RepairPotion is ERC20, Ownable {
     address public poolContract;
+    address public purchaseToken;
+    uint256 public purchasePrice;
+    uint256 public maxPurchaseAmount;
+
     constructor() ERC20("Repair Potion", "REPAIR") {
-        _mint(msg.sender, 10000);
+        maxPurchaseAmount = 100;
+        purchaseToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default to ACM token
+        purchasePrice = 10000000000000000; // Default price is 0.1 token
     }
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
 
+    function buy(uint256 amount) public payable {
+        require(amount > 0, "Amount must be greater than zero");
+        require(amount <= maxPurchaseAmount, "Amount exceeds maximum purchase amount");
+        uint256 cost = purchasePrice * amount;
+        require((purchaseToken == address(0) && msg.value == cost) || IERC20(purchaseToken).transferFrom(msg.sender, address(this), cost), "Invalid payment");
+
+        if (purchaseToken == address(0)) {
+            // Refund any excess payment
+            if (msg.value > purchasePrice * amount) {
+                (bool success, ) = payable(msg.sender).call{value: msg.value - cost}("");
+                require(success, "Ether transfer failed");
+            }
+        }
+        _mint(msg.sender, amount);
+    }
     function decimals() public view override returns (uint8) {
         return 0;
     }
 
     function setPoolContract(address _poolContract) public onlyOwner {
         poolContract = _poolContract;
+    }
+
+    function setPurchaseToken(address _purchaseToken) public onlyOwner {
+        require(_purchaseToken == address(0) || IERC20(_purchaseToken).totalSupply() > 0, "Invalid purchase token");
+        purchaseToken = _purchaseToken;
+    }
+
+    function setPurchasePrice(uint256 _purchasePrice) public onlyOwner {
+        purchasePrice = _purchasePrice;
+    }
+
+    function setMaxPurchaseAmount(uint256 _maxPurchaseAmount) public onlyOwner {
+        maxPurchaseAmount = _maxPurchaseAmount;
     }
 
     // Burn a repair potion to repair an NFT. Only the pool contract can call this function. Called by the pool contract's repair function.
@@ -95,25 +138,31 @@ contract RepairPotion is ERC20, Ownable {
     }
 }
 
-contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
+contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     uint256 public lastClaimTime;
-    uint256 public claimPeriod = 5 minutes;
+    uint256 public claimPeriod;
     uint256 public rewardRate; // r - daily prize amount
-    uint256 public price;
-    uint256 public min_claims;
+    uint256 public specialRewardRate; // s - special prize amount
+    uint256 public price; // The cost to mint an NFT
+    uint256 public min_claims; // Minimum number of claims required to finalize a period
     
     address public paymentToken;
     address public rewardToken;
     address public potionToken;
     uint256 public nextTokenId; // Unique ID for minted NFTs
+    int256 public claimerLimit; // Limit of claimers per period
 
-    mapping (uint256 => uint256) public health;
     uint8 public min_health;
 
     struct Claimant {
         address addr;
         uint256 tokenId;
     }
+
+    // Token information
+    string private _baseTokenURI;
+    mapping (uint256 => uint256) public health;
+    mapping (uint256 => uint256) public totalClaims;
     
     mapping(uint256 => bool) public hasClaimedInPeriod; // Tracks which NFTs have claimed in the current period
     Claimant[] public claimants;
@@ -128,11 +177,15 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         paymentToken = address(0); // Default to native token
         price = 10000000000000000; // Default price to 10^16 wei (0.01 ether if on Ethereum or Arbitrum)
         rewardToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default ACM token
-        rewardRate = 1500000000000000000000000; // Default reward rate is 1.5 million ACM
+        rewardRate = 5000000000000000000000; // Default reward rate is 5 thousand ACM
+        specialRewardRate = rewardRate; // Special reward rate for finalizing the period (default to rewardRate)
+        claimPeriod = 5 minutes; // Default claim period is 5 minutes
+        claimerLimit = 100; // Default claimer limit in time period is 100
         potionToken = _potionContract;
         lastClaimTime = block.timestamp;
         min_claims = 1;
         min_health = 128;
+        _baseTokenURI = "https://api.arcadium.fun/token/";
     }
     
     modifier hasSufficientBalance(uint256 amount) {
@@ -174,19 +227,26 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     // Claim reward function for NFT holders. Make sure to use reentrancy guard
     function claim(uint256 tokenId) public nonReentrant {
+        // Protect users from claiming when the contract doesn't have enough funds
+        require(hasSufficientBalance(rewardRate), "Insufficient funds for rewards");
+        // In the rare case where the special reward rate is more than the reward rate, which could happen? 
+        require(hasSufficientBalance(specialRewardRate), "Insufficient funds for special rewards");
         require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(!hasClaimedInPeriod[tokenId], "Already claimed this period");
+        // The claim liimt is enforced until the period ends, preventing any more claimers. Then when the claim period is over, whoever tries to claim gets the special reward fund.
+        require(totalClaims[tokenId] <= claimerLimit || isClaimReady(), "Claimer limit reached");
 
         require(health[tokenId] > min_health, "NFT is too damaged");
         health[tokenId] -= 1;
+        totalClaims[tokenId] += 1;
+    
 
-        // If the period has not ended, register the claimant. Otherwise, if the period is over, the rewards will be distributed immediately. But we still thank the claimant for paying for the gas to finalize the period. So we reward them with an allotment equal to the full reward for a period.
+        // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
         if (!_checkAndFinalizePeriod()) {
-            // Register claim
             claimants.push(Claimant(msg.sender, tokenId));
             hasClaimedInPeriod[tokenId] = true;
         } else {
-            _distributeReward(msg.sender, tokenId, rewardRate);
+            _distributeReward(msg.sender, tokenId, specialRewardRate);
         }
         emit RewardClaimed(msg.sender, tokenId);
     }
@@ -235,6 +295,11 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
                 lastClaimTime = block.timestamp;
                 delete claimants;        
                 return true;
+            } else {
+                // If there are not enough claimants just scratch the whole period.
+                delete claimants;
+                lastClaimTime = block.timestamp;
+                return false;
             }
         }
         return false;
@@ -250,12 +315,17 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         emit RewardDistributed(claimant, tokenId, reward);
     }    
 
-    // Function for token URI (optional) if you want to attach metadata to the NFTs: Need to set before finalizing...
+    // Function to override tokenURI, fetching the metadata from the base URL
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Non-existent token");
-        return string(abi.encodePacked("https://api.example.com/metadata/", Strings.toString(tokenId)));
+        return string(abi.encodePacked(_baseTokenURI, Strings.toString(tokenId)));
     }
-    
+
+    // Owner can set the base token URI for metadata
+    function setBaseTokenURI(string memory baseTokenURI) public onlyOwner {
+        _baseTokenURI = baseTokenURI;
+    }
+
     // Owner can set the payment token and price
     function setPaymentToken(address _paymentToken) public onlyOwner {
         require(_paymentToken == address(0) || IERC20(_paymentToken).totalSupply() > 0, "Invalid payment token");
@@ -278,6 +348,11 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         rewardRate = _rewardRate;
     }
     
+    // Owner can set the special reward rate
+    function setSpecialRewardRate(uint256 _specialRewardRate) public onlyOwner {
+        specialRewardRate = _specialRewardRate;
+    }
+
     // Owner can set the claim period
     function setClaimPeriod(uint256 _claimPeriod) public onlyOwner {
         claimPeriod = _claimPeriod;
@@ -307,14 +382,5 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
-    }
-
-    // Withdraw function for the owner to withdraw any ERC-20 tokens
-    function withdraw(address _token) public onlyOwner nonReentrant {
-        if (_token == address(0)) {
-            payable(owner()).transfer(address(this).balance);
-        } else {
-            IERC20(_token).transfer(owner(), IERC20(_token).balanceOf(address(this)));
-        }
     }
 }
