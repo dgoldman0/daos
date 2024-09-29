@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 // Summary: This contract is a simple implementation of a reward pool NFT that allows users to mint NFTs and claim rewards. The contract has a claim period, and rewards are distributed to NFT holders at the end of each period. The contract can be used with either native tokens or ERC-20 tokens for minting and rewards. The contract also allows the owner to set the payment token, price, and reward rate.
 
 import "@openzeppelin/contracts@4.9.0/token/ERC721/ERC721.sol"; 
+import "@openzeppelin/contracts@4.9.0/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
@@ -113,6 +114,7 @@ contract RepairPotion is ERC20, Ownable {
     }
 
     function setPoolContract(address _poolContract) public onlyOwner {
+        require(RewardPoolNFT(newController).isRewardPoolNFT(), "Invalid controller contract");
         poolContract = _poolContract;
     }
 
@@ -132,9 +134,100 @@ contract RepairPotion is ERC20, Ownable {
     // Burn a repair potion to repair an NFT. Only the pool contract can call this function. Called by the pool contract's repair function.
     function consume(uint256 tokenId) public {
         require(msg.sender == poolContract, "Only the pool contract can repair NFTs");
-        address _tokenOwner = ERC721(poolContract).ownerOf(tokenId);        
+        address _tokenOwner = IERC721(poolContract).ownerOf(tokenId);        
         require(balanceOf(_tokenOwner) >= 1, "Insufficient repair potions");
         _burn(_tokenOwner, 1);
+    }
+}
+
+contract NFTClaimManager is Ownable {
+    address public controller; // Only the controller contract can modify data
+
+    struct ClaimInfo {
+        uint256 totalClaims;
+        bool hasClaimedInPeriod;
+        uint8 health;
+    }
+
+    // Mapping to store claim information for each NFT tokenId
+    mapping(uint256 => ClaimInfo) private claimData;
+
+    // Store claim period and last claim time per NFT
+    mapping(uint256 => uint256) public lastClaimTime;
+
+    // Modifier to restrict function access to the controller contract
+    modifier onlyController() {
+        require(msg.sender == controller, "Caller is not the controller");
+        _;
+    }
+
+    // Set the controller during deployment
+    constructor(address _controller) {
+        require(RewardPoolNFT(newController).isRewardPoolNFT(), "Invalid controller contract");
+        controller = _controller;
+    }
+
+    // Function to initialize claim data for a new NFT (only controller can call this)
+    function initializeNFT(uint256 tokenId) external onlyController {
+        claimData[tokenId] = ClaimInfo(0, false, 255); // default full health
+    }
+
+    // Function to check if the tokenId has claimed in the current period
+    function hasClaimedInPeriod(uint256 tokenId) external view returns (bool) {
+        return claimData[tokenId].hasClaimedInPeriod;
+    }
+
+    // Function to check the total claims for an NFT
+    function getTotalClaims(uint256 tokenId) external view returns (uint256) {
+        return claimData[tokenId].totalClaims;
+    }
+
+    // Function to get the health of an NFT
+    function getHealth(uint256 tokenId) external view returns (uint8) {
+        return claimData[tokenId].health;
+    }
+
+    // Function to update the claim status for the tokenId (only controller can call this)
+    function updateClaim(uint256 tokenId) external onlyController {
+        claimData[tokenId].totalClaims += 1;
+        claimData[tokenId].hasClaimedInPeriod = true;
+    }
+
+    // Reset claim period after a finalized reward period (only controller can call this)
+    function resetClaimPeriod(uint256 tokenId) external onlyController {
+        claimData[tokenId].hasClaimedInPeriod = false;
+    }
+
+    // Function to decrease health for each claim (only controller can call this)
+    function reduceHealth(uint256 tokenId) external onlyController {
+        require(claimData[tokenId].health > 0, "NFT health is already too low");
+        claimData[tokenId].health -= 1;
+    }
+
+    // Function to repair an NFT's health (only controller can call this)
+    function repairHealth(uint256 tokenId, uint8 repairAmount) external onlyController {
+        require(claimData[tokenId].health < 255, "NFT health is already full");
+        claimData[tokenId].health += repairAmount;
+        if (claimData[tokenId].health > 255) {
+            claimData[tokenId].health = 255; // Ensure health doesn't exceed max value
+        }
+    }
+
+    // Function to check if the claim period is over for a given NFT
+    function isClaimPeriodOver(uint256 tokenId, uint256 claimPeriod) external view returns (bool) {
+        return block.timestamp > lastClaimTime[tokenId] + claimPeriod;
+    }
+
+    // Function to set the last claim time for a given tokenId (only controller can call this)
+    function setLastClaimTime(uint256 tokenId) external onlyController {
+        lastClaimTime[tokenId] = block.timestamp;
+    }
+
+    // Function to change the controller (only the contract's owner can call this)
+    function changeController(address newController) external onlyOwner {
+        require(newController != address(0), "Controller address cannot be zero");
+        require(RewardPoolNFT(newController).isRewardPoolNFT(), "Invalid controller contract");
+        controller = newController;
     }
 }
 
@@ -382,5 +475,9 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function isRewardPoolNFT() external pure returns (bool) {
+        return true;
     }
 }
