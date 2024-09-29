@@ -244,6 +244,25 @@ contract ClaimManager is Ownable {
     }
 }
 
+// Payout Manager
+contract RewardPoolNFT is ERC721Enumerable, Ownable {
+    uint256 public lastClaimTime;
+    uint256 public claimPeriod;
+    uint256 public rewardRate; // r - daily prize amount
+    uint256 public specialRewardRate; // s - special prize amount
+    uint256 public price; // The cost to mint an NFT
+    uint256 public min_claims; // Minimum number of claims required to finalize a period
+    
+    address public paymentToken;
+    address public rewardToken;
+    address public potionToken;
+    uint256 public nextTokenId; // Unique ID for minted NFTs
+    uint256 public claimerLimit; // Maximum number of claimants in a period
+
+    uint8 public min_health;
+
+}
+
 contract RewardPoolNFT is ERC721Enumerable, Ownable {
     uint256 public lastClaimTime;
     uint256 public claimPeriod;
