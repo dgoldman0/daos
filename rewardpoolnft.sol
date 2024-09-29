@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 // Summary: This contract is a simple implementation of a reward pool NFT that allows users to mint NFTs and claim rewards. The contract has a claim period, and rewards are distributed to NFT holders at the end of each period. The contract can be used with either native tokens or ERC-20 tokens for minting and rewards. The contract also allows the owner to set the payment token, price, and reward rate.
 
-import "@openzeppelin/contracts@4.9.0/token/ERC721/ERC721.sol"; 
 import "@openzeppelin/contracts@4.9.0/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/ERC20.sol";
@@ -246,7 +245,7 @@ contract NFTClaimManager is Ownable {
     }
 }
 
-contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
+contract RewardPoolNFT is ERC721Enumerable, Ownable {
     uint256 public lastClaimTime;
     uint256 public claimPeriod;
     uint256 public rewardRate; // r - daily prize amount
@@ -490,12 +489,12 @@ contract RewardPoolNFT is ERC721, ERC721Enumerable, Ownable {
         address to,
         uint256 tokenId,
         uint256 batchSize
-    ) internal override(ERC721, ERC721Enumerable) {
+    ) internal override(ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
     // Override required for Solidity (for ERC721Enumerable)
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
