@@ -1,5 +1,4 @@
 @startuml
-!theme toy
 skinparam componentStyle rectangle
 
 ' Actors
@@ -21,7 +20,7 @@ package "Nation DAOs" {
 ' Sector and Initiative DAOs
 package "Sector and Initiative DAOs" {
     component [<<Sector DAO>>\n**Education DAO**\n"Manages Educational Initiatives"] as EducationDAO
-    component [<<Sector DAO>>\n**Volunteer DAO**\n"Manages Volunteer Initiatives"] as VolunteerDAO
+    component [<<Sector DAO>>\n**Various Sector DAOs**\n"Manages Volunteer Initiatives"] as VolunteerDAO
 
     component [<<Initiative DAO>>\n**Education Initiative**\n"Educational Programs"] as EducationInitiative
     component [<<Initiative DAO>>\n**Volunteer Initiative**\n"Volunteer Opportunities"] as VolunteerInitiative
