@@ -1,0 +1,118 @@
+@startuml
+skinparam componentStyle rectangle
+
+' Core DAO
+component [<<Core DAO>>\n**Barayin DAO**\n"Foundation for the entire ecosystem\nAims to build a prosperous and free world for future generations\nManages League of Nation DAOs"] as BarayinDAO
+
+' League of Nation DAOs
+package "League of Nation DAOs" {
+    component [<<League of Nation DAO>>\n**Anidé DAO**\n"Responsible for America\nHeal scars of the past\nBuild a cooperative future\nPreserve heritage across the region"] as AnideDAO
+    component [<<League of Nation DAO>>\n**Canaan DAO**\n"Responsible for Canaan\nReduce conflict and foster cooperation\nReconnect modern nations with Canaanite roots"] as CanaanDAO
+    component [<<League of Nation DAO>>\n**Olive DAO**\n"Responsible for the Mediterranean region\nFoster unity and prosperity among Mediterranean peoples"] as OliveDAO
+    component [<<League of Nation DAO>>\n**Euro DAO**\n"Responsible for Europe\nA DAO alternative to the European Union\nPromoting European cooperation and collaboration"] as EuroDAO
+    component [<<League of Nation DAO>>\n**Pacific DAO**\n"Responsible for the Pacific Islands and surrounding nations\nPromote collaboration and regional development"] as PacificDAO
+    component [<<League of Nation DAO>>\n**Asia DAO**\n"Responsible for Asia\nUnite diverse cultures and nations of Asia\nPromote shared prosperity and understanding"] as AsiaDAO
+    component [<<League of Nation DAO>>\n**Africa DAO**\n"Responsible for the African continent\nUnite and serve the people of Africa\nStrengthen bonds and foster regional prosperity"] as AfricaDAO
+    component [<<League of Nation DAO>>\n**Arabia DAO**\n"Responsible for the Arabian Peninsula\nFoster unity and collaborative growth among Arabian nations"] as ArabiaDAO
+}
+
+' Sector DAOs under League of Nation DAOs
+package "Sector DAOs" {
+    component [<<Sector DAO>>\n**Arcadium DAO**\n"Responsible for entertainment and culture\nRecognizes entertainment as a basic need for a healthy life"] as ArcadiumDAO
+    component [<<Sector DAO>>\n**FinDAO**\n"Responsible for financial systems\nImproving financial literacy, promoting economic stability"] as FinDAO
+    component [<<Sector DAO>>\n**Environment DAO**\n"Responsible for promoting environmental sustainability and conservation"] as EnvironmentDAO
+    component [<<Sector DAO>>\n**Education DAO**\n"Responsible for advancing global education\nImproving access to learning resources and promoting literacy"] as EducationDAO
+    component [<<Sector DAO>>\n**Technology DAO**\n"Responsible for driving technological innovation and accessibility"] as TechnologyDAO
+    component [<<Sector DAO>>\n**Promote Health DAO**\n"Responsible for improving global health and wellness\nFocusing on preventive healthcare and well-being"] as HealthDAO
+}
+
+' Initiative DAOs under Sector DAOs
+package "Initiative DAOs" {
+    component [<<Initiative DAO>>\n**Economic Prosperity Initiative DAO**\n"Promotes sustainable economic growth\nSupports financial literacy, entrepreneurship, and inclusive financial technologies"] as EconomicInitiative
+    component [<<Initiative DAO>>\n**Environmental Stewardship Initiative DAO**\n"Promotes environmental sustainability and conservation\nFocuses on ecosystem preservation, renewable energy, and community education"] as EnvironmentalInitiative
+    component [<<Initiative DAO>>\n**Entertainment Enrichment Initiative DAO**\n"Enhances access to arts and entertainment\nSupports creative projects and community spaces for recreation"] as EntertainmentInitiative
+    component [<<Initiative DAO>>\n**Education Advancement Initiative DAO**\n"Promotes educational excellence and lifelong learning\nFocuses on literacy programs, teacher training, and digital education"] as EducationInitiative
+    component [<<Initiative DAO>>\n**Innovation and Technology Initiative DAO**\n"Fosters technological innovation and accessibility\nSupports tech startups, research, and digital infrastructure development"] as TechnologyInitiative
+    component [<<Initiative DAO>>\n**Health and Wellness Promotion Initiative DAO**\n"Enhances health and wellness in communities\nFocuses on wellness education, preventive healthcare, and mental health support"] as HealthInitiative
+}
+
+' Relationships between Barayin DAO and League of Nation DAOs
+BarayinDAO --> AnideDAO : "Manages"
+BarayinDAO --> CanaanDAO : "Manages"
+BarayinDAO --> OliveDAO : "Manages"
+BarayinDAO --> EuroDAO : "Manages"
+BarayinDAO --> PacificDAO : "Manages"
+BarayinDAO --> AsiaDAO : "Manages"
+BarayinDAO --> AfricaDAO : "Manages"
+BarayinDAO --> ArabiaDAO : "Manages"
+
+' Sector DAOs connected to League of Nation DAOs
+AnideDAO --> ArcadiumDAO : "Manages"
+AnideDAO --> FinDAO : "Manages"
+AnideDAO --> EnvironmentDAO : "Manages"
+AnideDAO --> EducationDAO : "Manages"
+AnideDAO --> TechnologyDAO : "Manages"
+AnideDAO --> HealthDAO : "Manages"
+
+CanaanDAO --> ArcadiumDAO
+CanaanDAO --> FinDAO
+CanaanDAO --> EnvironmentDAO
+CanaanDAO --> EducationDAO
+CanaanDAO --> TechnologyDAO
+CanaanDAO --> HealthDAO
+
+OliveDAO --> ArcadiumDAO
+OliveDAO --> FinDAO
+OliveDAO --> EnvironmentDAO
+OliveDAO --> EducationDAO
+OliveDAO --> TechnologyDAO
+OliveDAO --> HealthDAO
+
+EuroDAO --> ArcadiumDAO
+EuroDAO --> FinDAO
+EuroDAO --> EnvironmentDAO
+EuroDAO --> EducationDAO
+EuroDAO --> TechnologyDAO
+EuroDAO --> HealthDAO
+
+PacificDAO --> ArcadiumDAO
+PacificDAO --> FinDAO
+PacificDAO --> EnvironmentDAO
+PacificDAO --> EducationDAO
+PacificDAO --> TechnologyDAO
+PacificDAO --> HealthDAO
+
+AsiaDAO --> ArcadiumDAO
+AsiaDAO --> FinDAO
+AsiaDAO --> EnvironmentDAO
+AsiaDAO --> EducationDAO
+AsiaDAO --> TechnologyDAO
+AsiaDAO --> HealthDAO
+
+AfricaDAO --> ArcadiumDAO
+AfricaDAO --> FinDAO
+AfricaDAO --> EnvironmentDAO
+AfricaDAO --> EducationDAO
+AfricaDAO --> TechnologyDAO
+AfricaDAO --> HealthDAO
+
+ArabiaDAO --> ArcadiumDAO
+ArabiaDAO --> FinDAO
+ArabiaDAO --> EnvironmentDAO
+ArabiaDAO --> EducationDAO
+ArabiaDAO --> TechnologyDAO
+ArabiaDAO --> HealthDAO
+
+' Initiative DAOs connected to Sector DAOs
+FinDAO --> EconomicInitiative : "Manages"
+EnvironmentDAO --> EnvironmentalInitiative : "Manages"
+ArcadiumDAO --> EntertainmentInitiative : "Manages"
+EducationDAO --> EducationInitiative : "Manages"
+EducationDAO --> EnvironmentalInitiative : "Manages"
+EducationDAO --> EntertainmentInitiative : "Manages"
+EducationDAO --> TechnologyInitiative : "Manages"
+EducationDAO --> HealthInitiative : "Manages"
+EducationDAO --> EconomicInitiative : "Manages"
+TechnologyDAO --> TechnologyInitiative : "Manages"
+HealthDAO --> HealthInitiative : "Manages"
+@enduml

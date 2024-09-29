@@ -1,0 +1,74 @@
+@startuml
+!theme toy
+skinparam componentStyle rectangle
+
+' Actors
+actor "Citizen" as Citizen
+
+' League of Nation DAO
+component [<<League of Nation DAO>>\n**League DAO**] as LeagueDAO
+
+' Extended Income DAO
+component [<<Income DAO>>\n**Extended Income DAO**\n"Manages Extended Income Operations"] as ExtendedIncomeDAO
+
+' Nation DAOs
+package "Nation DAOs" {
+    component [<<Nation DAO>>\n**Nation DAO A**\n"Rank Management\nCitizenship"] as NationDAOA
+    component [<<Nation DAO>>\n**Nation DAO B**\n"Rank Management\nCitizenship"] as NationDAOB
+    ' Add more Nation DAOs as needed
+}
+
+' Sector and Initiative DAOs
+package "Sector and Initiative DAOs" {
+    component [<<Sector DAO>>\n**Education DAO**\n"Manages Educational Initiatives"] as EducationDAO
+    component [<<Sector DAO>>\n**Volunteer DAO**\n"Manages Volunteer Initiatives"] as VolunteerDAO
+
+    component [<<Initiative DAO>>\n**Education Initiative**\n"Educational Programs"] as EducationInitiative
+    component [<<Initiative DAO>>\n**Volunteer Initiative**\n"Volunteer Opportunities"] as VolunteerInitiative
+}
+
+' Certificates and Ranks
+component [<<Certificate>>\n**Certificate of Completion**\n"Earned by completing initiatives"] as Certificate
+component [<<Rank>>\n**Rank (Title TBD)**\n"Determines citizen status based on achievements"] as Rank
+
+' Relationships
+Citizen --> NationDAOA : "Is a citizen of"
+Citizen --> EducationInitiative : "Participates in"
+Citizen --> VolunteerInitiative : "Participates in"
+
+EducationDAO --> EducationInitiative : "Oversees"
+VolunteerDAO --> VolunteerInitiative : "Oversees"
+
+EducationInitiative --> Citizen : "Issues Certificate to"
+VolunteerInitiative --> Citizen : "Issues Certificate to"
+
+Citizen --> Certificate : "Receives"
+Certificate --> NationDAOA : "Submitted to"
+NationDAOA --> Rank : "Determines Rank based on Certificates"
+
+NationDAOA --> LeagueDAO : "Reports Citizenship and Rank to"
+ExtendedIncomeDAO --> Citizen : "Distributes Basic Income based on Rank"
+ExtendedIncomeDAO --> NationDAOA : "Provides Standards to"
+
+LeagueDAO --> NationDAOA : "Coordinates"
+NationDAOA --> LeagueDAO : "Maintains authority over"
+' Relationship for Extended Income DAO
+LeagueDAO --> ExtendedIncomeDAO : "Delegates Extended Income Management to"
+ExtendedIncomeDAO --> Citizen : "Distributes Extended Income"
+
+' Notes
+note right of Citizen
+- Participates in initiatives
+- Earns certificates
+- Progresses in rank
+end note
+
+note bottom of LeagueDAO
+- Manages the overall process
+end note
+
+note right of ExtendedIncomeDAO
+- Manages extended income operations
+- Distributes additional income based on criteria
+end note
+@enduml
