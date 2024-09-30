@@ -139,10 +139,11 @@ contract RepairPotion is ERC20, Ownable {
     }
 }
 
+// Some of stuff from payment should be in claim manager I think...
 contract ClaimManager is Ownable {
-    address public controller; // Only the controller contract can modify data
+    mapping (address => bool) public controllers; // Only the controller contract can modify data
 
-    struct ClaimInfo {
+    struct NFTInfo {
         uint256 totalClaims;
         bool hasClaimedInPeriod;
         uint8 health;
@@ -155,27 +156,29 @@ contract ClaimManager is Ownable {
 
     Claimant[] public claimants;
 
+    address public nftContract;
+    address public paymentManager;
+
+    uint256 public claimerLimit; // Maximum number of claimants in a period
+    uint256 public claimPeriod;
+    uint8 public min_health = 128; // Minimum token health required to claim rewards
+
+    event Claim(address indexed claimant, uint256 indexed tokenId);
+
+    constructor(address _nftContract, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
+        nftContract = _nftContract;
+        claimerLimit = _claimerLimit;
+        claimPeriod = _claimPeriod;
+        min_health = _min_health;
+    }
+
     // Mapping to store claim information for each NFT tokenId
-    mapping(uint256 => ClaimInfo) private claimData;
-
-    // Store claim period and last claim time per NFT
-    mapping(uint256 => uint256) public lastClaimTime;
-
-    // Modifier to restrict function access to the controller contract
-    modifier onlyController() {
-        require(msg.sender == controller, "Caller is not the controller");
-        _;
-    }
-
-    // Set the controller during deployment
-    constructor(address _controller) {
-        require(RewardPoolNFT(_controller).isRewardPoolNFT(), "Invalid controller contract");
-        controller = _controller;
-    }
+    mapping(uint256 => NFTInfo) private claimData;
 
     // Function to initialize claim data for a new NFT (only controller can call this)
-    function initializeNFT(uint256 tokenId) external onlyController {
-        claimData[tokenId] = ClaimInfo(0, false, 255); // default full health
+    function initializeNFT(uint256 tokenId) external {
+        require(msg.sender == address(nftContract), "Only the NFT contract can call this function");
+        claimData[tokenId] = NFTInfo(0, false, 255); // default full health
     }
 
     // Function to check if the tokenId has claimed in the current period
@@ -192,17 +195,42 @@ contract ClaimManager is Ownable {
         return claimData[tokenId].totalClaims;
     }
 
-    function resetClaim(uint256 tokenId) external onlyController {
+    function isClaimReady() public view returns (bool) {
+        return block.timestamp > PaymentManager(paymentManager).lastClaimTime() + claimPeriod;
+    }
+
+    function resetClaim(uint256 tokenId) external 
+    {  
+        require(msg.sender == paymentManager, "Only the payment manager can call this function");
         claimData[tokenId].hasClaimedInPeriod = false;
     }
 
-    function claim(uint256 tokenId) external onlyController {
+    // Really should change the name from "claim" to something else...
+    function claim(uint256 tokenId) public {
+        // Protect users from claiming when the contract doesn't have enough funds
+        PaymentManager _paymentManager = PaymentManager(paymentManager);
+        require(_paymentManager.hasSufficientBalance(_paymentManager.rewardRate()), "Insufficient funds for rewards");
+        // In the rare case where the special reward rate is more than the reward rate, which could happen? 
+        require(_paymentManager.hasSufficientBalance(_paymentManager.specialRewardRate()), "Insufficient funds for special rewards");
+        require(IERC721(nftContract).ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
+        require(!claimData[tokenId].hasClaimedInPeriod, "Already claimed this period");
+        // The claim liimt is enforced until the period ends, preventing any more claimers. Then when the claim period is over, whoever tries to claim gets the special reward fund.
+        require(claimants.length <= claimerLimit || isClaimReady(), "Claimer limit reached");
+
+        require(claimData[tokenId].health >= min_health, "NFT health is too low to claim rewards");
+    
+        // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
+        if (_paymentManager.checkAndFinalizePeriod()) {
+            _paymentManager.distributeReward(msg.sender, tokenId, _paymentManager.specialRewardRate());
+        }
+
         claimData[tokenId].totalClaims += 1;
         claimData[tokenId].hasClaimedInPeriod = true;
         claimData[tokenId].health -= 1;
         // Add the claimant to the list of claimants
-        address addr = IERC721(controller).ownerOf(tokenId);
+        address addr = IERC721(nftContract).ownerOf(tokenId);
         claimants.push(Claimant(addr, tokenId));
+        emit Claim(addr, tokenId);
     }
     
     function getClaimantsCount() external view returns (uint256) {
@@ -217,18 +245,14 @@ contract ClaimManager is Ownable {
         return claimants[index];
     }
 
-    function deleteClaimants() external onlyController {
+    function deleteClaimants() external {
+        require(msg.sender == address(paymentManager), "Only the payment manager can call this function");
         delete claimants;
     }
 
-    // Function to decrease health for each claim (only controller can call this)
-    function reduceHealth(uint256 tokenId) external onlyController {
-        require(claimData[tokenId].health > 0, "NFT health is already too low");
-        claimData[tokenId].health -= 1;
-    }
-
     // Function to repair an NFT's health (only controller can call this)
-    function repairHealth(uint256 tokenId, uint8 repairAmount) external onlyController {
+    function repairHealth(uint256 tokenId, uint8 repairAmount) external {
+        require(msg.sender == address(nftContract), "Only the NFT contract can call this function");
         require(claimData[tokenId].health < 255, "NFT health is already full");
         claimData[tokenId].health += repairAmount;
         if (claimData[tokenId].health > 255) {
@@ -236,73 +260,161 @@ contract ClaimManager is Ownable {
         }
     }
 
-    // Function to change the controller (only the contract's owner can call this)
-    function changeController(address newController) external onlyOwner {
-        require(newController != address(0), "Controller address cannot be zero");
-        require(RewardPoolNFT(newController).isRewardPoolNFT(), "Invalid controller contract");
-        controller = newController;
+    // Owner can set the minimum health required to claim rewards
+    function setMinHealth(uint8 _min_health) public onlyOwner {
+        min_health = _min_health;
+    }
+
+    // Owner can set the claim period
+    function setClaimPeriod(uint256 _claimPeriod) public onlyOwner {
+        claimPeriod = _claimPeriod;
+    }
+
+    // Owner can set the claimer limit
+    function setClaimerLimit(uint256 _claimerLimit) public onlyOwner {
+        claimerLimit = _claimerLimit;
+    }
+
+    // Owner can set the NFT contract
+    function setNFTContract(address _nftContract) public onlyOwner {
+        nftContract = _nftContract;
+    }
+
+    // Owner can set payment manager
+    function setPaymentManager(address _paymentManager) public onlyOwner {
+        paymentManager = _paymentManager;
     }
 }
 
-// Payout Manager
-contract RewardPoolNFT is ERC721Enumerable, Ownable {
+// Payout Manager: This is the contract that needs to be kept full to ensure claims.
+contract PaymentManager is Ownable {
     uint256 public lastClaimTime;
-    uint256 public claimPeriod;
     uint256 public rewardRate; // r - daily prize amount
     uint256 public specialRewardRate; // s - special prize amount
-    uint256 public price; // The cost to mint an NFT
     uint256 public min_claims; // Minimum number of claims required to finalize a period
     
-    address public paymentToken;
     address public rewardToken;
-    address public potionToken;
-    uint256 public nextTokenId; // Unique ID for minted NFTs
-    uint256 public claimerLimit; // Maximum number of claimants in a period
 
-    uint8 public min_health;
+    address public claimManager;
+    address public nftContract;
 
+    event RewardDistributed(address indexed claimant, uint256 indexed tokenId, uint256 amount);
+
+    constructor(address _nftContract, address _rewardToken, uint256 _rewardRate, uint256 _specialRewardRate, uint256 _min_claims) Ownable() {
+        nftContract = _nftContract;
+        rewardToken = _rewardToken;
+        rewardRate = _rewardRate;
+        specialRewardRate = _specialRewardRate;
+        min_claims = _min_claims;
+        lastClaimTime = block.timestamp;
+    }
+
+    function hasSufficientBalance(uint256 amount) public view returns (bool) {
+        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
+        return balance >= amount;
+    }
+
+    // Check if it's time to finalize the current claim period
+    function checkAndFinalizePeriod() external returns (bool) {
+        require(msg.sender == claimManager, "Only the claim manager can call this function");
+        ClaimManager _claimManager = ClaimManager(claimManager);
+        if (block.timestamp > lastClaimTime + _claimManager.claimPeriod()) {
+            uint256 len = _claimManager.getClaimantsCount();
+            if (len >= min_claims) {
+                uint256 reward = rewardRate / len;
+                
+                // Should transfer this to the payment manager
+                for (uint256 i = 0; i < len; i++) { 
+                    ClaimManager.Claimant memory claimant = _claimManager.claimant(i);
+                    address addr = claimant.addr;
+                    uint256 tokenId = claimant.tokenId;
+                    _distributeReward(addr, tokenId, reward);
+                    _claimManager.resetClaim(tokenId);
+                }
+                lastClaimTime = block.timestamp;
+                _claimManager.deleteClaimants();
+                return true;
+            } else {
+                // If there are not enough claimants just scratch the whole period.
+                _claimManager.deleteClaimants();
+                lastClaimTime = block.timestamp;
+                return false;
+            }
+        }
+        return false;
+    }
+    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal {
+        require(hasSufficientBalance(reward), "Insufficient funds for rewards");
+        if (rewardToken == address(0)) {
+            (bool success, ) = payable(claimant).call{value: reward}("");
+            require(success, "Native token transfer failed");
+        } else {
+            require(IERC20(rewardToken).transfer(claimant, reward), "ERC20 transfer failed");
+        }
+        emit RewardDistributed(claimant, tokenId, reward);
+    }    
+
+    function distributeReward(address claimant, uint256 tokenId, uint256 reward) external {
+        require(msg.sender == address(claimManager), "Only the claim manager can call this function");
+        _distributeReward(claimant, tokenId, reward);
+    }
+
+    // Owner can set the reward token and rate
+    function setRewardToken(address _rewardToken) public onlyOwner {
+        require(_rewardToken == address(0) || IERC20(_rewardToken).totalSupply() > 0, "Invalid reward token");
+        rewardToken = _rewardToken;
+    }
+
+    // Owner can set the reward rate
+    function setRewardRate(uint256 _rewardRate) public onlyOwner {
+        rewardRate = _rewardRate;
+    }
+    
+    // Owner can set the special reward rate
+    function setSpecialRewardRate(uint256 _specialRewardRate) public onlyOwner {
+        specialRewardRate = _specialRewardRate;
+    }
+
+    // Owner can set the minimum number of claims required to finalize a period
+    function setMinClaims(uint256 _min_claims) public onlyOwner {
+        require(_min_claims > 0, "Minimum claims must be greater than zero");
+        min_claims = _min_claims;
+    }
+
+    // Owner can set the nft contract
+    function setNFTContract(address _nftContract) public onlyOwner {
+        nftContract = _nftContract;
+    }
+
+    // Owner can set the claim manager contract
+    function setClaimManager(address _claimManager) public onlyOwner {
+        claimManager = _claimManager;
+    }
 }
 
+// Gotta pull some more claim functionality out of the main contract and put it into the claim manager. Same with the payment manager. Actually haven't integrated payment manager really yet...
 contract RewardPoolNFT is ERC721Enumerable, Ownable {
-    uint256 public lastClaimTime;
-    uint256 public claimPeriod;
-    uint256 public rewardRate; // r - daily prize amount
-    uint256 public specialRewardRate; // s - special prize amount
-    uint256 public price; // The cost to mint an NFT
-    uint256 public min_claims; // Minimum number of claims required to finalize a period
-    
-    address public paymentToken;
-    address public rewardToken;
     address public potionToken;
-    uint256 public nextTokenId; // Unique ID for minted NFTs
-    uint256 public claimerLimit; // Maximum number of claimants in a period
 
-    uint8 public min_health;
-
-
-    // Token information
+   // Token information
     string private _baseTokenURI;
+    address public paymentToken;
+    address public claimManager;
+    address public paymentManager;
 
-    ClaimManager public claimManager;
-    
+    uint256 public nextTokenId; // Unique ID for minted NFTs
+
+    uint256 price; // Price to mint an NFT
+
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
-    event RewardClaimed(address indexed claimant, uint256 indexed tokenId);
-    event RewardDistributed(address indexed claimant, uint256 indexed tokenId, uint256 amount);
     event TokenRepaired(address indexed owner, uint256 indexed tokenId);
 
-    constructor(address _potionContract) ERC721("Reward Pool NFT", "RPNFT") {
+    constructor(address _potionContract) ERC721("Reward Pool NFT", "RPNFT") Ownable() {
         nextTokenId = 1; // Start token IDs from 1
-        paymentToken = address(0); // Default to native token
-        price = 10000000000000000; // Default price to 10^16 wei (0.01 ether if on Ethereum or Arbitrum)
-        rewardToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default ACM token
-        rewardRate = 5000000000000000000000; // Default reward rate is 5 thousand ACM
-        specialRewardRate = rewardRate; // Special reward rate for finalizing the period (default to rewardRate)
-        claimPeriod = 5 minutes; // Default claim period is 5 minutes
-        claimerLimit = 100; // Default claimer limit in time period is 100
+        // Replace with initalize method
         potionToken = _potionContract;
-        lastClaimTime = block.timestamp;
-        min_claims = 1;
-        min_health = 128;
+        paymentToken = address(0);  
+        price = 100000000000000000; // Default price is 0.1 ETH
         _baseTokenURI = "https://api.arcadium.fun/token/";
     }
     
@@ -321,7 +433,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         
         // Mint the NFT to the sender with a unique tokenId
         _safeMint(msg.sender, nextTokenId);
-        claimManager.initializeNFT(nextTokenId);
+        ClaimManager(claimManager).initializeNFT(nextTokenId);
         emit NFTMinted(msg.sender, nextTokenId);
         nextTokenId += 1; // Increment the token ID for the next mint
     }
@@ -330,108 +442,13 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     function repair(uint256 tokenId) public nonReentrant {
         require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(IERC20(potionToken).balanceOf(msg.sender) >= 1, "Insufficient repair potions");
-        require(claimManager.getHealth(tokenId) < 255, "NFT health is already full");
+        require(ClaimManager(claimManager).getHealth(tokenId) < 255, "NFT health is already full");
         // Use the consume function of the repair potion contract to burn one repair potion
         RepairPotion(potionToken).consume(tokenId);
-        claimManager.repairHealth(tokenId, 1);
+        ClaimManager(claimManager).repairHealth(tokenId, 1);
         emit TokenRepaired(msg.sender, tokenId);
     }
-
-    function hasSufficientBalance(uint256 amount) public view returns (bool) {
-        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
-        return balance >= amount;
-    }
-
-    // Claim reward function for NFT holders. Make sure to use reentrancy guard
-    function claim(uint256 tokenId) public nonReentrant {
-        // Protect users from claiming when the contract doesn't have enough funds
-        require(hasSufficientBalance(rewardRate), "Insufficient funds for rewards");
-        // In the rare case where the special reward rate is more than the reward rate, which could happen? 
-        require(hasSufficientBalance(specialRewardRate), "Insufficient funds for special rewards");
-        require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
-        require(!claimManager.hasClaimedInPeriod(tokenId), "Already claimed this period");
-        // The claim liimt is enforced until the period ends, preventing any more claimers. Then when the claim period is over, whoever tries to claim gets the special reward fund.
-        require(claimManager.getTotalClaims(tokenId) <= claimerLimit || isClaimReady(), "Claimer limit reached");
-
-        require(claimManager.getHealth(tokenId) > min_health, "NFT is too damaged");
-        claimManager.claim(tokenId);
-    
-        // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
-        if (_checkAndFinalizePeriod()) {
-            _distributeReward(msg.sender, tokenId, specialRewardRate);
-        }
-        // Register either for this period or the next period
-        claimManager.claim(tokenId);
-        emit RewardClaimed(msg.sender, tokenId);
-    }
-
-    // External view check if past the claim period
-    function isClaimReady() public view returns (bool) {
-        return block.timestamp > lastClaimTime + claimPeriod;
-    }
-
-    // External view check if the NFT has claimed in the current period
-    function hasClaimed(uint256 tokenId) external view returns (bool) {
-        return claimManager.hasClaimedInPeriod(tokenId);
-    }
-
-    // External view to get the number of claimants in the current period
-    function claimantsCount() external view returns (uint256) {
-        return claimManager.getClaimantsCount();
-    }
-
-    // External view to get the claimants
-    function getClaimants() external view returns (NFTClaimManager.Claimant[] memory) {
-        return claimManager.getClaimants();
-    }
-
-    // External view to get the current reward rate per claimant
-    function currentRewardRate() external view returns (uint256) {
-        uint256 len = claimManager.getClaimantsCount();
-        if (len == 0) {
-            return 0;
-        }
-        return rewardRate / len;
-    }
-    
-    // Check if it's time to finalize the current claim period
-    function _checkAndFinalizePeriod() internal returns (bool) {
-        if (block.timestamp > lastClaimTime + claimPeriod) {
-            uint256 len = claimManager.getClaimantsCount();
-            if (len >= min_claims) {
-                uint256 reward = rewardRate / len;
-                
-                for (uint256 i = 0; i < len; i++) { 
-                    NFTClaimManager.Claimant memory claimant = claimManager.claimant(i);
-                    address addr = claimant.addr;
-                    uint256 tokenId = claimant.tokenId;
-                    _distributeReward(addr, tokenId, reward);
-                    claimManager.resetClaim(tokenId);
-                }
-                lastClaimTime = block.timestamp;
-                claimManager.deleteClaimants();
-                return true;
-            } else {
-                // If there are not enough claimants just scratch the whole period.
-                claimManager.deleteClaimants();
-                lastClaimTime = block.timestamp;
-                return false;
-            }
-        }
-        return false;
-    }
-        
-    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal {
-        require(hasSufficientBalance(reward), "Insufficient funds for rewards");
-        if (rewardToken == address(0)) {
-            (bool success, ) = payable(claimant).call{value: reward}("");
-            require(success, "Native token transfer failed");
-        } else {
-            require(IERC20(rewardToken).transfer(claimant, reward), "ERC20 transfer failed");
-        }
-        emit RewardDistributed(claimant, tokenId, reward);
-    }    
-
+            
     // Function to override tokenURI, fetching the metadata from the base URL
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Non-existent token");
@@ -454,51 +471,19 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         price = _price;
     }
 
-    // Owner can set the reward token and rate
-    function setRewardToken(address _rewardToken) public onlyOwner {
-        require(_rewardToken == address(0) || IERC20(_rewardToken).totalSupply() > 0, "Invalid reward token");
-        rewardToken = _rewardToken;
-    }
-
-    // Owner can set the reward rate
-    function setRewardRate(uint256 _rewardRate) public onlyOwner {
-        rewardRate = _rewardRate;
-    }
-    
-    // Owner can set the special reward rate
-    function setSpecialRewardRate(uint256 _specialRewardRate) public onlyOwner {
-        specialRewardRate = _specialRewardRate;
-    }
-
-    // Owner can set the claim period
-    function setClaimPeriod(uint256 _claimPeriod) public onlyOwner {
-        claimPeriod = _claimPeriod;
-    }
-
-    // Owner can set the minimum number of claims required to finalize a period
-    function setMinClaims(uint256 _min_claims) public onlyOwner {
-        require(_min_claims > 0, "Minimum claims must be greater than zero");
-        min_claims = _min_claims;
-    }
-
-    // Owner can set the minimum health required to claim rewards
-    function setMinHealth(uint8 _min_health) public onlyOwner {
-        min_health = _min_health;
-    }
-
     // Owner can set the repair potion token
     function setPotionToken(address _potionToken) public onlyOwner {
         potionToken = _potionToken;
     }
 
-    // Owner can set the claimer limit
-    function setClaimerLimit(uint256 _claimerLimit) public onlyOwner {
-        claimerLimit = _claimerLimit;
-    }
-
     // Owner can set the data manager contract
     function setClaimManager(address _claimManager) public onlyOwner {
-        claimManager = ClaimManager(_claimManager);
+        claimManager = _claimManager;
+    }
+
+    // Owner can set the payment manager contract
+    function setPaymentManager(address _paymentManager) public onlyOwner {
+        paymentManager = _paymentManager;
     }
 
     // Override required for Solidity (for ERC721Enumerable)
