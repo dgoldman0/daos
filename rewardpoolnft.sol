@@ -404,7 +404,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
 
     uint256 public nextTokenId; // Unique ID for minted NFTs
 
-    uint256 price; // Price to mint an NFT
+    uint256 public mintPrice; // Price to mint an NFT
 
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
     event TokenRepaired(address indexed owner, uint256 indexed tokenId);
@@ -414,21 +414,21 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         // Replace with initalize method
         potionToken = _potionContract;
         paymentToken = address(0);  
-        price = 100000000000000000; // Default price is 0.1 ETH
+        mintPrice = 100000000000000000; // Default price is 0.1 ETH
         _baseTokenURI = "https://api.arcadium.fun/token/";
     }
     
     // Mint function: allows minting NFTs with either ERC-20 or native token
     function mint() public payable nonReentrant {
         if (paymentToken == address(0)) {
-            require(msg.value >= price, "Insufficient native token amount");
-            if (msg.value > price) {
-                uint256 amt = msg.value - price;
+            require(msg.value >= mintPrice, "Insufficient native token amount");
+            if (msg.value > mintPrice) {
+                uint256 amt = msg.value - mintPrice;
                 (bool success, ) = payable(msg.sender).call{value: amt}("");
                 require(success, "Ether transfer failed");
             }
         } else {
-            require(IERC20(paymentToken).transferFrom(msg.sender, address(this), price), "ERC-20 transfer failed");
+            require(IERC20(paymentToken).transferFrom(msg.sender, address(this), mintPrice), "ERC-20 transfer failed");
         }
         
         // Mint the NFT to the sender with a unique tokenId
@@ -468,7 +468,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
 
     // Owner can set price for minting
     function setPrice(uint256 _price) public onlyOwner {
-        price = _price;
+        mintPrice = _price;
     }
 
     // Owner can set the repair potion token
@@ -484,16 +484,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     // Owner can set the payment manager contract
     function setPaymentManager(address _paymentManager) public onlyOwner {
         paymentManager = _paymentManager;
-    }
-
-    // Override required for Solidity (for ERC721Enumerable)
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    ) internal override(ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
     // Override required for Solidity (for ERC721Enumerable)
