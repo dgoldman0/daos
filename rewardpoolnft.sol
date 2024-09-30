@@ -414,7 +414,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         // Replace with initalize method
         potionToken = _potionContract;
         paymentToken = address(0);  
-        mintPrice = 100000000000000000; // Default price is 0.1 ETH
+        mintPrice = 10000000000000000; // Default price is 0.01 ETH
         _baseTokenURI = "https://api.arcadium.fun/token/";
     }
     
