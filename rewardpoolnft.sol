@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Summary: This contract is a simple implementation of a reward pool NFT that allows users to mint NFTs and claim rewards. The contract has a claim period, and rewards are distributed to NFT holders at the end of each period. The contract can be used with either native tokens or ERC-20 tokens for minting and rewards. The contract also allows the owner to set the payment token, price, and reward rate.
+// System of contracts that managers an NFT based reward pool. It consists of a custom Ownable contract, which allows for ownership transfer and fund withdrawal, a RepairPotion contract, which is an ERC20 token used to repair NFTs, two manager contracts which manage extended NFT information and claiming, and payouts respectively, and a RewardPoolNFT contract, which is an ERC721 NFT contract that mints NFTs for the reward pool, and allows owner to set price of mint.
 
 import "@openzeppelin/contracts@4.9.0/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -138,6 +138,112 @@ contract RepairPotion is ERC20, Ownable {
     }
 }
 
+// Payout Manager: This is the contract that needs to be kept full to ensure claims.
+contract PaymentManager is Ownable {
+    uint256 public lastClaimTime;
+    uint256 public rewardRate; // r - daily prize amount
+    uint256 public specialRewardRate; // s - special prize amount
+    uint256 public min_claims; // Minimum number of claims required to finalize a period
+    
+    address public rewardToken;
+
+    address public claimManager;
+    address public nftContract;
+
+    event RewardDistributed(address indexed claimant, uint256 indexed tokenId, uint256 amount);
+
+    constructor(address _nftContract, address _rewardToken, uint256 _rewardRate, uint256 _specialRewardRate, uint256 _min_claims) Ownable() {
+        nftContract = _nftContract;
+        rewardToken = _rewardToken;
+        rewardRate = _rewardRate;
+        specialRewardRate = _specialRewardRate;
+        min_claims = _min_claims;
+        lastClaimTime = block.timestamp;
+    }
+
+    function hasSufficientBalance(uint256 amount) public view returns (bool) {
+        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
+        return balance >= amount;
+    }
+
+    // Check if it's time to finalize the current claim period
+    function checkAndFinalizePeriod() external returns (bool) {
+        require(msg.sender == claimManager, "Only the claim manager can call this function");
+        ClaimManager _claimManager = ClaimManager(claimManager);
+        if (block.timestamp > lastClaimTime + _claimManager.claimPeriod()) {
+            uint256 len = _claimManager.getClaimantsCount();
+            if (len >= min_claims) {
+                uint256 reward = rewardRate / len;
+                
+                // Should transfer this to the payment manager
+                for (uint256 i = 0; i < len; i++) { 
+                    ClaimManager.Claimant memory claimant = _claimManager.claimant(i);
+                    address addr = claimant.addr;
+                    uint256 tokenId = claimant.tokenId;
+                    _distributeReward(addr, tokenId, reward);
+                    _claimManager.resetClaim(tokenId);
+                }
+                lastClaimTime = block.timestamp;
+                _claimManager.deleteClaimants();
+                return true;
+            } else {
+                // If there are not enough claimants just scratch the whole period.
+                _claimManager.deleteClaimants();
+                lastClaimTime = block.timestamp;
+                return false;
+            }
+        }
+        return false;
+    }
+    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal {
+        require(hasSufficientBalance(reward), "Insufficient funds for rewards");
+        if (rewardToken == address(0)) {
+            (bool success, ) = payable(claimant).call{value: reward}("");
+            require(success, "Native token transfer failed");
+        } else {
+            require(IERC20(rewardToken).transfer(claimant, reward), "ERC20 transfer failed");
+        }
+        emit RewardDistributed(claimant, tokenId, reward);
+    }    
+
+    function distributeReward(address claimant, uint256 tokenId, uint256 reward) external {
+        require(msg.sender == address(claimManager), "Only the claim manager can call this function");
+        _distributeReward(claimant, tokenId, reward);
+    }
+
+    // Owner can set the reward token and rate
+    function setRewardToken(address _rewardToken) public onlyOwner {
+        require(_rewardToken == address(0) || IERC20(_rewardToken).totalSupply() > 0, "Invalid reward token");
+        rewardToken = _rewardToken;
+    }
+
+    // Owner can set the reward rate
+    function setRewardRate(uint256 _rewardRate) public onlyOwner {
+        rewardRate = _rewardRate;
+    }
+    
+    // Owner can set the special reward rate
+    function setSpecialRewardRate(uint256 _specialRewardRate) public onlyOwner {
+        specialRewardRate = _specialRewardRate;
+    }
+
+    // Owner can set the minimum number of claims required to finalize a period
+    function setMinClaims(uint256 _min_claims) public onlyOwner {
+        require(_min_claims > 0, "Minimum claims must be greater than zero");
+        min_claims = _min_claims;
+    }
+
+    // Owner can set the nft contract
+    function setNFTContract(address _nftContract) public onlyOwner {
+        nftContract = _nftContract;
+    }
+
+    // Owner can set the claim manager contract
+    function setClaimManager(address _claimManager) public onlyOwner {
+        claimManager = _claimManager;
+    }
+}
+
 // Handles NFT detials and claims...
 contract ClaimManager is Ownable {
     address public potionToken;
@@ -166,8 +272,9 @@ contract ClaimManager is Ownable {
     event Claim(address indexed claimant, uint256 indexed tokenId);
     event TokenRepaired(address indexed owner, uint256 indexed tokenId);
 
-    constructor(address _nftContract, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
+    constructor(address _nftContract, address _potionToken, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
         nftContract = _nftContract;
+        potionToken = _potionToken;
         claimerLimit = _claimerLimit;
         claimPeriod = _claimPeriod;
         min_health = _min_health;
@@ -290,112 +397,6 @@ contract ClaimManager is Ownable {
     // Owner can set the repair potion token
     function setPotionToken(address _potionToken) public onlyOwner {
         potionToken = _potionToken;
-    }
-}
-
-// Payout Manager: This is the contract that needs to be kept full to ensure claims.
-contract PaymentManager is Ownable {
-    uint256 public lastClaimTime;
-    uint256 public rewardRate; // r - daily prize amount
-    uint256 public specialRewardRate; // s - special prize amount
-    uint256 public min_claims; // Minimum number of claims required to finalize a period
-    
-    address public rewardToken;
-
-    address public claimManager;
-    address public nftContract;
-
-    event RewardDistributed(address indexed claimant, uint256 indexed tokenId, uint256 amount);
-
-    constructor(address _nftContract, address _rewardToken, uint256 _rewardRate, uint256 _specialRewardRate, uint256 _min_claims) Ownable() {
-        nftContract = _nftContract;
-        rewardToken = _rewardToken;
-        rewardRate = _rewardRate;
-        specialRewardRate = _specialRewardRate;
-        min_claims = _min_claims;
-        lastClaimTime = block.timestamp;
-    }
-
-    function hasSufficientBalance(uint256 amount) public view returns (bool) {
-        uint256 balance = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
-        return balance >= amount;
-    }
-
-    // Check if it's time to finalize the current claim period
-    function checkAndFinalizePeriod() external returns (bool) {
-        require(msg.sender == claimManager, "Only the claim manager can call this function");
-        ClaimManager _claimManager = ClaimManager(claimManager);
-        if (block.timestamp > lastClaimTime + _claimManager.claimPeriod()) {
-            uint256 len = _claimManager.getClaimantsCount();
-            if (len >= min_claims) {
-                uint256 reward = rewardRate / len;
-                
-                // Should transfer this to the payment manager
-                for (uint256 i = 0; i < len; i++) { 
-                    ClaimManager.Claimant memory claimant = _claimManager.claimant(i);
-                    address addr = claimant.addr;
-                    uint256 tokenId = claimant.tokenId;
-                    _distributeReward(addr, tokenId, reward);
-                    _claimManager.resetClaim(tokenId);
-                }
-                lastClaimTime = block.timestamp;
-                _claimManager.deleteClaimants();
-                return true;
-            } else {
-                // If there are not enough claimants just scratch the whole period.
-                _claimManager.deleteClaimants();
-                lastClaimTime = block.timestamp;
-                return false;
-            }
-        }
-        return false;
-    }
-    function _distributeReward(address claimant, uint256 tokenId, uint256 reward) internal {
-        require(hasSufficientBalance(reward), "Insufficient funds for rewards");
-        if (rewardToken == address(0)) {
-            (bool success, ) = payable(claimant).call{value: reward}("");
-            require(success, "Native token transfer failed");
-        } else {
-            require(IERC20(rewardToken).transfer(claimant, reward), "ERC20 transfer failed");
-        }
-        emit RewardDistributed(claimant, tokenId, reward);
-    }    
-
-    function distributeReward(address claimant, uint256 tokenId, uint256 reward) external {
-        require(msg.sender == address(claimManager), "Only the claim manager can call this function");
-        _distributeReward(claimant, tokenId, reward);
-    }
-
-    // Owner can set the reward token and rate
-    function setRewardToken(address _rewardToken) public onlyOwner {
-        require(_rewardToken == address(0) || IERC20(_rewardToken).totalSupply() > 0, "Invalid reward token");
-        rewardToken = _rewardToken;
-    }
-
-    // Owner can set the reward rate
-    function setRewardRate(uint256 _rewardRate) public onlyOwner {
-        rewardRate = _rewardRate;
-    }
-    
-    // Owner can set the special reward rate
-    function setSpecialRewardRate(uint256 _specialRewardRate) public onlyOwner {
-        specialRewardRate = _specialRewardRate;
-    }
-
-    // Owner can set the minimum number of claims required to finalize a period
-    function setMinClaims(uint256 _min_claims) public onlyOwner {
-        require(_min_claims > 0, "Minimum claims must be greater than zero");
-        min_claims = _min_claims;
-    }
-
-    // Owner can set the nft contract
-    function setNFTContract(address _nftContract) public onlyOwner {
-        nftContract = _nftContract;
-    }
-
-    // Owner can set the claim manager contract
-    function setClaimManager(address _claimManager) public onlyOwner {
-        claimManager = _claimManager;
     }
 }
 
