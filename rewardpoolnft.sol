@@ -446,11 +446,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
             require(IERC20(paymentToken).transferFrom(msg.sender, address(this), totalMintPrice), "ERC-20 transfer failed");
         }
         
-        // Mint the NFT to the sender with a unique tokenId
-        //_safeMint(msg.sender, nextTokenId);
-        //ClaimManager(claimManager).initializeNFT(nextTokenId);
-        //emit NFTMinted(msg.sender, nextTokenId);
-        //nextTokenId += 1; // Increment the token ID for the next mint
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(msg.sender, nextTokenId);
             ClaimManager(claimManager).initializeNFT(nextTokenId);
