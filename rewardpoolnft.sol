@@ -411,6 +411,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     uint256 public nextTokenId; // Unique ID for minted NFTs
 
     uint256 public mintPrice; // Price to mint an NFT
+    uint256 public maxSupply = 10000; // Maximum supply of NFTs
 
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
 
@@ -430,23 +431,32 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     }
     
     // Mint function: allows minting NFTs with either ERC-20 or native token
-    function mint() public payable nonReentrant {
+    function mint(uint256 _count) public payable nonReentrant {
+        require(_count > 0, "Count must be greater than zero");
+        require(nextTokenId + _count <= maxSupply, "Exceeds maximum supply");
+        uint256 totalMintPrice = mintPrice * _count;
         if (paymentToken == address(0)) {
-            require(msg.value >= mintPrice, "Insufficient native token amount");
-            if (msg.value > mintPrice) {
-                uint256 amt = msg.value - mintPrice;
+            require(msg.value >= totalMintPrice, "Insufficient native token amount");
+            if (msg.value > totalMintPrice) {
+                uint256 amt = msg.value - totalMintPrice;
                 (bool success, ) = payable(msg.sender).call{value: amt}("");
                 require(success, "Ether transfer failed");
             }
         } else {
-            require(IERC20(paymentToken).transferFrom(msg.sender, address(this), mintPrice), "ERC-20 transfer failed");
+            require(IERC20(paymentToken).transferFrom(msg.sender, address(this), totalMintPrice), "ERC-20 transfer failed");
         }
         
         // Mint the NFT to the sender with a unique tokenId
-        _safeMint(msg.sender, nextTokenId);
-        ClaimManager(claimManager).initializeNFT(nextTokenId);
-        emit NFTMinted(msg.sender, nextTokenId);
-        nextTokenId += 1; // Increment the token ID for the next mint
+        //_safeMint(msg.sender, nextTokenId);
+        //ClaimManager(claimManager).initializeNFT(nextTokenId);
+        //emit NFTMinted(msg.sender, nextTokenId);
+        //nextTokenId += 1; // Increment the token ID for the next mint
+        for (uint256 i = 0; i < _count; i++) {
+            _safeMint(msg.sender, nextTokenId);
+            ClaimManager(claimManager).initializeNFT(nextTokenId);
+            emit NFTMinted(msg.sender, nextTokenId);
+            nextTokenId += 1;
+        }
     }
             
     // Function to override tokenURI, fetching the metadata from the base URL
@@ -481,6 +491,12 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         paymentManager = _paymentManager;
     }
 
+    // Owner can set the maximum supply of NFTs
+    function setMaxSupply(uint256 _maxSupply) public onlyOwner {
+        require(_maxSupply >= nextTokenId, "New max supply must be greater than the next token ID");
+        maxSupply = _maxSupply;
+    }
+    
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
