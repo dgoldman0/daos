@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reward Pool NFT Interface</title>
+  <style>
+    /* Basic styling for the application */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f2f5;
+    }
+
+    header {
+      background-color: #ffffff;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .connect-wallet {
+      padding: 10px 20px;
+      background-color: #0070f3;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section h2 {
+      margin-bottom: 20px;
+    }
+
+    .nft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .nft-card {
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+
+    .nft-card h3 {
+      margin-top: 0;
+    }
+
+    .button {
+      padding: 10px 15px;
+      background-color: #0070f3;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .info {
+      margin-bottom: 10px;
+    }
+
+    footer {
+      background-color: #ffffff;
+      padding: 20px;
+      text-align: center;
+      border-top: 1px solid #ddd;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Additional styling can be added as needed */
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reward Pool NFT Interface</h1>
+    <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
+  </header>
+
+  <div class="container">
+    <!-- My NFTs Section -->
+    <div class="section" id="myNftsSection">
+      <h2>My NFTs</h2>
+      <div id="nftGrid" class="nft-grid"></div>
+    </div>
+
+    <!-- Mint NFTs Section -->
+    <div class="section" id="mintSection">
+      <h2>Mint NFTs</h2>
+      <div class="info">Mint Price: <span id="mintPrice"></span></div>
+      <button id="mintButton" class="button">Mint NFT</button>
+    </div>
+
+    <!-- Buy Repair Potions Section -->
+    <div class="section" id="potionSection">
+      <h2>Buy Repair Potions</h2>
+      <div class="info">Potion Price: <span id="potionPrice"></span></div>
+      <div class="info">Your Potion Balance: <span id="potionBalance"></span></div>
+      <input type="number" id="potionAmount" placeholder="Amount" min="1" max="100">
+      <button id="buyPotionButton" class="button">Buy Potions</button>
+    </div>
+
+    <!-- Claim Period Info Section -->
+    <div class="section" id="claimPeriodSection">
+      <h2>Claim Period Info</h2>
+      <div class="info">Time Remaining: <span id="timeRemaining"></span></div>
+      <div class="info">Claimants: <span id="claimantsCount"></span>/<span id="claimerLimit"></span></div>
+      <div class="info">Finalize Status: <span id="finalizeStatus"></span></div>
+    </div>
+
+    <!-- System Information Section -->
+    <div class="section" id="systemInfoSection">
+      <h2>System Information</h2>
+      <div class="info">Regular Reward Rate: <span id="rewardRate"></span></div>
+      <div class="info">Special Reward Rate: <span id="specialRewardRate"></span></div>
+      <div class="info">Minimum Claims Required: <span id="minClaims"></span></div>
+      <div class="info">Total NFTs Minted: <span id="totalNfts"></span></div>
+      <div class="info">Contract Addresses:</div>
+      <ul>
+        <li>NFT Contract: <a href="#" id="nftContractAddress"></a></li>
+        <li>Claim Manager: <a href="#" id="claimManagerAddress"></a></li>
+        <li>Payment Manager: <a href="#" id="paymentManagerAddress"></a></li>
+        <li>Repair Potion: <a href="#" id="potionContractAddress"></a></li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2023 Reward Pool NFT Interface</p>
+  </footer>
+
+  <!-- Include Ethers.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+
+  <!-- JavaScript code will be added here -->
+  <script>
+    // Ensure the DOM is loaded before running the script
+    document.addEventListener('DOMContentLoaded', async () => {
+    // Contract ABIs (You need to replace these with the actual ABIs)
+    const nftAbi = []; // Replace with the ABI of RewardPoolNFT
+    const claimManagerAbi = []; // Replace with the ABI of ClaimManager
+    const paymentManagerAbi = []; // Replace with the ABI of PaymentManager
+    const potionAbi = []; // Replace with the ABI of RepairPotion
+
+    // Contract Addresses (You need to replace these with the actual deployed addresses)
+    const nftContractAddress = '0x...'; // Replace with your NFT contract address
+    const claimManagerAddress = '0x...'; // Replace with your ClaimManager contract address
+    const paymentManagerAddress = '0x...'; // Replace with your PaymentManager contract address
+    const potionContractAddress = '0x...'; // Replace with your RepairPotion contract address
+
+    // Update contract address links in the System Information section
+    document.getElementById('nftContractAddress').href = `https://etherscan.io/address/${nftContractAddress}`;
+    document.getElementById('nftContractAddress').textContent = nftContractAddress;
+    document.getElementById('claimManagerAddress').href = `https://etherscan.io/address/${claimManagerAddress}`;
+    document.getElementById('claimManagerAddress').textContent = claimManagerAddress;
+    document.getElementById('paymentManagerAddress').href = `https://etherscan.io/address/${paymentManagerAddress}`;
+    document.getElementById('paymentManagerAddress').textContent = paymentManagerAddress;
+    document.getElementById('potionContractAddress').href = `https://etherscan.io/address/${potionContractAddress}`;
+    document.getElementById('potionContractAddress').textContent = potionContractAddress;
+
+    // Ethers.js provider and signer
+    let provider;
+    let signer;
+    let userAddress;
+
+    // Contract instances
+    let nftContract;
+    let claimManagerContract;
+    let paymentManagerContract;
+    let potionContract;
+
+    // Connect Wallet Functionality
+    const connectWalletButton = document.getElementById('connectWalletButton');
+    connectWalletButton.addEventListener('click', async () => {
+        await connectWallet();
+    });
+
+    async function connectWallet() {
+        if (window.ethereum) {
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            userAddress = await signer.getAddress();
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+            initializeContracts();
+            refreshData();
+        } catch (error) {
+            console.error('User denied account access');
+        }
+        } else {
+        alert('Please install MetaMask!');
+        }
+    }
+
+    function initializeContracts() {
+        nftContract = new ethers.Contract(nftContractAddress, nftAbi, signer);
+        claimManagerContract = new ethers.Contract(claimManagerAddress, claimManagerAbi, signer);
+        paymentManagerContract = new ethers.Contract(paymentManagerAddress, paymentManagerAbi, signer);
+        potionContract = new ethers.Contract(potionContractAddress, potionAbi, signer);
+    }
+
+    // Function to refresh data
+    async function refreshData() {
+        await Promise.all([
+        loadMintPrice(),
+        loadPotionPrice(),
+        loadPotionBalance(),
+        loadUserNFTs(),
+        loadClaimPeriodInfo(),
+        loadSystemInfo()
+        ]);
+    }
+
+    // Load Mint Price
+    async function loadMintPrice() {
+        const mintPrice = await nftContract.mintPrice();
+        document.getElementById('mintPrice').textContent = ethers.utils.formatEther(mintPrice) + ' ETH';
+    }
+
+    // Load Potion Price and Balance
+    async function loadPotionPrice() {
+        const potionPrice = await potionContract.purchasePrice();
+        document.getElementById('potionPrice').textContent = ethers.utils.formatEther(potionPrice) + ' Token';
+    }
+
+    async function loadPotionBalance() {
+        const balance = await potionContract.balanceOf(userAddress);
+        document.getElementById('potionBalance').textContent = balance.toString();
+    }
+
+    // Load User NFTs
+    async function loadUserNFTs() {
+        const nftGrid = document.getElementById('nftGrid');
+        nftGrid.innerHTML = ''; // Clear existing NFTs
+
+        const balance = await nftContract.balanceOf(userAddress);
+        for (let i = 0; i < balance; i++) {
+        const tokenId = await nftContract.tokenOfOwnerByIndex(userAddress, i);
+        const nftCard = await createNFTCard(tokenId.toString());
+        nftGrid.appendChild(nftCard);
+        }
+    }
+
+    // Create NFT Card
+    async function createNFTCard(tokenId) {
+        const card = document.createElement('div');
+        card.className = 'nft-card';
+
+        // NFT Title
+        const title = document.createElement('h3');
+        title.textContent = `NFT #${tokenId}`;
+        card.appendChild(title);
+
+        // Health Info
+        const health = await claimManagerContract.getHealth(tokenId);
+        const healthInfo = document.createElement('div');
+        healthInfo.textContent = `Health: ${health}/255`;
+        card.appendChild(healthInfo);
+
+        // Total Claims
+        const totalClaims = await claimManagerContract.getTotalClaims(tokenId);
+        const claimsInfo = document.createElement('div');
+        claimsInfo.textContent = `Total Claims: ${totalClaims}`;
+        card.appendChild(claimsInfo);
+
+        // Claim Status
+        const hasClaimed = await claimManagerContract.hasClaimedInPeriod(tokenId);
+        const claimStatus = document.createElement('div');
+        claimStatus.textContent = `Has Claimed: ${hasClaimed ? 'Yes' : 'No'}`;
+        card.appendChild(claimStatus);
+
+        // Claim Button
+        const claimButton = document.createElement('button');
+        claimButton.className = 'button';
+        claimButton.textContent = 'Claim Reward';
+        claimButton.disabled = hasClaimed || health < (await claimManagerContract.min_health());
+        claimButton.addEventListener('click', async () => {
+        await claimReward(tokenId);
+        });
+        card.appendChild(claimButton);
+
+        // Repair Button
+        const repairButton = document.createElement('button');
+        repairButton.className = 'button';
+        repairButton.textContent = 'Repair NFT';
+        repairButton.disabled = health >= 255 || (await potionContract.balanceOf(userAddress)) == 0;
+        repairButton.addEventListener('click', async () => {
+        await repairNFT(tokenId);
+        });
+        card.appendChild(repairButton);
+
+        return card;
+    }
+
+    // Claim Reward Function
+    async function claimReward(tokenId) {
+        try {
+        const tx = await claimManagerContract.claim(tokenId);
+        await tx.wait();
+        alert('Reward claimed successfully!');
+        refreshData();
+        } catch (error) {
+        console.error(error);
+        alert('Failed to claim reward.');
+        }
+    }
+
+    // Repair NFT Function
+    async function repairNFT(tokenId) {
+        try {
+        const tx = await claimManagerContract.repair(tokenId);
+        await tx.wait();
+        alert('NFT repaired successfully!');
+        refreshData();
+        } catch (error) {
+        console.error(error);
+        alert('Failed to repair NFT.');
+        }
+    }
+
+    // Mint NFT Functionality
+    const mintButton = document.getElementById('mintButton');
+    mintButton.addEventListener('click', async () => {
+        await mintNFT();
+    });
+
+    async function mintNFT() {
+        try {
+        const mintPrice = await nftContract.mintPrice();
+        const tx = await nftContract.mint({ value: mintPrice });
+        await tx.wait();
+        alert('NFT minted successfully!');
+        refreshData();
+        } catch (error) {
+        console.error(error);
+        alert('Failed to mint NFT.');
+        }
+    }
+
+    // Buy Potions Functionality
+    const buyPotionButton = document.getElementById('buyPotionButton');
+    buyPotionButton.addEventListener('click', async () => {
+        const amount = document.getElementById('potionAmount').value;
+        if (amount > 0) {
+        await buyPotions(amount);
+        } else {
+        alert('Please enter a valid amount.');
+        }
+    });
+
+    async function buyPotions(amount) {
+        try {
+        const potionPrice = await potionContract.purchasePrice();
+        const totalCost = potionPrice.mul(amount);
+        const tx = await potionContract.buy(amount, { value: totalCost });
+        await tx.wait();
+        alert('Potions purchased successfully!');
+        refreshData();
+        } catch (error) {
+        console.error(error);
+        alert('Failed to buy potions.');
+        }
+    }
+
+    // Load Claim Period Info
+    async function loadClaimPeriodInfo() {
+        const timeRemainingElement = document.getElementById('timeRemaining');
+        const claimantsCountElement = document.getElementById('claimantsCount');
+        const claimerLimitElement = document.getElementById('claimerLimit');
+        const finalizeStatusElement = document.getElementById('finalizeStatus');
+
+        const claimPeriod = await claimManagerContract.claimPeriod();
+        const lastClaimTime = await paymentManagerContract.lastClaimTime();
+        const currentTime = Math.floor(Date.now() / 1000);
+        const timeRemaining = parseInt(lastClaimTime) + parseInt(claimPeriod) - currentTime;
+
+        timeRemainingElement.textContent = timeRemaining > 0 ? `${timeRemaining} seconds` : 'Period Ended';
+
+        const claimantsCount = await claimManagerContract.getClaimantsCount();
+        const claimerLimit = await claimManagerContract.claimerLimit();
+        claimantsCountElement.textContent = claimantsCount.toString();
+        claimerLimitElement.textContent = claimerLimit.toString();
+
+        const isClaimReady = await claimManagerContract.isClaimReady();
+        finalizeStatusElement.textContent = isClaimReady ? 'Ready to Finalize' : 'Ongoing';
+    }
+
+    // Load System Information
+    async function loadSystemInfo() {
+        const rewardRateElement = document.getElementById('rewardRate');
+        const specialRewardRateElement = document.getElementById('specialRewardRate');
+        const minClaimsElement = document.getElementById('minClaims');
+        const totalNftsElement = document.getElementById('totalNfts');
+
+        const rewardRate = await paymentManagerContract.rewardRate();
+        const specialRewardRate = await paymentManagerContract.specialRewardRate();
+        const minClaims = await paymentManagerContract.min_claims();
+        const totalNfts = await nftContract.totalSupply();
+
+        rewardRateElement.textContent = ethers.utils.formatEther(rewardRate) + ' Token';
+        specialRewardRateElement.textContent = ethers.utils.formatEther(specialRewardRate) + ' Token';
+        minClaimsElement.textContent = minClaims.toString();
+        totalNftsElement.textContent = totalNfts.toString();
+    }
+
+    // Auto-refresh data every 15 seconds
+    setInterval(refreshData, 15000);
+
+    // Connect wallet automatically if already connected
+    if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        provider.listAccounts().then(accounts => {
+        if (accounts.length > 0) {
+            userAddress = accounts[0];
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+            initializeContracts();
+            refreshData();
+        }
+        });
+    }
+    });
+  </script>
+</body>
+</html>
