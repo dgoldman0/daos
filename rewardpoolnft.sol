@@ -138,6 +138,7 @@ contract RepairPotion is ERC20, Ownable {
     }
 }
 
+// The names of the contracts aren't really right. They both share in the responsibility of managing the reward pool including claiming and payout.
 // Payout Manager: This is the contract that needs to be kept full to ensure claims.
 contract PaymentManager is Ownable {
     uint256 public lastClaimTime;
@@ -244,7 +245,7 @@ contract PaymentManager is Ownable {
     }
 }
 
-// Handles NFT detials and claims...
+// Handles NFT detials and claims... 
 contract ClaimManager is Ownable {
     address public potionToken;
     mapping (address => bool) public controllers; // Only the controller contract can modify data
