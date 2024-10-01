@@ -413,12 +413,19 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
 
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
 
-    constructor() ERC721("Reward Pool NFT", "RPNFT") Ownable() {
-        nextTokenId = 1; // Start token IDs from 1
+    constructor(uint256 _initialSupply) ERC721("Reward Pool NFT", "RPNFT") Ownable() {
+        nextTokenId = 1;
         // Replace with initalize method
         paymentToken = address(0);  
         mintPrice = 10000000000000000; // Default price is 0.01 ETH
         _baseTokenURI = "https://api.arcadium.fun/token/";
+
+        // Mint initial supply of NFTs to the contract creator
+        for (uint256 i = 0; i < _initialSupply; i++) {
+            _safeMint(msg.sender, nextTokenId);
+            ClaimManager(claimManager).initializeNFT(nextTokenId);
+            nextTokenId += 1;
+        }
     }
     
     // Mint function: allows minting NFTs with either ERC-20 or native token
