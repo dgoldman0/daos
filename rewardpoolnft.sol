@@ -78,7 +78,7 @@ contract Ownable is ReentrancyGuard {
 
 // Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
 contract RepairPotion is ERC20, Ownable {
-    address public poolContract;
+    address public managerContract;
     address public purchaseToken;
     uint256 public purchasePrice;
     uint256 public maxPurchaseAmount;
@@ -91,6 +91,10 @@ contract RepairPotion is ERC20, Ownable {
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
+    }
+
+    function decimals() public view override returns (uint8) {
+        return 0;
     }
 
     function buy(uint256 amount) public payable {
@@ -108,13 +112,16 @@ contract RepairPotion is ERC20, Ownable {
         }
         _mint(msg.sender, amount);
     }
-    function decimals() public view override returns (uint8) {
-        return 0;
+
+    // Consume a potion
+    function consume(address _tokenOwner) public {
+        require(msg.sender == managerContract, "Only the pool contract can repair NFTs");
+        require(balanceOf(_tokenOwner) >= 1, "Insufficient repair potions");
+        _burn(_tokenOwner, 1);
     }
 
-    function setPoolContract(address _poolContract) public onlyOwner {
-        require(RewardPoolNFT(_poolContract).isRewardPoolNFT(), "Invalid controller contract");
-        poolContract = _poolContract;
+    function setManagerContract(address _managerContract) public onlyOwner {
+        managerContract = _managerContract;
     }
 
     function setPurchaseToken(address _purchaseToken) public onlyOwner {
@@ -129,18 +136,11 @@ contract RepairPotion is ERC20, Ownable {
     function setMaxPurchaseAmount(uint256 _maxPurchaseAmount) public onlyOwner {
         maxPurchaseAmount = _maxPurchaseAmount;
     }
-
-    // Burn a repair potion to repair an NFT. Only the pool contract can call this function. Called by the pool contract's repair function.
-    function consume(uint256 tokenId) public {
-        require(msg.sender == poolContract, "Only the pool contract can repair NFTs");
-        address _tokenOwner = IERC721(poolContract).ownerOf(tokenId);        
-        require(balanceOf(_tokenOwner) >= 1, "Insufficient repair potions");
-        _burn(_tokenOwner, 1);
-    }
 }
 
-// Some of stuff from payment should be in claim manager I think...
+// Handles NFT detials and claims...
 contract ClaimManager is Ownable {
+    address public potionToken;
     mapping (address => bool) public controllers; // Only the controller contract can modify data
 
     struct NFTInfo {
@@ -164,6 +164,7 @@ contract ClaimManager is Ownable {
     uint8 public min_health = 128; // Minimum token health required to claim rewards
 
     event Claim(address indexed claimant, uint256 indexed tokenId);
+    event TokenRepaired(address indexed owner, uint256 indexed tokenId);
 
     constructor(address _nftContract, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
         nftContract = _nftContract;
@@ -205,8 +206,7 @@ contract ClaimManager is Ownable {
         claimData[tokenId].hasClaimedInPeriod = false;
     }
 
-    // Really should change the name from "claim" to something else...
-    function claim(uint256 tokenId) public {
+    function claim(uint256 tokenId) public nonReentrant {
         // Protect users from claiming when the contract doesn't have enough funds
         PaymentManager _paymentManager = PaymentManager(paymentManager);
         require(_paymentManager.hasSufficientBalance(_paymentManager.rewardRate()), "Insufficient funds for rewards");
@@ -219,14 +219,15 @@ contract ClaimManager is Ownable {
 
         require(claimData[tokenId].health >= min_health, "NFT health is too low to claim rewards");
     
+        claimData[tokenId].hasClaimedInPeriod = true;
+        claimData[tokenId].totalClaims += 1;
+        claimData[tokenId].health -= 1;
+
         // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
         if (_paymentManager.checkAndFinalizePeriod()) {
             _paymentManager.distributeReward(msg.sender, tokenId, _paymentManager.specialRewardRate());
         }
 
-        claimData[tokenId].totalClaims += 1;
-        claimData[tokenId].hasClaimedInPeriod = true;
-        claimData[tokenId].health -= 1;
         // Add the claimant to the list of claimants
         address addr = IERC721(nftContract).ownerOf(tokenId);
         claimants.push(Claimant(addr, tokenId));
@@ -250,14 +251,15 @@ contract ClaimManager is Ownable {
         delete claimants;
     }
 
-    // Function to repair an NFT's health (only controller can call this)
-    function repairHealth(uint256 tokenId, uint8 repairAmount) external {
-        require(msg.sender == address(nftContract), "Only the NFT contract can call this function");
+    // Repair function: allows NFT owners to repair their NFTs using a repair potion
+    function repair(uint256 tokenId) public nonReentrant {
+        require(ERC721Enumerable(nftContract).ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
+        require(IERC20(potionToken).balanceOf(msg.sender) >= 1, "Insufficient repair potions");
         require(claimData[tokenId].health < 255, "NFT health is already full");
-        claimData[tokenId].health += repairAmount;
-        if (claimData[tokenId].health > 255) {
-            claimData[tokenId].health = 255; // Ensure health doesn't exceed max value
-        }
+        // Use the consume function of the repair potion contract to burn one repair potion
+        RepairPotion(potionToken).consume(msg.sender);
+        claimData[tokenId].health += 1;
+        emit TokenRepaired(msg.sender, tokenId);
     }
 
     // Owner can set the minimum health required to claim rewards
@@ -283,6 +285,11 @@ contract ClaimManager is Ownable {
     // Owner can set payment manager
     function setPaymentManager(address _paymentManager) public onlyOwner {
         paymentManager = _paymentManager;
+    }
+
+    // Owner can set the repair potion token
+    function setPotionToken(address _potionToken) public onlyOwner {
+        potionToken = _potionToken;
     }
 }
 
@@ -392,10 +399,8 @@ contract PaymentManager is Ownable {
     }
 }
 
-// Gotta pull some more claim functionality out of the main contract and put it into the claim manager. Same with the payment manager. Actually haven't integrated payment manager really yet...
+// Maybe before live version pull the repair method out of this contract...
 contract RewardPoolNFT is ERC721Enumerable, Ownable {
-    address public potionToken;
-
    // Token information
     string private _baseTokenURI;
     address public paymentToken;
@@ -407,12 +412,10 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     uint256 public mintPrice; // Price to mint an NFT
 
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
-    event TokenRepaired(address indexed owner, uint256 indexed tokenId);
 
-    constructor(address _potionContract) ERC721("Reward Pool NFT", "RPNFT") Ownable() {
+    constructor() ERC721("Reward Pool NFT", "RPNFT") Ownable() {
         nextTokenId = 1; // Start token IDs from 1
         // Replace with initalize method
-        potionToken = _potionContract;
         paymentToken = address(0);  
         mintPrice = 10000000000000000; // Default price is 0.01 ETH
         _baseTokenURI = "https://api.arcadium.fun/token/";
@@ -437,17 +440,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         emit NFTMinted(msg.sender, nextTokenId);
         nextTokenId += 1; // Increment the token ID for the next mint
     }
-
-    // Repair function: allows NFT owners to repair their NFTs using a repair potion
-    function repair(uint256 tokenId) public nonReentrant {
-        require(ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
-        require(IERC20(potionToken).balanceOf(msg.sender) >= 1, "Insufficient repair potions");
-        require(ClaimManager(claimManager).getHealth(tokenId) < 255, "NFT health is already full");
-        // Use the consume function of the repair potion contract to burn one repair potion
-        RepairPotion(potionToken).consume(tokenId);
-        ClaimManager(claimManager).repairHealth(tokenId, 1);
-        emit TokenRepaired(msg.sender, tokenId);
-    }
             
     // Function to override tokenURI, fetching the metadata from the base URL
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -471,11 +463,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         mintPrice = _price;
     }
 
-    // Owner can set the repair potion token
-    function setPotionToken(address _potionToken) public onlyOwner {
-        potionToken = _potionToken;
-    }
-
     // Owner can set the data manager contract
     function setClaimManager(address _claimManager) public onlyOwner {
         claimManager = _claimManager;
@@ -489,9 +476,5 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
-    }
-
-    function isRewardPoolNFT() external pure returns (bool) {
-        return true;
     }
 }
