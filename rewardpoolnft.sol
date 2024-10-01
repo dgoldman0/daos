@@ -327,9 +327,6 @@ contract ClaimManager is Ownable {
 
         require(claimData[tokenId].health >= min_health, "NFT health is too low to claim rewards");
     
-        claimData[tokenId].totalClaims += 1;
-        claimData[tokenId].health -= 1;
-
         // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
         if (_paymentManager.checkAndFinalizePeriod()) {
             _paymentManager.distributeReward(msg.sender, tokenId, _paymentManager.specialRewardRate());
@@ -338,6 +335,8 @@ contract ClaimManager is Ownable {
         // Add the claimant to the list of claimants
         address addr = IERC721(nftContract).ownerOf(tokenId);
         claimData[tokenId].hasClaimedInPeriod = true;
+        claimData[tokenId].totalClaims += 1;
+        claimData[tokenId].health -= 1;
         claimants.push(Claimant(addr, tokenId));
         emit Claim(addr, tokenId);
     }
