@@ -327,7 +327,6 @@ contract ClaimManager is Ownable {
 
         require(claimData[tokenId].health >= min_health, "NFT health is too low to claim rewards");
     
-        claimData[tokenId].hasClaimedInPeriod = true;
         claimData[tokenId].totalClaims += 1;
         claimData[tokenId].health -= 1;
 
@@ -338,6 +337,7 @@ contract ClaimManager is Ownable {
 
         // Add the claimant to the list of claimants
         address addr = IERC721(nftContract).ownerOf(tokenId);
+        claimData[tokenId].hasClaimedInPeriod = true;
         claimants.push(Claimant(addr, tokenId));
         emit Claim(addr, tokenId);
     }
