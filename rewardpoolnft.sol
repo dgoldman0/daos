@@ -81,10 +81,10 @@ contract RepairPotion is ERC20, Ownable {
     address public managerContract;
     address public purchaseToken;
     uint256 public purchasePrice;
-    uint256 public maxPurchaseAmount;
+    uint256 public maxSupply;
 
     constructor() ERC20("Repair Potion", "REPAIR") {
-        maxPurchaseAmount = 100;
+        maxSupply = 100;
         purchaseToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default to ACM token
         purchasePrice = 10000000000000000; // Default price is 0.1 token
     }
@@ -99,7 +99,7 @@ contract RepairPotion is ERC20, Ownable {
 
     function buy(uint256 amount) public payable {
         require(amount > 0, "Amount must be greater than zero");
-        require(amount <= maxPurchaseAmount, "Amount exceeds maximum purchase amount");
+        require(amount + totalSupply() <= maxSupply, "Exceeds maximum supply");
         uint256 cost = purchasePrice * amount;
         require((purchaseToken == address(0) && msg.value == cost) || IERC20(purchaseToken).transferFrom(msg.sender, address(this), cost), "Invalid payment");
 
@@ -133,8 +133,8 @@ contract RepairPotion is ERC20, Ownable {
         purchasePrice = _purchasePrice;
     }
 
-    function setMaxPurchaseAmount(uint256 _maxPurchaseAmount) public onlyOwner {
-        maxPurchaseAmount = _maxPurchaseAmount;
+    function setMaxSupply(uint256 _maxSupply) public onlyOwner {
+        maxSupply = _maxSupply;
     }
 }
 
