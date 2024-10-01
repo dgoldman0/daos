@@ -272,9 +272,10 @@ contract ClaimManager is Ownable {
     event Claim(address indexed claimant, uint256 indexed tokenId);
     event TokenRepaired(address indexed owner, uint256 indexed tokenId);
 
-    constructor(address _nftContract, address _potionToken, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
+    constructor(address _nftContract, address _potionToken, address _paymentManager, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
         nftContract = _nftContract;
         potionToken = _potionToken;
+        paymentManager = _paymentManager;
         claimerLimit = _claimerLimit;
         claimPeriod = _claimPeriod;
         min_health = _min_health;
