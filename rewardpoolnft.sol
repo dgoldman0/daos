@@ -424,13 +424,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         paymentToken = address(0);  
         mintPrice = 10000000000000000; // Default price is 0.01 ETH
         _baseTokenURI = "https://api.arcadium.fun/token/";
-
-        // Mint initial supply of NFTs to the contract creator
-        for (uint256 i = 0; i < _initialSupply; i++) {
-            _safeMint(msg.sender, nextTokenId);
-            ClaimManager(claimManager).initializeNFT(nextTokenId);
-            nextTokenId += 1;
-        }
     }
     
     // Mint function: allows minting NFTs with either ERC-20 or native token
@@ -456,7 +449,14 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
             nextTokenId += 1;
         }
     }
-            
+
+    function mintTo(address _to, uint256 _count) public onlyOwner, nonReentrant {
+        for (uint256 i = 0; i < _initialSupply; i++) {
+            _safeMint(msg.sender, nextTokenId);
+            ClaimManager(claimManager).initializeNFT(nextTokenId);
+            nextTokenId += 1;
+        }
+    }
     // Function to override tokenURI, fetching the metadata from the base URL
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Non-existent token");
