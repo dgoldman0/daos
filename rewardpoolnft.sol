@@ -420,6 +420,8 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     uint256 public mintPrice; // Price to mint an NFT
     uint256 public maxSupply = 10000; // Maximum supply of NFTs
 
+    uint256 public firstMintDate;
+
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
 
     constructor() ERC721("Reward Pool NFT", "RPNFT") Ownable() {
@@ -445,7 +447,11 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         } else {
             require(IERC20(paymentToken).transferFrom(msg.sender, address(this), totalMintPrice), "ERC-20 transfer failed");
         }
-        
+
+        if (firstMintDate == 0) {
+            firstMintDate = block.timestamp;
+        }
+
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(msg.sender, nextTokenId);
             ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
@@ -455,6 +461,9 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     }
 
     function mintTo(address _to, uint256 _count) public onlyOwner nonReentrant {
+        if (firstMintDate == 0) {
+            firstMintDate = block.timestamp;
+        }
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(_to, nextTokenId);
             ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
