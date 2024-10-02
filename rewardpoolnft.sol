@@ -418,7 +418,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
 
     event NFTMinted(address indexed minter, uint256 indexed tokenId);
 
-    constructor(uint256 _initialSupply) ERC721("Reward Pool NFT", "RPNFT") Ownable() {
+    constructor() ERC721("Reward Pool NFT", "RPNFT") Ownable() {
         nextTokenId = 1;
         // Replace with initalize method
         paymentToken = address(0);  
