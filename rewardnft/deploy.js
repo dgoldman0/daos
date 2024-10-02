@@ -13,13 +13,13 @@ async function main() {
 
         // Deploy RepairPotion
         const RepairPotion = new web3.eth.Contract(repairPotionArtifact.abi);
-        const repairPotion = await RepairPotion.deploy({ data: repairPotionArtifact.data.bytecode })
+        const repairPotion = await RepairPotion.deploy({ data: repairPotionArtifact.data.bytecode.object })
             .send({ from: deployer, gas: 5000000 });
         console.log("RepairPotion deployed to:", repairPotion.options.address);
 
         // Deploy RewardPoolNFT
         const RewardPoolNFT = new web3.eth.Contract(rewardPoolNFTArtifact.abi);
-        const rewardPoolNFT = await RewardPoolNFT.deploy({ data: rewardPoolNFTArtifact.data.bytecode })
+        const rewardPoolNFT = await RewardPoolNFT.deploy({ data: rewardPoolNFTArtifact.data.bytecode.object })
             .send({ from: deployer, gas: 5000000 });
         console.log("RewardPoolNFT deployed to:", rewardPoolNFT.options.address);
 
@@ -31,7 +31,7 @@ async function main() {
 
         const PaymentManager = new web3.eth.Contract(paymentManagerArtifact.abi);
         const paymentManager = await PaymentManager.deploy({
-            data: paymentManagerArtifact.data.bytecode,
+            data: paymentManagerArtifact.data.bytecode.object,
             arguments: [
                 rewardPoolNFT.options.address,
                 rewardToken,
@@ -49,7 +49,7 @@ async function main() {
 
         const ClaimManager = new web3.eth.Contract(claimManagerArtifact.abi);
         const claimManager = await ClaimManager.deploy({
-            data: claimManagerArtifact.data.bytecode,
+            data: claimManagerArtifact.data.bytecode.object,
             arguments: [
                 rewardPoolNFT.options.address,
                 repairPotion.options.address,
