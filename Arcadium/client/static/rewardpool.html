@@ -2564,8 +2564,19 @@
         const mintPrice = await nftContract.methods.mintPrice().call();
 		let mintAmt = document.getElementById('mintAmt').value;
 		let totalPrice = mintPrice * mintAmt;
-		const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress, value: totalPrice });
-        showNotification('NFT minted successfully!');
+		// Send eth if the nft purchase address is address 0. Otherwise send the token
+		if (nftPurchaseAddress == '0x0000000000000000000000000000000000000000') {
+			const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress, value: totalPrice });
+		} else {
+			const tokenContract = new web3.eth.Contract(erc20Abi, nftPurchaseAddress);
+			const allowance = await tokenContract.methods.allowance(userAddress, nftContractAddress).call();
+			if (allowance < totalPrice) {
+				await tokenContract.methods.approve(nftContractAddress, totalPrice).send({ from: userAddress });
+			}
+			const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress });
+		}
+
+        showNotification('NFTs minted successfully!');
         refreshData();
       } catch (error) {
         console.error(error);
@@ -2587,7 +2598,18 @@
       try {
         const potionPrice = await potionContract.methods.purchasePrice().call();
         const totalCost = web3.utils.toWei(potionPrice, 'ether') * amount;
-        const tx = await potionContract.methods.buy(amount).send({ from: userAddress, value: totalCost });
+		// Send eth if the potion purchase token address is address 0. Otherwise send the token
+		if (potionPurchaseTokenAddress == '0x0000000000000000000000000000000000000000') {
+			const tx = await potionContract.methods.buy(amount).send({ from: userAddress, value: totalCost });
+		} else {
+			const tokenContract = new web3.eth.Contract(erc20Abi, potionPurchaseTokenAddress);
+			const allowance = await tokenContract.methods.allowance(userAddress, potionContractAddress).call();
+			if (allowance < totalCost) {
+				await tokenContract.methods.approve(potionContractAddress, totalCost).send({ from: userAddress });
+			}
+			const tx = await potionContract.methods.buy(amount).send({ from: userAddress });
+		}
+
         showNotification('Potions purchased successfully!');
         refreshData();
       } catch (error) {
