@@ -1,6 +1,6 @@
 async function main() {
     try {
-        // Get accounts from web3 (Assuming you're using Hardhat or Web3.js)
+        // Get accounts from web3
         const accounts = await web3.eth.getAccounts();
         const deployer = accounts[0];
 
@@ -13,38 +13,51 @@ async function main() {
 
         // Deploy RepairPotion
         const RepairPotion = new web3.eth.Contract(repairPotionArtifact.abi);
-        const repairPotion = await RepairPotion.deploy({ data: repairPotionArtifact.bytecode })
+        const repairPotion = await RepairPotion.deploy({ data: repairPotionArtifact.data.bytecode })
             .send({ from: deployer, gas: 5000000 });
         console.log("RepairPotion deployed to:", repairPotion.options.address);
 
         // Deploy RewardPoolNFT
         const RewardPoolNFT = new web3.eth.Contract(rewardPoolNFTArtifact.abi);
-        const rewardPoolNFT = await RewardPoolNFT.deploy({ data: rewardPoolNFTArtifact.bytecode })
+        const rewardPoolNFT = await RewardPoolNFT.deploy({ data: rewardPoolNFTArtifact.data.bytecode })
             .send({ from: deployer, gas: 5000000 });
         console.log("RewardPoolNFT deployed to:", rewardPoolNFT.options.address);
 
         // Deploy PaymentManager
         const rewardToken = "0x0000000000000000000000000000000000000000"; // Native token (e.g., ETH)
-        const rewardRate = web3.utils.toWei("0.001", "ether"); // Reward rate
-        const specialRewardRate = web3.utils.toWei("0.001", "ether"); // Special reward rate
-        const min_claims = 1; // Minimum number of claims required to finalize a period
+        const rewardRate = web3.utils.toWei("0.001", "ether"); // Reward rate as string
+        const specialRewardRate = web3.utils.toWei("0.001", "ether"); // Special reward rate as string
+        const min_claims = web3.utils.toBN(1); // Minimum number of claims required to finalize a period as BN
 
         const PaymentManager = new web3.eth.Contract(paymentManagerArtifact.abi);
         const paymentManager = await PaymentManager.deploy({
-            data: paymentManagerArtifact.bytecode,
-            arguments: [rewardPoolNFT.options.address, rewardToken, rewardRate, specialRewardRate, min_claims]
+            data: paymentManagerArtifact.data.bytecode,
+            arguments: [
+                rewardPoolNFT.options.address,
+                rewardToken,
+                rewardRate,
+                specialRewardRate,
+                min_claims.toString()
+            ]
         }).send({ from: deployer, gas: 5000000 });
         console.log("PaymentManager deployed to:", paymentManager.options.address);
 
         // Deploy ClaimManager
-        const claimerLimit = 25; // Maximum number of claimants in a period
-        const claimPeriod = 300; // Claim period in seconds (e.g., 5 minutes)
-        const min_health = 128; // Minimum health required to claim rewards
+        const claimerLimit = web3.utils.toBN(25); // Maximum number of claimants in a period as BN
+        const claimPeriod = web3.utils.toBN(300); // Claim period in seconds as BN
+        const min_health = web3.utils.toBN(128); // Minimum health required to claim rewards as BN
 
         const ClaimManager = new web3.eth.Contract(claimManagerArtifact.abi);
         const claimManager = await ClaimManager.deploy({
-            data: claimManagerArtifact.bytecode,
-            arguments: [rewardPoolNFT.options.address, repairPotion.options.address, paymentManager.options.address, claimerLimit, claimPeriod, min_health]
+            data: claimManagerArtifact.data.bytecode,
+            arguments: [
+                rewardPoolNFT.options.address,
+                repairPotion.options.address,
+                paymentManager.options.address,
+                claimerLimit.toString(),
+                claimPeriod.toString(),
+                min_health.toString()
+            ]
         }).send({ from: deployer, gas: 5000000 });
         console.log("ClaimManager deployed to:", claimManager.options.address);
 
