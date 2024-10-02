@@ -358,8 +358,8 @@
     <p>&copy; 2023 Reward Pool NFT Interface</p>
   </footer>
 
-  <!-- Include Ethers.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <!-- Include web3.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
 
   <script>
     // Contract ABIs (replace with actual ABIs)
@@ -2395,266 +2395,257 @@
     const potionContractAddress = '0x...'; // Replace with your RepairPotion contract address
 
     document.addEventListener('DOMContentLoaded', async () => {
-      let provider;
-      let signer;
-      let userAddress;
-      let nftContract, claimManagerContract, paymentManagerContract, potionContract;
+    let web3;
+    let userAddress;
+ 
+    const connectWalletButton = document.getElementById('connectWalletButton');
+    connectWalletButton.addEventListener('click', async () => {
+      await connectWallet();
+    });
 
-      const connectWalletButton = document.getElementById('connectWalletButton');
-      connectWalletButton.addEventListener('click', async () => {
-        await connectWallet();
-      });
-
-      async function connectWallet() {
-        if (window.ethereum) {
-          try {
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            provider = new ethers.providers.Web3Provider(window.ethereum);
-            signer = provider.getSigner();
-            userAddress = await signer.getAddress();
-            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-            initializeContracts();
-            refreshData();
-          } catch (error) {
-            console.error('User denied account access');
-          }
-        } else {
-          alert('Please install MetaMask!');
-        }
-      }
-
-      function initializeContracts() {
-        nftContract = new ethers.Contract(nftContractAddress, nftAbi, signer);
-        claimManagerContract = new ethers.Contract(claimManagerAddress, claimManagerAbi, signer);
-        paymentManagerContract = new ethers.Contract(paymentManagerAddress, paymentManagerAbi, signer);
-        potionContract = new ethers.Contract(potionContractAddress, potionAbi, signer);
-      }
-
-      async function refreshData() {
-        await Promise.all([loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo()]);
-      }
-
-      async function loadMintPrice() {
-        const mintPrice = await nftContract.mintPrice();
-        document.getElementById('mintPrice').textContent = ethers.utils.formatEther(mintPrice) + ' ETH';
-      }
-
-      async function loadPotionPrice() {
-        const potionPrice = await potionContract.purchasePrice();
-        document.getElementById('potionPrice').textContent = ethers.utils.formatEther(potionPrice) + ' Token';
-      }
-
-      async function loadPotionBalance() {
-        const balance = await potionContract.balanceOf(userAddress);
-        document.getElementById('potionBalance').textContent = balance.toString();
-      }
-
-      async function loadUserNFTs() {
-        const nftGrid = document.getElementById('nftGrid');
-        nftGrid.innerHTML = '';
-
-        const balance = await nftContract.balanceOf(userAddress);
-        for (let i = 0; i < balance; i++) {
-          const tokenId = await nftContract.tokenOfOwnerByIndex(userAddress, i);
-          const nftCard = await createNFTCard(tokenId.toString());
-          nftGrid.appendChild(nftCard);
-        }
-      }
-
-      async function createNFTCard(tokenId) {
-        const card = document.createElement('div');
-        card.className = 'nft-card';
-
-        const title = document.createElement('h3');
-        title.textContent = `NFT #${tokenId}`;
-        card.appendChild(title);
-
-        const nftImage = document.createElement('div');
-        nftImage.className = 'nft-image';
-        card.appendChild(nftImage);
-
-        const health = await claimManagerContract.getHealth(tokenId);
-        const healthBarContainer = document.createElement('div');
-        healthBarContainer.className = 'health-bar';
-        const healthBar = document.createElement('div');
-        healthBar.style.width = `${(health / 255) * 100}%`;
-        healthBarContainer.appendChild(healthBar);
-        card.appendChild(healthBarContainer);
-
-        const healthInfo = document.createElement('div');
-        healthInfo.textContent = `Health: ${health}/255`;
-        card.appendChild(healthInfo);
-
-        const totalClaims = await claimManagerContract.getTotalClaims(tokenId);
-        const claimsInfo = document.createElement('div');
-        claimsInfo.textContent = `Total Claims: ${totalClaims}`;
-        card.appendChild(claimsInfo);
-
-        const hasClaimed = await claimManagerContract.hasClaimedInPeriod(tokenId);
-        const claimStatus = document.createElement('div');
-        claimStatus.textContent = `Has Claimed: ${hasClaimed ? 'Yes' : 'No'}`;
-        card.appendChild(claimStatus);
-
-        const actionButtons = document.createElement('div');
-        actionButtons.className = 'action-buttons';
-
-        const claimButton = document.createElement('button');
-        claimButton.className = 'button';
-        claimButton.textContent = 'Claim Reward';
-        claimButton.disabled = hasClaimed || health < (await claimManagerContract.min_health());
-        claimButton.addEventListener('click', async () => {
-          await claimReward(tokenId);
-        });
-        actionButtons.appendChild(claimButton);
-
-        const repairButton = document.createElement('button');
-        repairButton.className = 'button';
-        repairButton.textContent = 'Repair NFT';
-        const potionBalance = await potionContract.balanceOf(userAddress);
-        repairButton.disabled = health >= 255 || potionBalance == 0;
-        repairButton.addEventListener('click', async () => {
-          await repairNFT(tokenId);
-        });
-        actionButtons.appendChild(repairButton);
-
-        card.appendChild(actionButtons);
-        return card;
-      }
-
-      async function claimReward(tokenId) {
-        try {
-          const tx = await claimManagerContract.claim(tokenId);
-          await tx.wait();
-          showNotification('Reward claimed successfully!');
-          refreshData();
-        } catch (error) {
-          console.error(error);
-          showNotification('Failed to claim reward.', true);
-        }
-      }
-
-      async function repairNFT(tokenId) {
-        try {
-          const tx = await claimManagerContract.repair(tokenId);
-          await tx.wait();
-          showNotification('NFT repaired successfully!');
-          refreshData();
-        } catch (error) {
-          console.error(error);
-          showNotification('Failed to repair NFT.', true);
-        }
-      }
-
-      const mintButton = document.getElementById('mintButton');
-      mintButton.addEventListener('click', async () => {
-        await mintNFT();
-      });
-
-      async function mintNFT() {
-        try {
-          const mintPrice = await nftContract.mintPrice();
-          const tx = await nftContract.mint({ value: mintPrice });
-          await tx.wait();
-          showNotification('NFT minted successfully!');
-          refreshData();
-        } catch (error) {
-          console.error(error);
-          showNotification('Failed to mint NFT.', true);
-        }
-      }
-
-      const buyPotionButton = document.getElementById('buyPotionButton');
-      buyPotionButton.addEventListener('click', async () => {
-        const amount = document.getElementById('potionAmount').value;
-        if (amount > 0) {
-          await buyPotions(amount);
-        } else {
-          alert('Please enter a valid amount.');
-        }
-      });
-
-      async function buyPotions(amount) {
-        try {
-          const potionPrice = await potionContract.purchasePrice();
-          const totalCost = potionPrice.mul(amount);
-          const tx = await potionContract.buy(amount, { value: totalCost });
-          await tx.wait();
-          showNotification('Potions purchased successfully!');
-          refreshData();
-        } catch (error) {
-          console.error(error);
-          showNotification('Failed to buy potions.', true);
-        }
-      }
-
-      async function loadClaimPeriodInfo() {
-        const timeRemainingElement = document.getElementById('timeRemaining');
-        const claimantsCountElement = document.getElementById('claimantsCount');
-        const claimerLimitElement = document.getElementById('claimerLimit');
-        const finalizeStatusElement = document.getElementById('finalizeStatus');
-
-        const claimPeriod = await claimManagerContract.claimPeriod();
-        const lastClaimTime = await paymentManagerContract.lastClaimTime();
-        const currentTime = Math.floor(Date.now() / 1000);
-        const timeRemaining = parseInt(lastClaimTime) + parseInt(claimPeriod) - currentTime;
-
-        timeRemainingElement.textContent = timeRemaining > 0 ? `${timeRemaining} seconds` : 'Period Ended';
-
-        const claimantsCount = await claimManagerContract.getClaimantsCount();
-        const claimerLimit = await claimManagerContract.claimerLimit();
-        claimantsCountElement.textContent = claimantsCount.toString();
-        claimerLimitElement.textContent = claimerLimit.toString();
-
-        const isClaimReady = await claimManagerContract.isClaimReady();
-        finalizeStatusElement.textContent = isClaimReady ? 'Ready to Finalize' : 'Ongoing';
-      }
-
-      async function loadSystemInfo() {
-        const rewardRateElement = document.getElementById('rewardRate');
-        const specialRewardRateElement = document.getElementById('specialRewardRate');
-        const minClaimsElement = document.getElementById('minClaims');
-        const totalNftsElement = document.getElementById('totalNfts');
-
-        const rewardRate = await paymentManagerContract.rewardRate();
-        const specialRewardRate = await paymentManagerContract.specialRewardRate();
-        const minClaims = await paymentManagerContract.min_claims();
-        const totalNfts = await nftContract.totalSupply();
-
-        rewardRateElement.textContent = ethers.utils.formatEther(rewardRate) + ' Token';
-        specialRewardRateElement.textContent = ethers.utils.formatEther(specialRewardRate) + ' Token';
-        minClaimsElement.textContent = minClaims.toString();
-        totalNftsElement.textContent = totalNfts.toString();
-      }
-
-      function showNotification(message, isError = false) {
-        const notificationArea = document.getElementById('notificationArea');
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        if (isError) {
-          notification.classList.add('error-notification');
-        }
-        notification.textContent = message;
-        notificationArea.appendChild(notification);
-        setTimeout(() => {
-          notificationArea.removeChild(notification);
-        }, 4000);
-      }
-
-      //setInterval(refreshData, 15000);
-
+    async function connectWallet() {
       if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        provider.listAccounts().then(accounts => {
-          if (accounts.length > 0) {
-            userAddress = accounts[0];
-            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-            initializeContracts();
-            refreshData();
-          }
-        });
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          web3 = new Web3(window.ethereum);
+          const accounts = await web3.eth.getAccounts();
+          userAddress = accounts[0];
+          connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+          initializeContracts();
+          refreshData();
+        } catch (error) {
+          console.error('User denied account access');
+        }
+      } else {
+        alert('Please install MetaMask!');
+      }
+    }
+
+    function initializeContracts() {
+      nftContract = new web3.eth.Contract(nftAbi, nftContractAddress);
+      claimManagerContract = new web3.eth.Contract(claimManagerAbi, claimManagerAddress);
+      paymentManagerContract = new web3.eth.Contract(paymentManagerAbi, paymentManagerAddress);
+      potionContract = new web3.eth.Contract(potionAbi, potionContractAddress);
+    }
+
+    async function refreshData() {
+      await Promise.all([loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo()]);
+    }
+
+    async function loadMintPrice() {
+      const mintPrice = await nftContract.methods.mintPrice().call();
+      document.getElementById('mintPrice').textContent = web3.utils.fromWei(mintPrice, 'ether') + ' ETH';
+    }
+
+    async function loadPotionPrice() {
+      const potionPrice = await potionContract.methods.purchasePrice().call();
+      document.getElementById('potionPrice').textContent = web3.utils.fromWei(potionPrice, 'ether') + ' Token';
+    }
+
+    async function loadPotionBalance() {
+      const balance = await potionContract.methods.balanceOf(userAddress).call();
+      document.getElementById('potionBalance').textContent = balance.toString();
+    }
+
+    async function loadUserNFTs() {
+      const nftGrid = document.getElementById('nftGrid');
+      nftGrid.innerHTML = '';
+
+      const balance = await nftContract.methods.balanceOf(userAddress).call();
+      for (let i = 0; i < balance; i++) {
+        const tokenId = await nftContract.methods.tokenOfOwnerByIndex(userAddress, i).call();
+        const nftCard = await createNFTCard(tokenId);
+        nftGrid.appendChild(nftCard);
+      }
+    }
+
+    async function createNFTCard(tokenId) {
+      const card = document.createElement('div');
+      card.className = 'nft-card';
+
+      const title = document.createElement('h3');
+      title.textContent = `NFT #${tokenId}`;
+      card.appendChild(title);
+
+      const nftImage = document.createElement('div');
+      nftImage.className = 'nft-image';
+      card.appendChild(nftImage);
+
+      const health = await claimManagerContract.methods.getHealth(tokenId).call();
+      const healthBarContainer = document.createElement('div');
+      healthBarContainer.className = 'health-bar';
+      const healthBar = document.createElement('div');
+      healthBar.style.width = `${(health / 255) * 100}%`;
+      healthBarContainer.appendChild(healthBar);
+      card.appendChild(healthBarContainer);
+
+      const healthInfo = document.createElement('div');
+      healthInfo.textContent = `Health: ${health}/255`;
+      card.appendChild(healthInfo);
+
+      const totalClaims = await claimManagerContract.methods.getTotalClaims(tokenId).call();
+      const claimsInfo = document.createElement('div');
+      claimsInfo.textContent = `Total Claims: ${totalClaims}`;
+      card.appendChild(claimsInfo);
+
+      const hasClaimed = await claimManagerContract.methods.hasClaimedInPeriod(tokenId).call();
+      const claimStatus = document.createElement('div');
+      claimStatus.textContent = `Has Claimed: ${hasClaimed ? 'Yes' : 'No'}`;
+      card.appendChild(claimStatus);
+
+      const actionButtons = document.createElement('div');
+      actionButtons.className = 'action-buttons';
+
+      const claimButton = document.createElement('button');
+      claimButton.className = 'button';
+      claimButton.textContent = 'Claim Reward';
+      claimButton.disabled = hasClaimed || health < (await claimManagerContract.methods.min_health().call());
+      claimButton.addEventListener('click', async () => {
+        await claimReward(tokenId);
+      });
+      actionButtons.appendChild(claimButton);
+
+      const repairButton = document.createElement('button');
+      repairButton.className = 'button';
+      repairButton.textContent = 'Repair NFT';
+      const potionBalance = await potionContract.methods.balanceOf(userAddress).call();
+      repairButton.disabled = health >= 255 || potionBalance == 0;
+      repairButton.addEventListener('click', async () => {
+        await repairNFT(tokenId);
+      });
+      actionButtons.appendChild(repairButton);
+
+      card.appendChild(actionButtons);
+      return card;
+    }
+
+    async function claimReward(tokenId) {
+      try {
+        const tx = await claimManagerContract.methods.claim(tokenId).send({ from: userAddress });
+        showNotification('Reward claimed successfully!');
+        refreshData();
+      } catch (error) {
+        console.error(error);
+        showNotification('Failed to claim reward.', true);
+      }
+    }
+
+    async function repairNFT(tokenId) {
+      try {
+        const tx = await claimManagerContract.methods.repair(tokenId).send({ from: userAddress });
+        showNotification('NFT repaired successfully!');
+        refreshData();
+      } catch (error) {
+        console.error(error);
+        showNotification('Failed to repair NFT.', true);
+      }
+    }
+
+    const mintButton = document.getElementById('mintButton');
+    mintButton.addEventListener('click', async () => {
+      await mintNFT();
+    });
+
+    async function mintNFT() {
+      try {
+        const mintPrice = await nftContract.methods.mintPrice().call();
+        const tx = await nftContract.methods.mint().send({ from: userAddress, value: mintPrice });
+        showNotification('NFT minted successfully!');
+        refreshData();
+      } catch (error) {
+        console.error(error);
+        showNotification('Failed to mint NFT.', true);
+      }
+    }
+
+    const buyPotionButton = document.getElementById('buyPotionButton');
+    buyPotionButton.addEventListener('click', async () => {
+      const amount = document.getElementById('potionAmount').value;
+      if (amount > 0) {
+        await buyPotions(amount);
+      } else {
+        alert('Please enter a valid amount.');
       }
     });
+
+    async function buyPotions(amount) {
+      try {
+        const potionPrice = await potionContract.methods.purchasePrice().call();
+        const totalCost = web3.utils.toWei(potionPrice, 'ether') * amount;
+        const tx = await potionContract.methods.buy(amount).send({ from: userAddress, value: totalCost });
+        showNotification('Potions purchased successfully!');
+        refreshData();
+      } catch (error) {
+        console.error(error);
+        showNotification('Failed to buy potions.', true);
+      }
+    }
+
+    async function loadClaimPeriodInfo() {
+      const timeRemainingElement = document.getElementById('timeRemaining');
+      const claimantsCountElement = document.getElementById('claimantsCount');
+      const claimerLimitElement = document.getElementById('claimerLimit');
+      const finalizeStatusElement = document.getElementById('finalizeStatus');
+
+      const claimPeriod = await claimManagerContract.methods.claimPeriod().call();
+      const lastClaimTime = await paymentManagerContract.methods.lastClaimTime().call();
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeRemaining = parseInt(lastClaimTime) + parseInt(claimPeriod) - currentTime;
+
+      timeRemainingElement.textContent = timeRemaining > 0 ? `${timeRemaining} seconds` : 'Period Ended';
+
+      const claimantsCount = await claimManagerContract.methods.getClaimantsCount().call();
+      const claimerLimit = await claimManagerContract.methods.claimerLimit().call();
+      claimantsCountElement.textContent = claimantsCount.toString();
+      claimerLimitElement.textContent = claimerLimit.toString();
+
+      const isClaimReady = await claimManagerContract.methods.isClaimReady().call();
+      finalizeStatusElement.textContent = isClaimReady ? 'Ready to Finalize' : 'Ongoing';
+    }
+
+    async function loadSystemInfo() {
+      const rewardRateElement = document.getElementById('rewardRate');
+      const specialRewardRateElement = document.getElementById('specialRewardRate');
+      const minClaimsElement = document.getElementById('minClaims');
+      const totalNftsElement = document.getElementById('totalNfts');
+
+      const rewardRate = await paymentManagerContract.methods.rewardRate().call();
+      const specialRewardRate = await paymentManagerContract.methods.specialRewardRate().call();
+      const minClaims = await paymentManagerContract.methods.min_claims().call();
+      const totalNfts = await nftContract.methods.totalSupply().call();
+
+      rewardRateElement.textContent = web3.utils.fromWei(rewardRate, 'ether') + ' Token';
+      specialRewardRateElement.textContent = web3.utils.fromWei(specialRewardRate, 'ether') + ' Token';
+      minClaimsElement.textContent = minClaims.toString();
+      totalNftsElement.textContent = totalNfts.toString();
+    }
+
+    function showNotification(message, isError = false) {
+      const notificationArea = document.getElementById('notificationArea');
+      const notification = document.createElement('div');
+      notification.className = 'notification';
+      if (isError) {
+        notification.classList.add('error-notification');
+      }
+      notification.textContent = message;
+      notificationArea.appendChild(notification);
+      setTimeout(() => {
+        notificationArea.removeChild(notification);
+      }, 4000);
+    }
+
+    if (window.ethereum) {
+      web3 = new Web3(window.ethereum);
+      web3.eth.getAccounts().then(accounts => {
+        if (accounts.length > 0) {
+          userAddress = accounts[0];
+          connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+          initializeContracts();
+          refreshData();
+        }
+      });
+    }
+  });
   </script>
 </body>
 </html>
