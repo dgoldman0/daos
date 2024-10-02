@@ -309,12 +309,14 @@
       <div id="nftGrid" class="nft-grid"></div>
     </div>
 
-    <!-- Mint NFTs Section -->
-    <div class="section" id="mintSection">
-      <h2>Mint NFTs</h2>
-      <div class="info">Mint Price: <span id="mintPrice"></span></div>
-      <button id="mintButton" class="button">Mint NFT</button>
-    </div>
+	<!-- Mint NFTs Section -->
+	<div class="section" id="mintSection">
+	  <h2>Mint NFTs</h2>
+	  <div class="info">Mint Price: <span id="mintPrice"></span></div>
+	  <!-- Need to adjust max amount to whatever the contract max amount is I suppose-->
+	  <input type="number" id="mintAmount" placeholder="Amount" min="1" max="100">
+	  <button id="mintButton" class="button">Mint NFT</button>
+	</div>
 
     <!-- Buy Repair Potions Section -->
     <div class="section" id="potionSection">
@@ -2397,8 +2399,13 @@
     document.addEventListener('DOMContentLoaded', async () => {
     let web3;
     let userAddress;
- 
-    const connectWalletButton = document.getElementById('connectWalletButton');
+
+	let nftContract, claimManagerContract, paymentManagerContract, potionContract;
+
+	let nftPurchaseAddress = '';
+	let potionPurchaseTokenAddress = '';
+
+  	const connectWalletButton = document.getElementById('connectWalletButton');
     connectWalletButton.addEventListener('click', async () => {
       await connectWallet();
     });
@@ -2429,7 +2436,7 @@
     }
 
     async function refreshData() {
-      await Promise.all([loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo()]);
+      await Promise.all([loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo(), loadPaymentAddresses()]);
     }
 
     async function loadMintPrice() {
@@ -2446,6 +2453,12 @@
       const balance = await potionContract.methods.balanceOf(userAddress).call();
       document.getElementById('potionBalance').textContent = balance.toString();
     }
+
+	// Load payment token adresses
+	async function loadPaymentAddresses() {
+	  nftPurchaseAddress = await paymentManagerContract.methods.nftContract().call();
+	  potionPurchaseTokenAddress = await paymentManagerContract.methods.potionToken().call();
+	}
 
     async function loadUserNFTs() {
       const nftGrid = document.getElementById('nftGrid');
@@ -2549,7 +2562,9 @@
     async function mintNFT() {
       try {
         const mintPrice = await nftContract.methods.mintPrice().call();
-        const tx = await nftContract.methods.mint().send({ from: userAddress, value: mintPrice });
+		let mintAmt = document.getElementById('mintAmt').value;
+		let totalPrice = mintPrice * mintAmt;
+		const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress, value: totalPrice });
         showNotification('NFT minted successfully!');
         refreshData();
       } catch (error) {
