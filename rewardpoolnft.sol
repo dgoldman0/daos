@@ -74,6 +74,9 @@ contract Ownable is ReentrancyGuard {
             IERC20(_token).transfer(owner(), IERC20(_token).balanceOf(address(this)));
         }
     }
+
+    // Since owner can withdraw ether the contract can receive ether
+    receive() external payable {}
 }
 
 // Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
@@ -410,7 +413,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     string private _baseTokenURI;
     address public paymentToken;
     address public claimManager;
-    address public paymentManager;
 
     uint256 public nextTokenId; // Unique ID for minted NFTs
 
@@ -486,6 +488,11 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         maxSupply = _maxSupply;
     }
     
+    // Owner can set the data manager contract
+    function setClaimManager(address _claimManager) public onlyOwner {
+        claimManager = _claimManager;
+    }
+
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
