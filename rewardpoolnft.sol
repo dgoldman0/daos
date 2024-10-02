@@ -174,7 +174,7 @@ contract PaymentManager is Ownable {
     // Check if it's time to finalize the current claim period
     function checkAndFinalizePeriod() external returns (bool) {
         require(msg.sender == claimManager, "Only the claim manager can call this function");
-        ClaimManager _claimManager = ClaimManager(claimManager);
+        ClaimManager _claimManager = ClaimManager(payable(claimManager));
         if (block.timestamp > lastClaimTime + _claimManager.claimPeriod()) {
             uint256 len = _claimManager.getClaimantsCount();
             if (len >= min_claims) {
@@ -310,7 +310,7 @@ contract ClaimManager is Ownable {
     }
 
     function isClaimReady() public view returns (bool) {
-        return block.timestamp > PaymentManager(paymentManager).lastClaimTime() + claimPeriod;
+        return block.timestamp > PaymentManager(payable(paymentManager)).lastClaimTime() + claimPeriod;
     }
 
     function resetClaim(uint256 tokenId) external 
@@ -321,7 +321,7 @@ contract ClaimManager is Ownable {
 
     function claim(uint256 tokenId) public nonReentrant {
         // Protect users from claiming when the contract doesn't have enough funds
-        PaymentManager _paymentManager = PaymentManager(paymentManager);
+        PaymentManager _paymentManager = PaymentManager(payable(paymentManager));
         require(_paymentManager.hasSufficientBalance(_paymentManager.rewardRate()), "Insufficient funds for rewards");
         // In the rare case where the special reward rate is more than the reward rate, which could happen? 
         require(_paymentManager.hasSufficientBalance(_paymentManager.specialRewardRate()), "Insufficient funds for special rewards");
@@ -359,7 +359,7 @@ contract ClaimManager is Ownable {
     }
 
     function deleteClaimants() external {
-        require(msg.sender == address(paymentManager), "Only the payment manager can call this function");
+        require(msg.sender == paymentManager, "Only the payment manager can call this function");
         delete claimants;
     }
 
@@ -370,7 +370,7 @@ contract ClaimManager is Ownable {
         require(claimData[tokenId].health + _qnt < 255, "NFT health is already full");
         // Use the consume function of the repair potion contract to burn one repair potion
         for (uint256 i = 0; i < _qnt; i++) {
-            RepairPotion(potionToken).consume(msg.sender);
+            RepairPotion(payable(potionToken)).consume(msg.sender);
             claimData[tokenId].health += 1;
         }
         emit TokenRepaired(msg.sender, tokenId, _qnt);
@@ -447,7 +447,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(msg.sender, nextTokenId);
-            ClaimManager(claimManager).initializeNFT(nextTokenId);
+            ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
             emit NFTMinted(msg.sender, nextTokenId);
             nextTokenId += 1;
         }
@@ -456,7 +456,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     function mintTo(address _to, uint256 _count) public onlyOwner nonReentrant {
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(msg.sender, nextTokenId);
-            ClaimManager(claimManager).initializeNFT(nextTokenId);
+            ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
             nextTokenId += 1;
         }
     }
