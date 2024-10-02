@@ -271,7 +271,7 @@ contract ClaimManager is Ownable {
     uint8 public min_health = 128; // Minimum token health required to claim rewards
 
     event Claim(address indexed claimant, uint256 indexed tokenId);
-    event TokenRepaired(address indexed owner, uint256 indexed tokenId);
+    event TokenRepaired(address indexed owner, uint256 indexed tokenId, uint256 qnt);
 
     constructor(address _nftContract, address _potionToken, address _paymentManager, uint256 _claimerLimit, uint256 _claimPeriod, uint8 _min_health) Ownable() {
         nftContract = _nftContract;
@@ -360,14 +360,16 @@ contract ClaimManager is Ownable {
     }
 
     // Repair function: allows NFT owners to repair their NFTs using a repair potion
-    function repair(uint256 tokenId) public nonReentrant {
+    function repair(uint256 tokenId, uint256 _qnt) public nonReentrant {
         require(ERC721Enumerable(nftContract).ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
-        require(IERC20(potionToken).balanceOf(msg.sender) >= 1, "Insufficient repair potions");
-        require(claimData[tokenId].health < 255, "NFT health is already full");
+        require(IERC20(potionToken).balanceOf(msg.sender) >= _qnt, "Insufficient repair potions");
+        require(claimData[tokenId].health + qnt < 255, "NFT health is already full");
         // Use the consume function of the repair potion contract to burn one repair potion
-        RepairPotion(potionToken).consume(msg.sender);
-        claimData[tokenId].health += 1;
-        emit TokenRepaired(msg.sender, tokenId);
+        for (uint256 i = 0; i < _qnt; i++) {
+            RepairPotion(potionToken).consume(msg.sender);
+            claimData[tokenId].health += 1;
+        }
+        emit TokenRepaired(msg.sender, tokenId, _qnt);
     }
 
     // Owner can set the minimum health required to claim rewards
