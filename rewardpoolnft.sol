@@ -134,6 +134,7 @@ contract RepairPotion is ERC20, Ownable {
     }
 
     function setMaxSupply(uint256 _maxSupply) public onlyOwner {
+        require(_maxSupply >= totalSupply(), "New max supply must be greater than the current supply");
         maxSupply = _maxSupply;
     }
 }
