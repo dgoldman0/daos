@@ -450,7 +450,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         }
     }
 
-    function mintTo(address _to, uint256 _count) public onlyOwner, nonReentrant {
+    function mintTo(address _to, uint256 _count) public onlyOwner nonReentrant {
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(msg.sender, nextTokenId);
             ClaimManager(claimManager).initializeNFT(nextTokenId);
