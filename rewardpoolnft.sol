@@ -255,6 +255,7 @@ contract ClaimManager is Ownable {
     mapping (address => bool) public controllers; // Only the controller contract can modify data
 
     struct NFTInfo {
+        uint256 mintDate;
         uint256 totalClaims;
         bool hasClaimedInPeriod;
         uint8 health;
@@ -292,7 +293,7 @@ contract ClaimManager is Ownable {
     // Function to initialize claim data for a new NFT (only controller can call this)
     function initializeNFT(uint256 tokenId) external {
         require(msg.sender == address(nftContract), "Only the NFT contract can call this function");
-        claimData[tokenId] = NFTInfo(0, false, 255); // default full health
+        claimData[tokenId] = NFTInfo(block.timestamp, 0, false, 255);
     }
 
     // Function to check if the tokenId has claimed in the current period
