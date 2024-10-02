@@ -479,16 +479,6 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         mintPrice = _price;
     }
 
-    // Owner can set the data manager contract
-    function setClaimManager(address _claimManager) public onlyOwner {
-        claimManager = _claimManager;
-    }
-
-    // Owner can set the payment manager contract
-    function setPaymentManager(address _paymentManager) public onlyOwner {
-        paymentManager = _paymentManager;
-    }
-
     // Owner can set the maximum supply of NFTs
     function setMaxSupply(uint256 _maxSupply) public onlyOwner {
         require(_maxSupply >= nextTokenId, "New max supply must be greater than the next token ID");
