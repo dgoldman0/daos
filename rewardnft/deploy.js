@@ -1,6 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
 async function main() {
     try {
         // Get accounts from web3 (Assuming you're using Hardhat or Web3.js)
@@ -9,10 +6,10 @@ async function main() {
 
         console.log("Deploying contracts with the account:", deployer);
         // Load contract artifacts from compiled JSON files
-        const repairPotionArtifact = JSON.parse(readFileSync(join(__dirname, 'artifacts/RepairPotion.json'), 'utf8'));
-        const rewardPoolNFTArtifact = JSON.parse(readFileSync(join(__dirname, 'artifacts/RewardPoolNFT.json'), 'utf8'));
-        const paymentManagerArtifact = JSON.parse(readFileSync(join(__dirname, 'artifacts/PaymentManager.json'), 'utf8'));
-        const claimManagerArtifact = JSON.parse(readFileSync(join(__dirname, 'artifacts/ClaimManager.json'), 'utf8'));
+        const repairPotionArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/RepairPotion.json'));
+        const rewardPoolNFTArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/RewardPoolNFT.json'));
+        const paymentManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/PaymentManager.json'));
+        const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/ClaimManager.json'));
 
         // Deploy RepairPotion
         const RepairPotion = new web3.eth.Contract(repairPotionArtifact.abi);
