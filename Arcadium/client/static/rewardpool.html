@@ -334,7 +334,6 @@
       <h2>Claim Period Info</h2>
       <div class="info">Time Remaining: <span id="timeRemaining"></span></div>
       <div class="info">Claimants: <span id="claimantsCount"></span>/<span id="claimerLimit"></span></div>
-      <div class="info">Finalize Status: <span id="finalizeStatus"></span></div>
     </div>
 
     <!-- System Information Section -->
@@ -2947,11 +2946,11 @@
 			}
 		];
 	
-	// Contract addresses (replace with actual addresses)
-    const nftContractAddress = '0x...'; // Replace with your NFT contract address
-    const claimManagerAddress = '0x...'; // Replace with your ClaimManager contract address
-    const paymentManagerAddress = '0x...'; // Replace with your PaymentManager contract address
-    const potionContractAddress = '0x...'; // Replace with your RepairPotion contract address
+	// Contract addresses currently set to BNB testnet contracts for testing... (replace with actual addresses)
+    const nftContractAddress = '0xe540ACB2f5bdA0602C458cc2DD713B6cd0871730'; // Replace with your NFT contract address
+    const claimManagerAddress = '0xf3eEe1887960e4a87907a14F60b1A3AA798D8911'; // Replace with your ClaimManager contract address
+    const paymentManagerAddress = '0xCe99d4F8Cdd4B799aE4589CCa6b52d58e641D91A'; // Replace with your PaymentManager contract address
+    const potionContractAddress = '0xde36Fd06BF02Dfa4bC34394593f8F0aDCd97B06D'; // Replace with your RepairPotion contract address
 
     document.addEventListener('DOMContentLoaded', async () => {
     let web3;
@@ -3013,8 +3012,8 @@
 
 	// Load payment token adresses
 	async function loadPaymentAddresses() {
-	  nftPurchaseAddress = await paymentManagerContract.methods.nftContract().call();
-	  potionPurchaseTokenAddress = await paymentManagerContract.methods.potionToken().call();
+	  nftPurchaseAddress = await nftContract.methods.paymentToken().call();
+	  potionPurchaseTokenAddress = await potionContract.methods.purchaseToken().call();
 	}
 
     async function loadUserNFTs() {
@@ -3045,7 +3044,7 @@
       const healthBarContainer = document.createElement('div');
       healthBarContainer.className = 'health-bar';
       const healthBar = document.createElement('div');
-      healthBar.style.width = `${(health / 255) * 100}%`;
+      healthBar.style.width = `${(Number(health) / 255) * 100}%`;
       healthBarContainer.appendChild(healthBar);
       card.appendChild(healthBarContainer);
 
@@ -3068,7 +3067,7 @@
 
       const claimButton = document.createElement('button');
       claimButton.className = 'button';
-      claimButton.textContent = 'Claim Reward';
+      claimButton.textContent = 'Request Claim';
       claimButton.disabled = hasClaimed || health < (await claimManagerContract.methods.min_health().call());
       claimButton.addEventListener('click', async () => {
         await claimReward(tokenId);
@@ -3179,7 +3178,6 @@
       const timeRemainingElement = document.getElementById('timeRemaining');
       const claimantsCountElement = document.getElementById('claimantsCount');
       const claimerLimitElement = document.getElementById('claimerLimit');
-      const finalizeStatusElement = document.getElementById('finalizeStatus');
 
       const claimPeriod = await claimManagerContract.methods.claimPeriod().call();
       const lastClaimTime = await paymentManagerContract.methods.lastClaimTime().call();
@@ -3192,9 +3190,6 @@
       const claimerLimit = await claimManagerContract.methods.claimerLimit().call();
       claimantsCountElement.textContent = claimantsCount.toString();
       claimerLimitElement.textContent = claimerLimit.toString();
-
-      const isClaimReady = await claimManagerContract.methods.isClaimReady().call();
-      finalizeStatusElement.textContent = isClaimReady ? 'Ready to Finalize' : 'Ongoing';
     }
 
     async function loadSystemInfo() {
@@ -3228,7 +3223,7 @@
       }, 4000);
     }
 
-    // setInterval(refreshData, 10000);
+//    setInterval(refreshData, 10000);
 
     if (window.ethereum) {
       web3 = new Web3(window.ethereum);
@@ -3236,8 +3231,9 @@
         if (accounts.length > 0) {
           userAddress = accounts[0];
           connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-          //initializeContracts();
-          //refreshData();
+          initializeContracts();
+	      refreshData();
+		
         }
       });
     }
