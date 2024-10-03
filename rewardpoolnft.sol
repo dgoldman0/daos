@@ -453,9 +453,10 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         }
 
         for (uint256 i = 0; i < _count; i++) {
+            // Placing the emit here ensures that the minted event is broadcast before the transfer event is broadcast.
+            emit NFTMinted(msg.sender, nextTokenId);
             _safeMint(msg.sender, nextTokenId);
             ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
-            emit NFTMinted(msg.sender, nextTokenId);
             nextTokenId += 1;
         }
     }
