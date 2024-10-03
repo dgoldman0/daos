@@ -314,11 +314,12 @@
 	  <h2>Mint NFTs</h2>
 	  <div class="info">Mint Price: <span id="mintPrice"></span></div>
 	  <!-- Need to adjust max amount to whatever the contract max amount is I suppose-->
-	  <input type="number" id="mintAmount" placeholder="Amount" min="1" max="100">
+	  <input type="number" id="mintAmt" placeholder="Amount" min="1" max="100">
 	  <button id="mintButton" class="button">Mint NFT</button>
 	</div>
 
     <!-- Buy Repair Potions Section -->
+	<!-- Should have an easy way for repair multiple, but I can't figure out UI for that yet...-->
     <div class="section" id="potionSection">
       <h2>Buy Repair Potions</h2>
       <div class="info">Potion Price: <span id="potionPrice"></span></div>
@@ -3101,7 +3102,12 @@
 
     async function repairNFT(tokenId) {
       try {
-        const tx = await claimManagerContract.methods.repair(tokenId).send({ from: userAddress });
+		// Check approval for token and approve if needed
+		const allowance = await potionContract.methods.allowance(userAddress, potionContractAddress).call();
+		if (allowance == 0) {
+			await potionContract.methods.approve(potionContractAddress, 1).send({ from: userAddress });
+		}
+        const tx = await claimManagerContract.methods.repair(tokenId, 1).send({ from: userAddress });
         showNotification('NFT repaired successfully!');
         refreshData();
       } catch (error) {
@@ -3117,7 +3123,7 @@
 
     async function mintNFT() {
       try {
-        const mintPrice = await nftContract.methods.mintPrice().call();
+        const mintPrice = Number(await nftContract.methods.mintPrice().call());
 		let mintAmt = document.getElementById('mintAmt').value;
 		let totalPrice = mintPrice * mintAmt;
 		// Send eth if the nft purchase address is address 0. Otherwise send the token
