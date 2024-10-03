@@ -86,10 +86,10 @@ contract RepairPotion is ERC20, Ownable {
     uint256 public purchasePrice;
     uint256 public maxSupply;
 
-    constructor() ERC20("Repair Potion", "REPAIR") {
+    constructor() ERC20("Repair Potion", "REPOT") {
         maxSupply = 1000000000000000000000000000000; // 1 billion POTIONS
         purchaseToken = address(0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f); // Default to ACM token
-        purchasePrice = 10000000000000000; // Default price is 0.1 token
+        purchasePrice = 5000000000000000; // Default price is 0.05 token
     }
 
     function mint(address to, uint256 amount) public onlyOwner {
