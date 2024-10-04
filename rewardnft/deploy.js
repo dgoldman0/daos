@@ -11,9 +11,14 @@ async function main() {
         const paymentManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/PaymentManager.json'));
         const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/ClaimManager.json'));
 
+        const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
+        const paymentToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Token address for repair potions
+        const cost = web3.utils.toWei("5", "ether"); // Cost of repair potion as string
+
         // Deploy RepairPotion
         const RepairPotion = new web3.eth.Contract(repairPotionArtifact.abi);
-        const repairPotion = await RepairPotion.deploy({ data: repairPotionArtifact.data.bytecode.object })
+        const repairPotion = await RepairPotion.deploy({ data: repairPotionArtifact.data.bytecode.object,
+            arguments: [maxPotionSupply.toString(), paymentToken, cost] })
             .send({ from: deployer, gas: 5000000 });
         console.log("RepairPotion deployed to:", repairPotion.options.address);
 
@@ -27,7 +32,7 @@ async function main() {
         const rewardToken = "0x0000000000000000000000000000000000000000"; // Native token (e.g., ETH)
         const rewardRate = web3.utils.toWei("0.001", "ether"); // Reward rate as string
         const specialRewardRate = web3.utils.toWei("0.001", "ether"); // Special reward rate as string
-        const min_claims = web3.utils.toBN(1); // Minimum number of claims required to finalize a period as BN
+        const min_claims = web3.utils.toBN(10); // Minimum number of claims required to finalize a period as BN
 
         const PaymentManager = new web3.eth.Contract(paymentManagerArtifact.abi);
         const paymentManager = await PaymentManager.deploy({
@@ -45,7 +50,7 @@ async function main() {
         // Deploy ClaimManager
         const claimerLimit = web3.utils.toBN(25); // Maximum number of claimants in a period as BN
         const claimPeriod = web3.utils.toBN(300); // Claim period in seconds as BN
-        const min_health = web3.utils.toBN(128); // Minimum health required to claim rewards as BN
+        const min_health = web3.utils.toBN(250); // Minimum health required to claim rewards as BN
 
         const ClaimManager = new web3.eth.Contract(claimManagerArtifact.abi);
         const claimManager = await ClaimManager.deploy({
