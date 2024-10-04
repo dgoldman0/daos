@@ -3,7 +3,7 @@
 from flask import Flask, render_template, send_file
 from PIL import Image, ImageEnhance
 from io import BytesIO
-
+import argparse
 
 # Load base images
 treasure_img = Image.open("assets/treasure.png").convert("RGBA")  # Ensure it's in RGBA mode
@@ -50,4 +50,11 @@ def media():
     return send_file(img_io, mimetype='image/png')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Parse command line arguments, including debug mode, server port, etc.
+    parser = argparse.ArgumentParser(description='Arcadium Server')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser.add_argument('--port', type=int, default=80, help='Port number')
+    args = parser.parse_args()
+
+    # Run the Flask app
+    app.run(debug=args.debug, port=args.port)
