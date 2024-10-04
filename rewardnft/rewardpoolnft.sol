@@ -110,8 +110,12 @@ contract RepairPotion is ERC20, Ownable {
         if (purchaseToken == address(0)) {
             // Refund any excess payment
             if (msg.value > cost) {
-                (bool success, ) = payable(msg.sender).call{value: msg.value - cost}("");
-                require(success, "Ether transfer failed");
+                payable(msg.sender).transfer(msg.value - cost);
+            }
+        } else {
+            // Refund any excess tokens
+            if (IERC20(purchaseToken).balanceOf(address(this)) > cost) {
+                IERC20(purchaseToken).transfer(msg.sender, IERC20(purchaseToken).balanceOf(address(this)) - cost);
             }
         }
         _mint(msg.sender, amount);
@@ -455,9 +459,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         if (paymentToken == address(0)) {
             require(msg.value >= totalMintPrice, "Insufficient native token amount");
             if (msg.value > totalMintPrice) {
-                uint256 amt = msg.value - totalMintPrice;
-                (bool success, ) = payable(msg.sender).call{value: amt}("");
-                require(success, "Ether transfer failed");
+                payable(msg.sender).transfer(msg.value - totalMintPrice);
             }
         } else {
             require(IERC20(paymentToken).transferFrom(msg.sender, address(this), totalMintPrice), "ERC-20 transfer failed");
