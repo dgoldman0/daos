@@ -379,15 +379,15 @@ contract ClaimManager is Ownable {
     }
 
     // Repair function: allows NFT owners to repair their NFTs using a repair potion
-    function repair(uint256 tokenId, uint256 _qnt) public nonReentrant {
+    function repair(uint256 tokenId, uint8 _qnt) public nonReentrant {
         require(ERC721Enumerable(nftContract).ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(IERC20(potionToken).balanceOf(msg.sender) >= _qnt, "Insufficient repair potions");
         require(claimData[tokenId].health + _qnt <= 255, "NFT health would be over limit");
         // Use the consume function of the repair potion contract to burn one repair potion
-        for (uint256 i = 0; i < _qnt; i++) {
+        for (uint8 i = 0; i < _qnt; i++) {
             RepairPotion(payable(potionToken)).consume(msg.sender);
-            claimData[tokenId].health += 1;
         }
+        claimData[tokenId].health += uint8(_qnt);
         emit TokenRepaired(msg.sender, tokenId, _qnt);
     }
 
