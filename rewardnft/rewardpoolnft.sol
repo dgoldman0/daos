@@ -109,7 +109,7 @@ contract RepairPotion is ERC20, Ownable {
 
         if (purchaseToken == address(0)) {
             // Refund any excess payment
-            if (msg.value > purchasePrice * amount) {
+            if (msg.value > cost) {
                 (bool success, ) = payable(msg.sender).call{value: msg.value - cost}("");
                 require(success, "Ether transfer failed");
             }
