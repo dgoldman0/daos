@@ -414,6 +414,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     string private _baseTokenURI;
     address public paymentToken;
     address public claimManager;
+    address payable public fundReceiver;
 
     uint256 public nextTokenId; // Unique ID for minted NFTs
 
@@ -458,6 +459,15 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
             _safeMint(msg.sender, nextTokenId);
             ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
             nextTokenId += 1;
+        }
+
+        // Transfer the mint fee to the fund receiver if set
+        if (address(fundReceiver) != address(0) && Ownable(fundReceiver).owner() != address(0)) {
+            if (paymentToken == address(0)) {
+                fundReceiver.transfer(totalMintPrice);
+            } else {
+                IERC20(paymentToken).transfer(fundReceiver, totalMintPrice);
+            }
         }
     }
 
@@ -507,5 +517,10 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
     // Override required for Solidity (for ERC721Enumerable)
     function supportsInterface(bytes4 interfaceId) public view override(ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    // Owner can set the fund receiver
+    function setFundReceiver(address payable _fundReceiver) public onlyOwner {
+        fundReceiver = _fundReceiver;
     }
 }
