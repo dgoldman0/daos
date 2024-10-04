@@ -82,6 +82,7 @@ contract Ownable is ReentrancyGuard {
 // Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
 contract RepairPotion is ERC20, Ownable {
     address public managerContract;
+    address payable public fundReceiver;
     address public purchaseToken;
     uint256 public purchasePrice;
     uint256 public maxSupply;
@@ -100,7 +101,7 @@ contract RepairPotion is ERC20, Ownable {
         return 0;
     }
 
-    function buy(uint256 amount) public payable {
+    function buy(uint256 amount) public payable nonReentrant {
         require(amount > 0, "Amount must be greater than zero");
         require(amount + totalSupply() <= maxSupply, "Exceeds maximum supply");
         uint256 cost = purchasePrice * amount;
@@ -114,6 +115,15 @@ contract RepairPotion is ERC20, Ownable {
             }
         }
         _mint(msg.sender, amount);
+
+        // Transfer the purchase amount to the fund receiver if set
+        if (address(fundReceiver) != address(0) && Ownable(fundReceiver).owner() != address(0)) {
+            if (purchaseToken == address(0)) {
+                fundReceiver.transfer(cost);
+            } else {
+                IERC20(purchaseToken).transfer(fundReceiver, cost);
+            }
+        }
     }
 
     // Consume a potion
@@ -139,6 +149,10 @@ contract RepairPotion is ERC20, Ownable {
     function setMaxSupply(uint256 _maxSupply) public onlyOwner {
         require(_maxSupply >= totalSupply(), "New max supply must be greater than the current supply");
         maxSupply = _maxSupply;
+    }
+
+    function setFundReceiver(address payable _fundReceiver) public onlyOwner {
+        fundReceiver = _fundReceiver;
     }
 }
 
