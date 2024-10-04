@@ -80,8 +80,8 @@ async function main() {
         console.log("Set managerContract in RepairPotion");
 
         // Mint initial NFTs using ownerMint function
-        await rewardPoolNFT.methods.mintTo(deployer, 10).send({ from: deployer });
-        console.log("Minted 10 initial NFTs to owner");
+        await rewardPoolNFT.methods.mintTo(deployer, 5).send({ from: deployer });
+        console.log("Minted 5 initial NFTs to owner");
     } catch (error) {
         // Log full error details for better debugging
         console.error("Error during deployment:", error.message || error);
