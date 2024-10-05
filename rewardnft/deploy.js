@@ -80,11 +80,11 @@ async function main() {
         console.log("Set managerContract in RepairPotion");
 
         // Set fundRecipient in RepairPotion and NFTRewardPool
-        await repairPotion.methods.setFundRecipient(deployer)
+        await repairPotion.methods.setFundReceiver(deployer)
             .send({ from: deployer });
         console.log("Set fundRecipient in RepairPotion");
 
-        await rewardPoolNFT.methods.setFundRecipient(deployer)
+        await rewardPoolNFT.methods.setFundReceiver(deployer)
             .send({ from: deployer });
         console.log("Set fundRecipient in RewardPoolNFT");
 
