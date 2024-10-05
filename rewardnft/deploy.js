@@ -79,6 +79,16 @@ async function main() {
             .send({ from: deployer });
         console.log("Set managerContract in RepairPotion");
 
+        // Set fundRecipient in RepairPotion and NFTRewardPool
+        await repairPotion.methods.setFundRecipient(deployer)
+            .send({ from: deployer });
+        console.log("Set fundRecipient in RepairPotion");
+
+        await rewardPoolNFT.methods.setFundRecipient(deployer)
+            .send({ from: deployer });
+        console.log("Set fundRecipient in RewardPoolNFT");
+
+
         // Mint initial NFTs using ownerMint function
         await rewardPoolNFT.methods.mintTo(deployer, 5).send({ from: deployer });
         console.log("Minted 5 initial NFTs to owner");
