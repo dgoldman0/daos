@@ -79,12 +79,12 @@ async function main() {
             .send({ from: deployer });
         console.log("Set managerContract in RepairPotion");
 
-        // Set fundRecipient in RepairPotion and NFTRewardPool
-        await repairPotion.methods.setFundReceiver(deployer)
+        // Set fundRecipient in RepairPotion and NFTRewardPool to the PaymentManager, because the PaymentManager will be the one receiving the funds, at least until it's not on ETH rewards.
+        await repairPotion.methods.setFundReceiver(paymentManager.options.address)
             .send({ from: deployer });
         console.log("Set fundRecipient in RepairPotion");
 
-        await rewardPoolNFT.methods.setFundReceiver(deployer)
+        await rewardPoolNFT.methods.setFundReceiver(paymentManager.options.address)
             .send({ from: deployer });
         console.log("Set fundRecipient in RewardPoolNFT");
 
