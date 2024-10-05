@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mancala - Organic Themed</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #faf3e0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+            color: #8b5e34;
+            font-size: 2.5em;
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 50px auto;
+            background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+            background-color: #e0d8c3;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 110px);
+            grid-gap: 50px;
+        }
+
+        .pit, .store {
+            width: 110px;
+            height: 110px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f7f3e9;
+            border: 3px solid #8b5e34;
+            border-radius: 50%;
+            font-size: 1.8em;
+            color: #52382b;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .store {
+            grid-row: span 2;
+            background-color: #8b5e34;
+            color: #f7f3e9;
+            border-radius: 100px;
+            width: 130px;
+            height: 230px;
+        }
+
+        .pit:hover {
+            background-color: #b08a63;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .disabled {
+            background-color: #ccc;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .store-title {
+            position: absolute;
+            top: -80px;
+            font-size: 0.8em;
+            color: #333;
+        }
+
+        #message {
+            font-size: 1.5em;
+            margin-top: 20px;
+            color: #6b4f2b;
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.8em;
+            color: #7b5d46;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mancala - Desert Wisdom</h1>
+
+    <div class="board-container">
+        <div class="board" id="mancalaBoard">
+            <!-- Player B's pits and store -->
+            <div class="store" id="storeB">
+                <div class="store-title">Player B's Store</div>
+                0
+            </div>
+            <div class="pit" id="pit12" onclick="makeMove(12)">4</div>
+            <div class="pit" id="pit11" onclick="makeMove(11)">4</div>
+            <div class="pit" id="pit10" onclick="makeMove(10)">4</div>
+            <div class="pit" id="pit9" onclick="makeMove(9)">4</div>
+            <div class="pit" id="pit8" onclick="makeMove(8)">4</div>
+            <div class="pit" id="pit7" onclick="makeMove(7)">4</div>
+
+            <!-- Empty placeholder for symmetry -->
+            <div></div>
+
+            <!-- Player A's pits and store -->
+            <div class="pit" id="pit0" onclick="makeMove(0)">4</div>
+            <div class="pit" id="pit1" onclick="makeMove(1)">4</div>
+            <div class="pit" id="pit2" onclick="makeMove(2)">4</div>
+            <div class="pit" id="pit3" onclick="makeMove(3)">4</div>
+            <div class="pit" id="pit4" onclick="makeMove(4)">4</div>
+            <div class="pit" id="pit5" onclick="makeMove(5)">4</div>
+            <div class="store" id="storeA">
+                <div class="store-title">Player A's Store</div>
+                0
+            </div>
+        </div>
+    </div>
+
+    <div id="message">Connecting...</div>
+
+    <footer>
+        &copy; 2024 Mancala by the Sands | Arcadium
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.2/dist/web3.min.js"></script>
+    <script>
+        let contractAddress = "YOUR_CONTRACT_ADDRESS"; // Replace with your deployed contract address
+        let contractABI = [/* Your contract ABI */]; // Replace with your contract ABI
+
+        let web3;
+        let mancalaContract;
+        let gameId;
+        let currentPlayer;
+
+        async function initialize() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                let accounts = await web3.eth.getAccounts();
+                mancalaContract = new web3.eth.Contract(contractABI, contractAddress);
+
+                // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
+                gameId = localStorage.getItem("gameId");
+                console.log(gameId);
+                if (!gameId) {
+                    gameId = prompt("Enter game ID or leave blank to start a new game");
+                    if (!gameId) {
+                        gameId = await mancalaContract.methods.startNewGame().call({ from: accounts[0] });
+                        localStorage.setItem("gameId", gameId);
+                    }
+                }
+
+                // Fetch the current state of the board and update UI
+                updateBoard();
+
+                // Listen to events
+                mancalaContract.events.MoveMade({}).on("data", event => {
+                    updateBoard();
+                });
+
+                mancalaContract.events.GameEnded({}).on("data", event => {
+                    let winner = event.returnValues.winner;
+                    document.getElementById("message").innerText = (winner === "0x0000000000000000000000000000000000000000") ? 
+                        "It's a draw!" : `Winner is ${winner}`;
+                });
+            } else {
+                alert("Please install MetaMask to play this game!");
+            }
+        }
+
+        // Make a move by calling the contract's function
+        async function makeMove(pitIndex) {
+            let accounts = await web3.eth.getAccounts();
+            let player = accounts[0];
+
+            // Only allow current player to make a move
+            if (player.toLowerCase() !== currentPlayer.toLowerCase()) {
+                document.getElementById("message").innerText = "It's not your turn!";
+                return;
+            }
+
+            try {
+                await mancalaContract.methods.moveSeeds(gameId, pitIndex).send({ from: player });
+                document.getElementById("message").innerText = "Move made! Waiting for the next move...";
+            } catch (err) {
+                console.error(err);
+                document.getElementById("message").innerText = "Error making move!";
+            }
+        }
+
+        // Update the board with the latest game state from the contract
+        async function updateBoard() {
+            let gameState = await mancalaContract.methods.games(gameId).call();
+            currentPlayer = gameState.currentPlayer; // Set the current player for turn validation
+
+            for (let i = 0; i < 6; i++) {
+                document.getElementById(`pit${i}`).innerText = gameState.board[i];
+                document.getElementById(`pit${i + 7}`).innerText = gameState.board[i + 7];
+            }
+
+            document.getElementById("storeA").innerText = gameState.board[6];
+            document.getElementById("storeB").innerText = gameState.board[13];
+
+            // Enable or disable pits based on the current player
+            let accounts = await web3.eth.getAccounts();
+            let player = accounts[0];
+
+            // Disable Player A's pits if it's Player B's turn
+            for (let i = 0; i < 6; i++) {
+                let pitA = document.getElementById(`pit${i}`);
+                let pitB = document.getElementById(`pit${i + 7}`);
+
+                if (currentPlayer.toLowerCase() === gameState.playerA.toLowerCase()) {
+                    pitA.classList.remove('disabled');
+                    pitB.classList.add('disabled');
+                    pitB.onclick = null; // Disable Player B's pits
+                    pitA.onclick = () => makeMove(i); // Enable Player A's pits
+                } else {
+                    pitA.classList.add('disabled');
+                    pitA.onclick = null; // Disable Player A's pits
+                    pitB.classList.remove('disabled');
+                    pitB.onclick = () => makeMove(i + 7); // Enable Player B's pits
+                }
+            }
+        }
+
+        window.onload = initialize;
+    </script>
+</body>
+</html>

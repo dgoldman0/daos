@@ -32,6 +32,10 @@ app = Flask(__name__)
 def index():
     return app.send_static_file('rewardpool.html')
 
+@app.route('/mancala')
+def mancala():
+    return app.send_static_file('mancala.html')
+
 @app.route('/media')
 def media():
     sparkle_opacity_value = 0.9
