@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Othello Game on Ethereum</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-gap: 2px;
+            margin: 20px auto;
+            width: 416px;
+        }
+        .square {
+            width: 50px;
+            height: 50px;
+            background-color: #007700;
+            position: relative;
+            cursor: pointer;
+        }
+        .square::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: transparent;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+        }
+        .black::after {
+            background-color: black;
+        }
+        .white::after {
+            background-color: white;
+        }
+        #controls {
+            margin: 20px;
+        }
+        #status {
+            margin: 10px;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Othello Game on Ethereum</h1>
+    <div id="status">Connecting to MetaMask...</div>
+    <div id="controls">
+        <button id="createGame">Create Game</button>
+        <input type="text" id="gameIdInput" placeholder="Enter Game ID">
+        <button id="joinGame">Join Game</button>
+    </div>
+    <div id="board"></div>
+
+    <!-- Include Web3.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <script>
+        // Your contract ABI and address (replace with your own)
+        const contractABI = [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "blackPlayer",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "whitePlayer",
+						"type": "address"
+					}
+				],
+				"name": "GameCreated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "winner",
+						"type": "address"
+					}
+				],
+				"name": "GameOver",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "player",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint8",
+						"name": "position",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint8[]",
+						"name": "flippedPositions",
+						"type": "uint8[]"
+					}
+				],
+				"name": "MoveMade",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "cancelledBy",
+						"type": "address"
+					}
+				],
+				"name": "NominationCancelled",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnerNominated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "acceptOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "cancelTransfer",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "changeOwner",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "opponent",
+						"type": "address"
+					}
+				],
+				"name": "createGame",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "games",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "whitePlayer",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "blackPlayer",
+						"type": "address"
+					},
+					{
+						"internalType": "uint128",
+						"name": "boardState",
+						"type": "uint128"
+					},
+					{
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "isActive",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "position",
+						"type": "uint8"
+					}
+				],
+				"name": "makeMove",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "nominationDate",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "ownerNominee",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "rejectOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_token",
+						"type": "address"
+					}
+				],
+				"name": "withdraw",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		];
+        const contractAddress = '0x609025291C9B176C15cEe617C6e75EC5374384Fb';  // Replace with your deployed contract address
+
+        let web3;
+        let othelloContract;
+        let userAccount;
+        let currentGameId;
+        let currentPlayer;
+        let gameData;
+
+        // Initialize Web3
+        window.addEventListener('load', async () => {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    // Request account access
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAccount = (await web3.eth.getAccounts())[0];
+                    document.getElementById('status').innerText = 'Connected as ' + userAccount;
+                    initContract();
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById('status').innerText = 'Connection to MetaMask rejected.';
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        });
+
+        // Initialize the contract
+        function initContract() {
+            othelloContract = new web3.eth.Contract(contractABI, contractAddress);
+            setupEventListeners();
+        }
+
+        // Setup event listeners for buttons
+        document.getElementById('createGame').addEventListener('click', createGame);
+        document.getElementById('joinGame').addEventListener('click', joinGame);
+
+        // Create game board UI
+        function createBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            for (let i = 0; i < 64; i++) {
+                const square = document.createElement('div');
+                square.classList.add('square');
+                square.dataset.position = i;
+                square.addEventListener('click', () => makeMove(i));
+                boardDiv.appendChild(square);
+            }
+        }
+
+        // Update the board UI based on the game state
+        function updateBoard(boardState) {
+            for (let i = 0; i < 64; i++) {
+                const squareValue = getSquareValue(boardState, i);
+                const square = document.querySelector(`.square[data-position='${i}']`);
+                square.classList.remove('black', 'white');
+                if (squareValue === 1) {
+                    square.classList.add('black');
+                } else if (squareValue === 2) {
+                    square.classList.add('white');
+                }
+            }
+        }
+
+        // Get the value of a square from the board state
+        function getSquareValue(boardState, position) {
+            const shift = position * 2;
+            const mask = 0b11 << shift;
+            const value = (BigInt(boardState) & BigInt(mask)) >> BigInt(shift);
+            return Number(value);
+        }
+
+        // Create a new game
+        async function createGame() {
+            try {
+                const opponent = prompt('Enter opponent\'s address:');
+                if (!opponent) return;
+
+                document.getElementById('status').innerText = 'Creating game...';
+                const receipt = await othelloContract.methods.createGame(opponent).send({ from: userAccount });
+                const gameId = receipt.events.GameCreated.returnValues.gameId;
+                currentGameId = gameId;
+                currentPlayer = 'black';
+                document.getElementById('status').innerText = 'Game created with ID: ' + gameId;
+                createBoard();
+                await getGameData();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = 'Error creating game.';
+            }
+        }
+
+        // Join an existing game
+        async function joinGame() {
+            try {
+                const gameId = document.getElementById('gameIdInput').value;
+                if (!gameId) return alert('Please enter a Game ID.');
+                currentGameId = gameId;
+                document.getElementById('status').innerText = 'Joining game...';
+                await getGameData();
+                document.getElementById('status').innerText = 'Joined game ID: ' + gameId;
+                createBoard();
+                updateBoard(gameData.boardState);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = 'Error joining game.';
+            }
+        }
+
+        // Get game data from the contract
+        async function getGameData() {
+            gameData = await othelloContract.methods.games(currentGameId).call();
+            updateBoard(gameData.boardState);
+
+            // Determine if the current user is black or white player
+            if (userAccount.toLowerCase() === gameData.blackPlayer.toLowerCase()) {
+                currentPlayer = 'black';
+            } else if (userAccount.toLowerCase() === gameData.whitePlayer.toLowerCase()) {
+                currentPlayer = 'white';
+            } else {
+                currentPlayer = null;
+                alert('You are not a player in this game.');
+            }
+
+            // Listen for MoveMade events
+            othelloContract.events.MoveMade({ filter: { gameId: currentGameId } })
+                .on('data', event => {
+                    console.log('MoveMade event:', event);
+                    getGameData();
+                })
+                .on('error', console.error);
+
+            // Listen for GameOver events
+            othelloContract.events.GameOver({ filter: { gameId: currentGameId } })
+                .on('data', event => {
+                    console.log('GameOver event:', event);
+                    alert('Game Over! Winner: ' + event.returnValues.winner);
+                })
+                .on('error', console.error);
+        }
+
+        // Make a move
+        async function makeMove(position) {
+            try {
+                if (!currentGameId) return alert('No game joined.');
+                gameData = await othelloContract.methods.games(currentGameId).call();
+                if (gameData.currentPlayer.toLowerCase() !== userAccount.toLowerCase()) {
+                    alert('Not your turn.');
+                    return;
+                }
+                document.getElementById('status').innerText = 'Making move...';
+                await othelloContract.methods.makeMove(currentGameId, position).send({ from: userAccount });
+                document.getElementById('status').innerText = 'Move made.';
+                await getGameData();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = 'Invalid move or error occurred.';
+            }
+        }
+
+        // Setup event listeners for contract events
+        function setupEventListeners() {
+            // This function can be expanded to handle global events if needed
+        }
+    </script>
+</body>
+</html>
