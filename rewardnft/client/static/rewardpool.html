@@ -3039,6 +3039,8 @@
 
       const nftImage = document.createElement('div');
       nftImage.className = 'nft-image';
+	  // Add image url for nft image
+	  nftImage.style.backgroundImage = 'url("/media")';
       card.appendChild(nftImage);
 
       const health = await claimManagerContract.methods.getHealth(tokenId).call();
