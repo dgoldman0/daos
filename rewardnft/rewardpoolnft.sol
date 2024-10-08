@@ -310,21 +310,27 @@ contract ClaimManager is Ownable {
 
     // Function to initialize claim data for a new NFT (only controller can call this)
     function initializeNFT(uint256 tokenId) external {
-        require(msg.sender == address(nftContract), "Only the NFT contract can call this function");
         claimData[tokenId] = NFTInfo(block.timestamp, 0, false, 255);
     }
 
     // Function to check if the tokenId has claimed in the current period
     function hasClaimedInPeriod(uint256 tokenId) external view returns (bool) {
+        require(claimData[tokenId].mintDate > 0, "NFT not initialized");
         return claimData[tokenId].hasClaimedInPeriod;
     }
 
     // Function to get the health of an NFT
     function getHealth(uint256 tokenId) external view returns (uint8) {
+        require(claimData[tokenId].mintDate > 0, "NFT not initialized");
         return claimData[tokenId].health;
     }
 
+    function getMintDate(uint256 tokenId) external view returns (uint256) {
+        return claimData[tokenId].mintDate;
+    }
+
     function getTotalClaims(uint256 tokenId) external view returns (uint256) {
+        require(claimData[tokenId].mintDate > 0, "NFT not initialized");
         return claimData[tokenId].totalClaims;
     }
 
