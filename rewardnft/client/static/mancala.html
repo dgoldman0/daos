@@ -137,13 +137,281 @@
 
     <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.2/dist/web3.min.js"></script>
     <script>
-        let contractAddress = "YOUR_CONTRACT_ADDRESS"; // Replace with your deployed contract address
-        let contractABI = [/* Your contract ABI */]; // Replace with your contract ABI
+        let contractAddress = "0xecF44c377D963aD104810c69190cBADeEbE96BBe"; // Replace with your deployed contract address
+        let contractABI = [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "winner",
+						"type": "address"
+					}
+				],
+				"name": "GameEnded",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					}
+				],
+				"name": "GameStarted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "player",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint8",
+						"name": "pitIndex",
+						"type": "uint8"
+					}
+				],
+				"name": "MoveMade",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					}
+				],
+				"name": "TurnChanged",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "acceptMatch",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "gameIdCounter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "games",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					},
+					{
+						"internalType": "enum MancalaGame.GameState",
+						"name": "state",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getBoard",
+				"outputs": [
+					{
+						"internalType": "uint8[14]",
+						"name": "",
+						"type": "uint8[14]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getCurrentPlayer",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getGameState",
+				"outputs": [
+					{
+						"internalType": "enum MancalaGame.GameState",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getPlayers",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "pitIndex",
+						"type": "uint8"
+					}
+				],
+				"name": "moveSeeds",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "opponent",
+						"type": "address"
+					}
+				],
+				"name": "requestMatch",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		];
 
         let web3;
         let mancalaContract;
         let gameId;
         let currentPlayer;
+        let players;
 
         async function initialize() {
             if (window.ethereum) {
@@ -154,11 +422,15 @@
 
                 // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
                 gameId = localStorage.getItem("gameId");
-                console.log(gameId);
+                console.log("Hello");
                 if (!gameId) {
                     gameId = prompt("Enter game ID or leave blank to start a new game");
                     if (!gameId) {
-                        gameId = await mancalaContract.methods.startNewGame().call({ from: accounts[0] });
+                        // Get the opponent's address and start a new game from the user
+                        opponent = prompt("Enter the opponent's address");
+                        gameId = await mancalaContract.methods.requestMatch(opponent).send({ from: accounts[0] });  
+                        localStorage.setItem("gameId", gameId);
+                    } else {
                         localStorage.setItem("gameId", gameId);
                     }
                 }
@@ -201,18 +473,20 @@
             }
         }
 
-        // Update the board with the latest game state from the contract
+        // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
         async function updateBoard() {
-            let gameState = await mancalaContract.methods.games(gameId).call();
-            currentPlayer = gameState.currentPlayer; // Set the current player for turn validation
-
+            let board = await mancalaContract.methods.getBoard(gameId).call();
+            console.log(board);
+            let gameState = await mancalaContract.methods.getGameState(gameId).call();
+            currentPlayer = await mancalaContract.methods.getCurrentPlayer(gameId).call();
+            players = await mancalaContract.methods.getPlayers(gameId).call();
             for (let i = 0; i < 6; i++) {
-                document.getElementById(`pit${i}`).innerText = gameState.board[i];
-                document.getElementById(`pit${i + 7}`).innerText = gameState.board[i + 7];
+                document.getElementById(`pit${i}`).innerText = board[i];
+                document.getElementById(`pit${i + 7}`).innerText = board[i + 7];
             }
 
-            document.getElementById("storeA").innerText = gameState.board[6];
-            document.getElementById("storeB").innerText = gameState.board[13];
+            document.getElementById("storeA").innerText = board[6];
+            document.getElementById("storeB").innerText = board[13];
 
             // Enable or disable pits based on the current player
             let accounts = await web3.eth.getAccounts();
@@ -223,7 +497,7 @@
                 let pitA = document.getElementById(`pit${i}`);
                 let pitB = document.getElementById(`pit${i + 7}`);
 
-                if (currentPlayer.toLowerCase() === gameState.playerA.toLowerCase()) {
+                if (currentPlayer.toLowerCase() === players[0].toLowerCase()) {
                     pitA.classList.remove('disabled');
                     pitB.classList.add('disabled');
                     pitB.onclick = null; // Disable Player B's pits

@@ -1,11 +1,53 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// Import for ERC-1155
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+// Import interface for ERC-721 so it can use the RewardPoolNFT
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
+// Will create a game NFT as well and a token representing ownership of that game. It'll include a copy of the final game state, the players, as well as each turn.abi
+// Scrap so far
+/*
+contract MancalaMatchNFT is ERC1155 {
+    uint256 public gameIdCounter;
+
+    struct Match {
+        address playerA;
+        address playerB;
+        uint256 gameId;
+        // List of boards for each turn
+        uint8[14] finalBoard;
+    }
+
+    constructor() ERC1155("https://arcadium.games/api/mancala/{id}.json") {}
+
+    function mintMatchNFT(address owner, uint256 gameId) public {
+        gameIdCounter += 1;
+        _mint(owner, gameIdCounter, 1, "");
+    }
+
+    // Mint ERC-20 token representing ownership of the game
+    function mintMatchCoinage(address owner, uint256 gameId) public {
+        gameIdCounter += 1;
+        _mint(owner, gameIdCounter, 1, "");
+    }
+}
+*/
+
 contract MancalaGame {
     uint8 constant PLAYER_A_STORE = 6;
     uint8 constant PLAYER_B_STORE = 13;
 
-    enum GameState { Ongoing, Ended }
+    enum GameState { Pending, Ongoing, Ended }
+
+    address public keyContract; // Contract for NFTs that act as keys to play games
+    // Minimum health of the key
+    uint256 public minKeyHealth;
+    // Minimum age of the key
+    uint256 public minKeyAge;
+    // Minimum number of claims
+    uint256 public minKeyClaims;
 
     struct Game {
         uint8[14] board; // 12 pits + 2 stores
@@ -39,6 +81,33 @@ contract MancalaGame {
         _;
     }
 
+    constructor(address _keyContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims) {
+        keyContract = _keyContract;
+        minKeyHealth = _minKeyHealth;
+        minKeyAge = _minKeyAge;
+        minKeyClaims = _minKeyClaims;
+    }
+
+    // Get the players of a given game
+    function getPlayers(uint256 gameId) public view returns (address, address) {
+        return (games[gameId].playerA, games[gameId].playerB);
+    }
+
+    // Return the board of a given game
+    function getBoard(uint256 gameId) public view returns (uint8[14] memory) {
+        return games[gameId].board;
+    }
+
+    // Return the current player of a given game
+    function getCurrentPlayer(uint256 gameId) public view returns (address) {
+        return games[gameId].currentPlayer;
+    }
+
+    // Return the state of a given game
+    function getGameState(uint256 gameId) public view returns (GameState) {
+        return games[gameId].state;
+    }
+
     // Initialize the board with 4 seeds in each pit and 0 in stores
     function initializeBoard(uint8[14] storage board) internal {
         for (uint8 i = 0; i < 6; i++) {
@@ -50,21 +119,31 @@ contract MancalaGame {
     }
 
     // Function to start a new game
-    function startGame(address opponent) public {
-        uint256 newGameId = gameIdCounter++;
+    function requestMatch(address opponent) public returns (uint256) {
+        require(opponent != address(0), "Invalid opponent address");
+        require(opponent != msg.sender, "Cannot play against yourself");
+        gameIdCounter += 1;
+        uint256 newGameId = gameIdCounter;
         games[newGameId].playerA = msg.sender;
         games[newGameId].playerB = opponent;
         games[newGameId].currentPlayer = msg.sender; // Player A starts
         initializeBoard(games[newGameId].board);
-        games[newGameId].state = GameState.Ongoing;
+        games[newGameId].state = GameState.Pending;
+        return newGameId;
+    }
 
-        emit GameStarted(newGameId, msg.sender, opponent);
+    // Accept the game invitation and start the game
+    function acceptMatch(uint256 gameId) public {
+        require(games[gameId].playerB == msg.sender, "You are not invited to this game");
+        games[gameId].state = GameState.Ongoing;
+        emit GameStarted(gameId, games[gameId].playerA, games[gameId].playerB);
+        emit TurnChanged(gameId, games[gameId].currentPlayer);
     }
 
     // Function to move seeds
     function moveSeeds(uint256 gameId, uint8 pitIndex) public onlyPlayer(gameId) isPlayersTurn(gameId) {
         Game storage game = games[gameId];
-        require(game.state == GameState.Ongoing, "Game has ended");
+        require(game.state == GameState.Ongoing, "Game has not started or has already has ended");
         require(pitIndex < 14, "Invalid pit index");
         require(game.board[pitIndex] > 0, "Selected pit is empty");
 
