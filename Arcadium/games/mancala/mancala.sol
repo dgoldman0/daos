@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Import for ERC-1155
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-// Import interface for ERC-721 so it can use the RewardPoolNFT
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 // Will create a game NFT as well and a token representing ownership of that game. It'll include a copy of the final game state, the players, as well as each turn.abi
 // Scrap so far
 /*
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+
 contract MancalaMatchNFT is ERC1155 {
     uint256 public gameIdCounter;
 
@@ -35,11 +34,18 @@ contract MancalaMatchNFT is ERC1155 {
 }
 */
 
+// Needed so the game can interact with the NFT's internal data
+interface IClaimNFTManager {
+    function getHealth(uint256 tokenId) external view returns (uint256);
+    function getMintDate(uint256 tokenId) external view returns (uint256);
+    function getTotalClaims(uint256 tokenId) external view returns (uint256);
+}
+
 contract MancalaGame {
     uint8 constant PLAYER_A_STORE = 6;
     uint8 constant PLAYER_B_STORE = 13;
 
-    enum GameState { Pending, Ongoing, Ended }
+    enum GameState { Pending, Ongoing, Ended, Cancelled }
 
     address public keyContract; // Contract for NFTs that act as keys to play games
     // Minimum health of the key
@@ -49,12 +55,17 @@ contract MancalaGame {
     // Minimum number of claims
     uint256 public minKeyClaims;
 
+    uint256 public requestTimeout = 1 days;
+
     struct Game {
         uint8[14] board; // 12 pits + 2 stores
         address playerA;
         address playerB;
         address currentPlayer;
         GameState state;
+        uint256 requestTime;
+        uint256 keyA;
+        uint256 keyB;
     }
 
     mapping(uint256 => Game) public games; // Mapping of game IDs to game instances
@@ -119,13 +130,23 @@ contract MancalaGame {
     }
 
     // Function to start a new game
-    function requestMatch(address opponent) public returns (uint256) {
+    function requestMatch(address opponent, uint256 keyId) public returns (uint256) {
         require(opponent != address(0), "Invalid opponent address");
         require(opponent != msg.sender, "Cannot play against yourself");
+        // Require that the key is owned by the sender and meets the minimum requirements
+        require(IERC721(keyContract).ownerOf(keyId) == msg.sender, "Key is not owned by sender");
+        IClaimNFTManager keyManager = IClaimNFTManager(keyContract);
+        require(keyManager.getHealth(keyId) >= minKeyHealth, "Key health is too low");
+        require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
+        require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
+        // Transfer the key to the contract
+        IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
         gameIdCounter += 1;
         uint256 newGameId = gameIdCounter;
+        games[newGameId].requestTime = block.timestamp;
         games[newGameId].playerA = msg.sender;
         games[newGameId].playerB = opponent;
+        games[newGameId].keyA = keyId;
         games[newGameId].currentPlayer = msg.sender; // Player A starts
         initializeBoard(games[newGameId].board);
         games[newGameId].state = GameState.Pending;
@@ -133,11 +154,40 @@ contract MancalaGame {
     }
 
     // Accept the game invitation and start the game
-    function acceptMatch(uint256 gameId) public {
+    function acceptMatch(uint256 gameId, uint256 keyId) public {
         require(games[gameId].playerB == msg.sender, "You are not invited to this game");
+        require(games[gameId].state == GameState.Pending, "Game is not pending");
+        require(IERC721(keyContract).ownerOf(keyId) == msg.sender, "Key is not owned by sender");
+        IClaimNFTManager keyManager = IClaimNFTManager(keyContract);
+        require(keyManager.getHealth(keyId) >= minKeyHealth, "Key health is too low");
+        require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
+        require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
+
+        // Transfer the key to the contract
+        IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
+        games[gameId].keyB = keyId;
         games[gameId].state = GameState.Ongoing;
         emit GameStarted(gameId, games[gameId].playerA, games[gameId].playerB);
         emit TurnChanged(gameId, games[gameId].currentPlayer);
+    }
+
+    // Reject the game invitation
+    function rejectMatch(uint256 gameId) public {
+        require(games[gameId].playerB == msg.sender, "You are not invited to this game");
+        require(games[gameId].state == GameState.Pending, "Game is not pending");
+        games[gameId].state = GameState.Ended;
+        // Transfer the key back to the player
+        IERC721(keyContract).transferFrom(address(this), games[gameId].playerA, games[gameId].keyA);
+    }
+
+    // Cancel the game if the opponent does not respond within the timeout
+    function cancelMatch(uint256 gameId) public {
+        require(games[gameId].playerA == msg.sender, "You are not the game creator");
+        require(games[gameId].state == GameState.Pending, "Game is not pending");
+        require(block.timestamp >= games[gameId].requestTime + requestTimeout, "Timeout has not passed");
+        games[gameId].state = GameState.Cancelled;
+        // Transfer the key back to the player
+        IERC721(keyContract).transferFrom(address(this), games[gameId].playerA, games[gameId].keyA);
     }
 
     // Function to move seeds
