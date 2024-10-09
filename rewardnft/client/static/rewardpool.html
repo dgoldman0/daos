@@ -588,6 +588,32 @@
 				"type": "function"
 			},
 			{
+				"inputs": [],
+				"name": "firstMintDate",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "fundReceiver",
+				"outputs": [
+					{
+						"internalType": "address payable",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "uint256",
@@ -882,6 +908,19 @@
 					}
 				],
 				"name": "setClaimManager",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address payable",
+						"name": "_fundReceiver",
+						"type": "address"
+					}
+				],
+				"name": "setFundReceiver",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -1275,7 +1314,7 @@
 								"type": "uint256"
 							}
 						],
-						"internalType": "struct ClaimManager.Claimant",
+						"internalType": "struct ClaimNFTManager.Claimant",
 						"name": "",
 						"type": "tuple"
 					}
@@ -1363,7 +1402,7 @@
 								"type": "uint256"
 							}
 						],
-						"internalType": "struct ClaimManager.Claimant[]",
+						"internalType": "struct ClaimNFTManager.Claimant[]",
 						"name": "",
 						"type": "tuple[]"
 					}
@@ -1398,6 +1437,25 @@
 						"internalType": "uint8",
 						"name": "",
 						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "tokenId",
+						"type": "uint256"
+					}
+				],
+				"name": "getMintDate",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -1573,7 +1631,7 @@
 						"type": "uint256"
 					},
 					{
-						"internalType": "uint256",
+						"internalType": "uint8",
 						"name": "_qnt",
 						"type": "uint8"
 					}
@@ -2108,10 +2166,26 @@
 				"stateMutability": "payable",
 				"type": "receive"
 			}
-		];
+		]; 
 	const potionAbi = [
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_maxSupply",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_purchaseToken",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_purchasePrice",
+						"type": "uint256"
+					}
+				],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
 			},
@@ -2368,6 +2442,19 @@
 				"type": "function"
 			},
 			{
+				"inputs": [],
+				"name": "fundReceiver",
+				"outputs": [
+					{
+						"internalType": "address payable",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "address",
@@ -2523,6 +2610,19 @@
 			{
 				"inputs": [
 					{
+						"internalType": "address payable",
+						"name": "_fundReceiver",
+						"type": "address"
+					}
+				],
+				"name": "setFundReceiver",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
 						"internalType": "address",
 						"name": "_managerContract",
 						"type": "address"
@@ -2669,7 +2769,7 @@
 				"type": "receive"
 			}
 		];
-    const erc20Abi = [
+	const erc20Abi = [
 			{
 				"inputs": [],
 				"stateMutability": "nonpayable",
@@ -2946,7 +3046,7 @@
 				"type": "function"
 			}
 		];
-	
+
 	// Contract addresses currently set to BNB testnet contracts for testing... (replace with actual addresses)
     const nftContractAddress = '0xe540ACB2f5bdA0602C458cc2DD713B6cd0871730'; // Replace with your NFT contract address
     const claimManagerAddress = '0xf3eEe1887960e4a87907a14F60b1A3AA798D8911'; // Replace with your ClaimManager contract address
