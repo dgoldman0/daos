@@ -3047,11 +3047,32 @@
 			}
 		];
 
+	/*
+	Deploying contracts with the account:
+	0x7cEec4d52d270BC1c0dBF11D7e0174f762d489Ca
+	RepairPotion deployed to:
+	0xc62994C8A164C70899284E483Ba2443ef13F643D
+	RewardPoolNFT deployed to:
+	0x8946EE31706d064DEe3Ed3E3afd779B1b337E82A
+	PaymentManager deployed to:
+	0x4149D4cEFa409F18130C0640A5E82a75B78f68fD
+	ClaimManager deployed to:
+	0x6006313EcAD73d92C28e12549E5e98304Ef1d0E1
+	Set claimManager in RewardPoolNFT
+	Set claimManager in PaymentManager
+	Set managerContract in RepairPotion
+	Set fundRecipient in RepairPotion
+	Set fundRecipient in RewardPoolNFT
+	Minted 5 initial NFTs to owner
+	MancalaGame deployed to:
+	0xEF793f5400f2520e7be3A2C6e54e27f867a7F5DB
+	Deployment script completed successfully
+	*/
 	// Contract addresses currently set to BNB testnet contracts for testing... (replace with actual addresses)
-    const nftContractAddress = '0xe540ACB2f5bdA0602C458cc2DD713B6cd0871730'; // Replace with your NFT contract address
-    const claimManagerAddress = '0xf3eEe1887960e4a87907a14F60b1A3AA798D8911'; // Replace with your ClaimManager contract address
-    const paymentManagerAddress = '0xCe99d4F8Cdd4B799aE4589CCa6b52d58e641D91A'; // Replace with your PaymentManager contract address
-    const potionContractAddress = '0xde36Fd06BF02Dfa4bC34394593f8F0aDCd97B06D'; // Replace with your RepairPotion contract address
+    const nftContractAddress = '0x8946EE31706d064DEe3Ed3E3afd779B1b337E82A';
+    const claimManagerAddress = '0x6006313EcAD73d92C28e12549E5e98304Ef1d0E1';
+    const paymentManagerAddress = '0x4149D4cEFa409F18130C0640A5E82a75B78f68fD';
+    const potionContractAddress = '0xc62994C8A164C70899284E483Ba2443ef13F643D';
 
     document.addEventListener('DOMContentLoaded', async () => {
     let web3;
