@@ -131,7 +131,7 @@ contract PaymentManager is Ownable {
                 
                 // Should transfer this to the payment manager
                 for (uint256 i = 0; i < len; i++) { 
-                    ClaimManager.Claimant memory claimant = _claimManager.claimant(i);
+                    ClaimNFTManager.Claimant memory claimant = _claimManager.claimant(i);
                     address addr = claimant.addr;
                     uint256 tokenId = claimant.tokenId;
                     _distributeReward(addr, tokenId, reward);
