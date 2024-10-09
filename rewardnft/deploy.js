@@ -12,7 +12,7 @@ async function main() {
         const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimNFTManager.json'));
 
         const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
-        const paymentToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Token address for repair potions
+        const paymentToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Token address for repair potions: Change to ACM when live.
         const cost = web3.utils.toWei("5", "ether"); // Cost of repair potion as string
 
         // Deploy RepairPotion
