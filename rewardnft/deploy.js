@@ -6,10 +6,10 @@ async function main() {
 
         console.log("Deploying contracts with the account:", deployer);
         // Load contract artifacts from compiled JSON files
-        const repairPotionArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/RepairPotion.json'));
-        const rewardPoolNFTArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/RewardPoolNFT.json'));
-        const paymentManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/PaymentManager.json'));
-        const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'daos/artifacts/ClaimManager.json'));
+        const repairPotionArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/RepairPotion.json'));
+        const rewardPoolNFTArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/RewardPoolNFT.json'));
+        const paymentManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/PaymentManager.json'));
+        const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimManager.json'));
 
         const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
         const paymentToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Token address for repair potions
@@ -92,6 +92,16 @@ async function main() {
         // Mint initial NFTs using ownerMint function
         await rewardPoolNFT.methods.mintTo(deployer, 5).send({ from: deployer });
         console.log("Minted 5 initial NFTs to owner");
+
+        // Deploy Mancala Game
+        const mancalaGameArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'games/artifacts/MancalaGame.json'));
+        const MancalaGame = new web3.eth.Contract(mancalaGameArtifact.abi);
+        // Deploy game with 255 health as the max health, one hour age as the minimum age of the NFT to play, and 100 claims is the minimum claims in the key to play
+        const mancalaGame = await MancalaGame.deploy({
+            data: mancalaGameArtifact.data.bytecode.object,
+            arguments: [claimManager.options.address, 255, 3600, 100]
+        }).send({ from: deployer, gas: 5000000 });
+            
     } catch (error) {
         // Log full error details for better debugging
         console.error("Error during deployment:", error.message || error);
