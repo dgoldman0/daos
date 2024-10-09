@@ -9,7 +9,7 @@ async function main() {
         const repairPotionArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/RepairPotion.json'));
         const rewardPoolNFTArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/RewardPoolNFT.json'));
         const paymentManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/PaymentManager.json'));
-        const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimManager.json'));
+        const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimNFTManager.json'));
 
         const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
         const paymentToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Token address for repair potions
