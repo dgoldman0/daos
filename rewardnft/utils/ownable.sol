@@ -1,3 +1,4 @@
+import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts@4.9.0/security/ReentrancyGuard.sol";
 
 // Ownable contract: Custom
