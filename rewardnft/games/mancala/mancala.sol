@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721.sol";
-import "./ownable.sol";
+import "./utils/ownable.sol";
 
 // Will create a game NFT as well and a token representing ownership of that game. It'll include a copy of the final game state, the players, as well as each turn.abi
 // Scrap so far
@@ -43,7 +43,7 @@ interface IClaimNFTManager {
     function getTotalClaims(uint256 tokenId) external view returns (uint256);
 }
 
-contract MancalaGame {
+contract MancalaGame is Ownable {
     uint8 constant PLAYER_A_STORE = 6;
     uint8 constant PLAYER_B_STORE = 13;
 
@@ -94,7 +94,7 @@ contract MancalaGame {
         _;
     }
 
-    constructor(address _keyContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims) {
+    constructor(address _keyContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims) Ownable() {
         keyContract = _keyContract;
         minKeyHealth = _minKeyHealth;
         minKeyAge = _minKeyAge;

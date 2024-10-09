@@ -8,7 +8,7 @@ import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.s
 import "@openzeppelin/contracts@4.9.0/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
-import "./ownable.sol";
+import "./utils/ownable.sol";
 
 // Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
 contract RepairPotion is ERC20, Ownable {
