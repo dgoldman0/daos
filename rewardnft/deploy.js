@@ -88,7 +88,6 @@ async function main() {
             .send({ from: deployer });
         console.log("Set fundRecipient in RewardPoolNFT");
 
-
         // Mint initial NFTs using ownerMint function
         await rewardPoolNFT.methods.mintTo(deployer, 5).send({ from: deployer });
         console.log("Minted 5 initial NFTs to owner");
@@ -101,7 +100,9 @@ async function main() {
             data: mancalaGameArtifact.data.bytecode.object,
             arguments: [claimManager.options.address, 255, 3600, 100]
         }).send({ from: deployer, gas: 5000000 });
-            
+        
+        console.log("MancalaGame deployed to:", mancalaGame.options.address);
+
     } catch (error) {
         // Log full error details for better debugging
         console.error("Error during deployment:", error.message || error);
