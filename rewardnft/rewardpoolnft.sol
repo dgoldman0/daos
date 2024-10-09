@@ -7,77 +7,8 @@ import "@openzeppelin/contracts@4.9.0/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts@4.9.0/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
-
-// Still need to review. 
-
-// Ownable contract: Custom
-contract Ownable is ReentrancyGuard {
-    address private _owner;
-    address public ownerNominee;
-    uint256 public nominationDate;
-    
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event OwnerNominated(address indexed newOwner);
-    event NominationCancelled(address indexed cancelledBy);
-
-    constructor() {
-        _owner = msg.sender;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == _owner, "Not the owner");
-        _;
-    }
-
-    // Allow owner to change owner
-    function changeOwner(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "New owner is the zero address");
-        ownerNominee = newOwner;
-        nominationDate = block.timestamp;   
-        emit OwnerNominated(newOwner);
-    }
-
-    // Revert ownership
-    function cancelTransfer() external onlyOwner {
-        ownerNominee = address(0);
-        nominationDate = 0;
-        emit NominationCancelled(msg.sender);
-    }
-
-    function acceptOwnership() external {
-        require(msg.sender == ownerNominee, "Only the nominee can accept ownership");
-        address previousOwner = _owner;
-        _owner = ownerNominee;
-        ownerNominee = address(0);
-        nominationDate = 0;
-        emit OwnershipTransferred(previousOwner, _owner);
-    }
-    // Reject the ownership transfer
-    function rejectOwnership() external {
-        require(msg.sender == ownerNominee, "Only the nominee can reject ownership");
-        ownerNominee = address(0);
-        nominationDate = 0;
-        emit NominationCancelled(msg.sender);
-    }
-
-    function owner() public view returns (address) {
-        return _owner;
-    }
-
-    // Withdraw function for the owner to withdraw tokens held by the contract.
-    function withdraw(address _token) public onlyOwner nonReentrant {
-        if (_token == address(0)) {
-            payable(owner()).transfer(address(this).balance);
-        } else {
-            IERC20(_token).transfer(owner(), IERC20(_token).balanceOf(address(this)));
-        }
-    }
-
-    // Since owner can withdraw ether the contract can receive ether
-    receive() external payable {}
-}
+import "./ownable.sol";
 
 // Repair potions are ERC20 tokens that can be used to repair NFTs: Should I allow anyone to mint for a fee like with the NFTs? Not sure.
 contract RepairPotion is ERC20, Ownable {
@@ -192,7 +123,7 @@ contract PaymentManager is Ownable {
     // Check if it's time to finalize the current claim period
     function checkAndFinalizePeriod() external returns (bool) {
         require(msg.sender == claimManager, "Only the claim manager can call this function");
-        ClaimManager _claimManager = ClaimManager(payable(claimManager));
+        ClaimNFTManager _claimManager = ClaimNFTManager(payable(claimManager));
         if (block.timestamp > lastClaimTime + _claimManager.claimPeriod()) {
             uint256 len = _claimManager.getClaimantsCount();
             if (len >= min_claims) {
@@ -268,7 +199,7 @@ contract PaymentManager is Ownable {
 }
 
 // Handles NFT detials and claims... 
-contract ClaimManager is Ownable {
+contract ClaimNFTManager is Ownable {
     address public potionToken;
     mapping (address => bool) public controllers; // Only the controller contract can modify data
 
@@ -479,7 +410,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
             // Placing the emit here ensures that the minted event is broadcast before the transfer event is broadcast.
             emit NFTMinted(msg.sender, nextTokenId);
             _safeMint(msg.sender, nextTokenId);
-            ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
+            ClaimNFTManager(payable(claimManager)).initializeNFT(nextTokenId);
             nextTokenId += 1;
         }
 
@@ -499,7 +430,7 @@ contract RewardPoolNFT is ERC721Enumerable, Ownable {
         }
         for (uint256 i = 0; i < _count; i++) {
             _safeMint(_to, nextTokenId);
-            ClaimManager(payable(claimManager)).initializeNFT(nextTokenId);
+            ClaimNFTManager(payable(claimManager)).initializeNFT(nextTokenId);
             nextTokenId += 1;
         }
     }

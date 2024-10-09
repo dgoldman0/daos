@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721.sol";
+import "./ownable.sol";
 
 // Will create a game NFT as well and a token representing ownership of that game. It'll include a copy of the final game state, the players, as well as each turn.abi
 // Scrap so far
