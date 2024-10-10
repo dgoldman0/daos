@@ -185,15 +185,665 @@
 
     <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.2/dist/web3.min.js"></script>
     <script>
-        let contractAddress = "0xEF793f5400f2520e7be3A2C6e54e27f867a7F5DB"; // Replace with your deployed contract address
-        let contractABI = [...]; // The ABI is too long to display here
+        let mancalaContractAddress = "0xEF793f5400f2520e7be3A2C6e54e27f867a7F5DB";
+		let keyContractAddress = "";
+		let keyDataManagerAddress = "";
+
+        let contractABI = [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_keyContract",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_minKeyHealth",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_minKeyAge",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_minKeyClaims",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "winner",
+						"type": "address"
+					}
+				],
+				"name": "GameEnded",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					}
+				],
+				"name": "GameStarted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "player",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint8",
+						"name": "pitIndex",
+						"type": "uint8"
+					}
+				],
+				"name": "MoveMade",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "cancelledBy",
+						"type": "address"
+					}
+				],
+				"name": "NominationCancelled",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnerNominated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					}
+				],
+				"name": "TurnChanged",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyId",
+						"type": "uint256"
+					}
+				],
+				"name": "acceptMatch",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "acceptOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "cancelMatch",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "cancelTransfer",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "changeOwner",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "gameIdCounter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "games",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					},
+					{
+						"internalType": "enum MancalaGame.GameState",
+						"name": "state",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "requestTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyA",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyB",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getBoard",
+				"outputs": [
+					{
+						"internalType": "uint8[14]",
+						"name": "",
+						"type": "uint8[14]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getCurrentPlayer",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getGameState",
+				"outputs": [
+					{
+						"internalType": "enum MancalaGame.GameState",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getPlayers",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "keyContract",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyAge",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyClaims",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyHealth",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "pitIndex",
+						"type": "uint8"
+					}
+				],
+				"name": "moveSeeds",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "nominationDate",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "ownerNominee",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "rejectMatch",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "rejectOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "opponent",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyId",
+						"type": "uint256"
+					}
+				],
+				"name": "requestMatch",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "requestTimeout",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_token",
+						"type": "address"
+					}
+				],
+				"name": "withdraw",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		];
+		let web3;
+        let mancalaContract;
+        let gameId;
+        let currentPlayer;
+        let players;
 
         function selectKey(keyId) {
             console.log("Selected key ID:", keyId);
             // Implement key selection logic here
         }
 
-        // Remaining JavaScript code remains unchanged
+		async function initialize() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                let accounts = await web3.eth.getAccounts();
+                mancalaContract = new web3.eth.Contract(contractABI, mancalaContractAddress);
+
+                // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
+                gameId = localStorage.getItem("gameId");
+                console.log("Hello");
+                if (!gameId) {
+                    gameId = prompt("Enter game ID or leave blank to start a new game");
+                    if (!gameId) {
+                        // Get the opponent's address and start a new game from the user
+                        opponent = prompt("Enter the opponent's address");
+                        gameId = await mancalaContract.methods.requestMatch(opponent).send({ from: accounts[0] });  
+                        localStorage.setItem("gameId", gameId);
+                    } else {
+                        localStorage.setItem("gameId", gameId);
+                    }
+                }
+
+                // Fetch the current state of the board and update UI
+                updateBoard();
+
+                // Listen to events
+                mancalaContract.events.MoveMade({}).on("data", event => {
+                    updateBoard();
+                });
+
+                mancalaContract.events.GameEnded({}).on("data", event => {
+                    let winner = event.returnValues.winner;
+                    document.getElementById("message").innerText = (winner === "0x0000000000000000000000000000000000000000") ? 
+                        "It's a draw!" : `Winner is ${winner}`;
+                });
+            } else {
+                alert("Please install MetaMask to play this game!");
+            }
+        }
+
+        // Make a move by calling the contract's function
+        async function makeMove(pitIndex) {
+            let accounts = await web3.eth.getAccounts();
+            let player = accounts[0];
+
+            // Only allow current player to make a move
+            if (player.toLowerCase() !== currentPlayer.toLowerCase()) {
+                document.getElementById("message").innerText = "It's not your turn!";
+                return;
+            }
+
+            try {
+                await mancalaContract.methods.moveSeeds(gameId, pitIndex).send({ from: player });
+                document.getElementById("message").innerText = "Move made! Waiting for the next move...";
+            } catch (err) {
+                console.error(err);
+                document.getElementById("message").innerText = "Error making move!";
+            }
+        }
+
+        // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
+        async function updateBoard() {
+            let board = await mancalaContract.methods.getBoard(gameId).call();
+            console.log(board);
+            let gameState = await mancalaContract.methods.getGameState(gameId).call();
+            currentPlayer = await mancalaContract.methods.getCurrentPlayer(gameId).call();
+            players = await mancalaContract.methods.getPlayers(gameId).call();
+            for (let i = 0; i < 6; i++) {
+                document.getElementById(`pit${i}`).innerText = board[i];
+                document.getElementById(`pit${i + 7}`).innerText = board[i + 7];
+            }
+
+            document.getElementById("storeA").innerText = board[6];
+            document.getElementById("storeB").innerText = board[13];
+
+            // Enable or disable pits based on the current player
+            let accounts = await web3.eth.getAccounts();
+            let player = accounts[0];
+
+            // Disable Player A's pits if it's Player B's turn
+            for (let i = 0; i < 6; i++) {
+                let pitA = document.getElementById(`pit${i}`);
+                let pitB = document.getElementById(`pit${i + 7}`);
+
+                if (currentPlayer.toLowerCase() === players[0].toLowerCase()) {
+                    pitA.classList.remove('disabled');
+                    pitB.classList.add('disabled');
+                    pitB.onclick = null; // Disable Player B's pits
+                    pitA.onclick = () => makeMove(i); // Enable Player A's pits
+                } else {
+                    pitA.classList.add('disabled');
+                    pitA.onclick = null; // Disable Player A's pits
+                    pitB.classList.remove('disabled');
+                    pitB.onclick = () => makeMove(i + 7); // Enable Player B's pits
+                }
+            }
+        }
+
+        window.onload = initialize;
     </script>
 </body>
 </html>
