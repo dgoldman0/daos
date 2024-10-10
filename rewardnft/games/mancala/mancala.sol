@@ -73,6 +73,7 @@ contract MancalaGame is Ownable {
     mapping(uint256 => Game) public games; // Mapping of game IDs to game instances
     uint256 public gameIdCounter;
 
+    event MatchRequested(uint256 gameId, address playerA, address playerB);
     event GameStarted(uint256 gameId, address playerA, address playerB);
     event MoveMade(uint256 gameId, address player, uint8 pitIndex);
     event TurnChanged(uint256 gameId, address currentPlayer);
@@ -152,6 +153,7 @@ contract MancalaGame is Ownable {
         games[newGameId].currentPlayer = msg.sender; // Player A starts
         initializeBoard(games[newGameId].board);
         games[newGameId].state = GameState.Pending;
+        emit MatchRequested(newGameId, msg.sender, opponent);
         return newGameId;
     }
 
