@@ -323,6 +323,31 @@
 					{
 						"indexed": false,
 						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					}
+				],
+				"name": "MatchRequested",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
 						"name": "player",
 						"type": "address"
 					},
@@ -784,7 +809,7 @@
 				"stateMutability": "payable",
 				"type": "receive"
 			}
-		];
+		]
 
 		let keyABI = [
 			{
