@@ -147,6 +147,36 @@
             font-size: 0.8em;
             color: #7b5d46;
         }
+		.modal {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: #e0d8c3;
+			border: 2px solid #8b5e34;
+			border-radius: 10px;
+			box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+			padding: 20px;
+			text-align: center;
+			z-index: 1000;
+		}
+		.modal-content {
+			margin: 10px 0;
+		}
+
+		.modal button {
+			margin: 5px;
+			padding: 10px 20px;
+			background-color: #8b5e34;
+			color: #fff;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		.modal button:hover {
+			background-color: #b08a63;
+		}
     </style>
 </head>
 <body>
@@ -189,7 +219,15 @@
             </div>
         </div>
     </div>
-
+	<div id="keyActionModal" class="modal" style="display: none;">
+		<div class="modal-content">
+			<h3>Select Action</h3>
+			<p>Do you want to start a new match or accept an existing one?</p>
+			<button onclick="chooseAction('new')">Start New Match</button>
+			<button onclick="chooseAction('existing')">Accept Existing Match</button>
+			<button onclick="closeModal()">Cancel</button>
+		</div>
+	</div>
     <div id="message">Connecting...</div>
 
     <footer>
@@ -2143,10 +2181,39 @@
         let currentPlayer;
         let players;
 
-        function selectKey(keyId) {
-            console.log("Selected key ID:", keyId);
-            // Implement key selection logic here
-        }
+		let selectedKeyId = null;
+
+		function selectKey(keyId) {
+			selectedKeyId = keyId;
+			console.log("Selected key: ", keyId);
+			document.getElementById("keyActionModal").style.display = "block";
+		}
+
+		function closeModal() {
+			document.getElementById("keyActionModal").style.display = "none";
+			selectedKeyId = null;
+		}
+
+		function chooseAction(action) {
+			if (action === 'new') {
+				let opponent = prompt("Enter the opponent's address:");
+				if (opponent) {
+					startNewMatch(selectedKeyId, opponent);
+				} else {
+					alert("You must enter an opponent's address to start a new match.");
+				}
+			} else if (action === 'existing') {
+				listMatchRequests(selectedKeyId);
+			}
+			closeModal();
+		}
+
+		async function startNewMatch() {
+			opponent = prompt("Enter the opponent's address");
+            gameId = await mancalaContract.methods.requestMatch(opponent).send({ from: accounts[0] });  
+            localStorage.setItem("gameId", gameId);
+
+		}
 
 		async function initialize() {
             if (window.ethereum) {
@@ -2222,7 +2289,6 @@
 			let keys = [];
 			// Get container
 			let container = document.getElementById("keyContainer");
-			console.log(container);
 			for (let i = 0; i < balance; i++) {
 				const tokenId = await keyContract.methods.tokenOfOwnerByIndex(accounts[0], i).call();
 				// Use the NFT data manager contract to get key details.
@@ -2238,6 +2304,7 @@
 					key.onclick = () => selectKey(tokenId);
 				} else {
 					key.classList.add("key-disabled");
+					key.onclick = () => selectKey(tokenId);
 				}
 				key.innerHTML = `
 					<div class="key-image"></div>
