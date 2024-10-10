@@ -2235,10 +2235,10 @@
 				// If the key meets the requirements, add the key class, otherwise key-disabled
 				if (health >= minHealth && totalClaims >= minKeyClaims && mintDate <= minKeyAge) {
 					key.classList.add("key");
+					key.onclick = () => selectKey(tokenId);
 				} else {
 					key.classList.add("key-disabled");
 				}
-				key.onclick = () => selectKey(tokenId);
 				key.innerHTML = `
 					<div class="key-image"></div>
 					<div class="key-details">
