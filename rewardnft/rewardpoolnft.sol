@@ -142,6 +142,10 @@ contract PaymentManager is Ownable {
                 return true;
             } else {
                 // If there are not enough claimants just scratch the whole period.
+                for (uint256 i = 0; i < len; i++) {
+                    ClaimNFTManager.Claimant memory claimant = _claimManager.claimant(i);
+                    _claimManager.resetClaim(claimant.tokenId);
+                }
                 _claimManager.deleteClaimants();
                 lastClaimTime = block.timestamp;
                 return false;
@@ -287,6 +291,10 @@ contract ClaimNFTManager is Ownable {
         require(claimants.length <= claimerLimit || isClaimReady(), "Claimer limit reached");
 
         require(claimData[tokenId].health >= min_health, "NFT health is too low to claim rewards");
+
+        // Ensure there's enoguh funds in the payment manager to pay out rewards
+        uint256 totalreward = _paymentManager.rewardRate() + _paymentManager.specialRewardRate();
+        require(_paymentManager.hasSufficientBalance(totalreward), "Insufficient funds for rewards");
     
         // If the period has not ended, register the claimant. Otherwise, the reward is distributed and instead the person trying to claim gets a special reward which is a thank you for covering the gas fees for the finalization process.
         if (_paymentManager.checkAndFinalizePeriod()) {
