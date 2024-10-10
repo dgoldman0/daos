@@ -41,6 +41,11 @@
             height: 100%;
         }
 
+		.key-scrollable {
+			overflow-y: auto;
+			max-height: 500px;
+		}
+
         .key {
             background-color: #f7f3e9;
             border: 2px solid #8b5e34;
@@ -57,6 +62,18 @@
             background-color: #b08a63;
             color: #fff;
         }
+
+		.key-disabled {
+			background-color: #ccc;
+			color: #999;
+			cursor: not-allowed;
+            border: 2px solid #8b5e34;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            color: #55585C;
+            font-weight: bold;
+		}
 
         .board-container {
             flex: 2;
@@ -136,13 +153,9 @@
     <h1>Mancala - Desert Wisdom</h1>
 
     <div class="game-container">
-        <div class="key-container" id="keyContainer">
+        <div class="key-container">
             <h2>Available Keys</h2>
-            <!-- Example keys (replace with dynamic content) -->
-            <div class="key" onclick="selectKey(1)">Key #1 - Health: 90%, Age: 5 days</div>
-            <div class="key" onclick="selectKey(2)">Key #2 - Health: 85%, Age: 3 days</div>
-            <div class="key" onclick="selectKey(3)">Key #3 - Health: 75%, Age: 7 days</div>
-            <!-- Add more keys dynamically -->
+			<div id="keyContainer" class = "key-scrollable"></div>
         </div>
 
         <div class="board-container">
@@ -2146,7 +2159,6 @@
 
                 // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
                 gameId = localStorage.getItem("gameId");
-                console.log("Hello");
                 if (!gameId) {
                     gameId = prompt("Enter game ID or leave blank to start a new game");
                     if (!gameId) {
@@ -2161,6 +2173,7 @@
 
                 // Fetch the current state of the board and update UI
                 updateBoard();
+				updateKeys();
 
                 // Listen to events
                 mancalaContract.events.MoveMade({}).on("data", event => {
@@ -2197,6 +2210,47 @@
             }
         }
 
+		// Load NFT keys
+		async function updateKeys() {
+			// Get the requirements for keys from the mancala contract
+			const minHealth = await mancalaContract.methods.minKeyHealth().call();
+			const minKeyAge = await mancalaContract.methods.minKeyAge().call();
+			const minKeyClaims = await mancalaContract.methods.minKeyClaims().call();
+
+			const accounts = await web3.eth.getAccounts();
+			const balance = await keyContract.methods.balanceOf(accounts[0]).call();
+			let keys = [];
+			// Get container
+			let container = document.getElementById("keyContainer");
+			console.log(container);
+			for (let i = 0; i < balance; i++) {
+				const tokenId = await keyContract.methods.tokenOfOwnerByIndex(accounts[0], i).call();
+				// Use the NFT data manager contract to get key details.
+				const health = await keyDataManagerContract.methods.getHealth(tokenId).call();
+				const mintDate = await keyDataManagerContract.methods.getMintDate(tokenId).call();
+				const totalClaims = await keyDataManagerContract.methods.getTotalClaims(tokenId).call();
+				const hasClaimedInPeriod = await keyDataManagerContract.methods.hasClaimedInPeriod(tokenId).call();
+				// Create key element and add
+				let key = document.createElement("div");
+				// If the key meets the requirements, add the key class, otherwise key-disabled
+				if (health >= minHealth && totalClaims >= minKeyClaims && mintDate <= minKeyAge) {
+					key.classList.add("key");
+				} else {
+					key.classList.add("key-disabled");
+				}
+				key.onclick = () => selectKey(tokenId);
+				key.innerHTML = `
+					<div class="key-image"></div>
+					<div class="key-details">
+						<div>Health: ${health}</div>
+						<div>Mint Date: ${new Date(mintDate * 1000).toLocaleString()}</div>
+						<div>Total Claims: ${totalClaims}</div>
+						<div>Claimed in Period: ${hasClaimedInPeriod ? "Yes" : "No"}</div>
+					</div>
+				`;
+				container.appendChild(key);
+			}
+		}
         // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
         async function updateBoard() {
             let board = await mancalaContract.methods.getBoard(gameId).call();
