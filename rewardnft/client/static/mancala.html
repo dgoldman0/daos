@@ -228,6 +228,15 @@
 			<button onclick="closeModal()">Cancel</button>
 		</div>
 	</div>
+	<!-- Modal for selecting a match request-->
+	<div id="matchRequestModal" class="modal" style="display: none;">
+		<div class="modal-content">
+			<h3>Match Request</h3>
+			<div id="matchRequestList" class = "match-scrollable"></div>
+			<button onclick="acceptMatch()">Accept</button>
+			<button onclick="rejectMatch()">Reject</button>
+		</div>
+	</div>
     <div id="message">Connecting...</div>
 
     <footer>
@@ -236,7 +245,7 @@
 
     <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.2/dist/web3.min.js"></script>
     <script>
-        let mancalaContractAddress = "0xfeA7E952d096ADA15F3eEa51fA2D428da840e7d5";
+        let mancalaContractAddress = "0xb737f5Da67f96E0232B7aE36D3E8eac6662fB5D3";
 		let keyContractAddress = "0x8946EE31706d064DEe3Ed3E3afd779B1b337E82A";
 		let keyDataManagerContractAddress = "0x6006313EcAD73d92C28e12549E5e98304Ef1d0E1";
 
@@ -2208,9 +2217,14 @@
 
 		let selectedKeyId = null;
 
-		function selectKey(keyId) {
+		async function selectKey(keyId) {
+			let accounts = await web3.eth.getAccounts();
 			selectedKeyId = keyId;
-			console.log("Selected key: ", keyId);
+			// Check if key is approved to be
+			let approved = await keyContract.methods.getApproved(keyId).call();
+			if (approved !== mancalaContractAddress) {
+				await keyContract.methods.approve(mancalaContractAddress, keyId).send({ from: accounts[0] });
+			}
 			document.getElementById("keyActionModal").style.display = "block";
 		}
 
@@ -2233,11 +2247,48 @@
 			closeModal();
 		}
 
-		async function startNewMatch() {
-			opponent = prompt("Enter the opponent's address");
-            gameId = await mancalaContract.methods.requestMatch(opponent).send({ from: accounts[0] });  
+		async function startNewMatch(tokenId, opponent) {
+			let accounts = await web3.eth.getAccounts();
+            gameId = await mancalaContract.methods.requestMatch(opponent, tokenId).send({ from: accounts[0] });  
             localStorage.setItem("gameId", gameId);
 
+		}
+
+		// List matches by scanning events for MatchRequested events with the user's address as playerB
+		async function listMatchRequests() {
+			let accounts = await web3.eth.getAccounts();
+			console.log(events);
+			// Same but with pagination
+			let pageSize = 10;
+			let latestBlock = await web3.eth.getBlockNumber();
+			let events = [];
+			let blockStep = 1000; // Adjust this step size as needed
+			let startBlock = latestBlock;
+			while (events.length < pageSize && startBlock > 0) {
+				let endBlock = Math.max(0, startBlock - blockStep);
+				let chunk = await mancalaContract.getPastEvents("MatchRequested", {
+					filter: { playerB: accounts[0] },
+					fromBlock: endBlock,
+					toBlock: startBlock
+				});
+				events = events.concat(chunk);
+				startBlock = endBlock - 1;
+			}
+			events = events.slice(0, pageSize);
+			
+			let container = document.getElementById("matchRequestContainer");
+			container.innerHTML = "";
+			for (let i = 0; i < events.length; i++) {
+				let event = events[i];
+				let match = document.createElement("div");
+				match.classList.add("match-request");
+				match.innerHTML = `
+					<div>Match request from ${event.returnValues.playerA}</div>
+					<button onclick="acceptMatch('${event.returnValues.gameId}')">Accept</button>
+				`;
+				container.appendChild(match);
+			}
+			
 		}
 
 		async function initialize() {
@@ -2251,17 +2302,6 @@
 
                 // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
                 gameId = localStorage.getItem("gameId");
-                if (!gameId) {
-                    gameId = prompt("Enter game ID or leave blank to start a new game");
-                    if (!gameId) {
-                        // Get the opponent's address and start a new game from the user
-                        opponent = prompt("Enter the opponent's address");
-                        gameId = await mancalaContract.methods.requestMatch(opponent).send({ from: accounts[0] });  
-                        localStorage.setItem("gameId", gameId);
-                    } else {
-                        localStorage.setItem("gameId", gameId);
-                    }
-                }
 
                 // Fetch the current state of the board and update UI
                 updateBoard();
@@ -2309,11 +2349,6 @@
 			const minKeyAge = await mancalaContract.methods.minKeyAge().call();
 			const minKeyClaims = await mancalaContract.methods.minKeyClaims().call();
 
-			// Log all three
-			console.log("Min health: ", minHealth);
-			console.log("Min key age: ", minKeyAge);
-			console.log("Min key claims: ", minKeyClaims);
-
 			const accounts = await web3.eth.getAccounts();
 			const balance = await keyContract.methods.balanceOf(accounts[0]).call();
 			let keys = [];
@@ -2352,7 +2387,6 @@
         // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
         async function updateBoard() {
             let board = await mancalaContract.methods.getBoard(gameId).call();
-            console.log(board);
             let gameState = await mancalaContract.methods.getGameState(gameId).call();
             currentPlayer = await mancalaContract.methods.getCurrentPlayer(gameId).call();
             players = await mancalaContract.methods.getPlayers(gameId).call();
