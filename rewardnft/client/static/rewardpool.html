@@ -290,7 +290,29 @@
         width: 80px;
         font-size: 14px;
     }
-    }
+	}
+	.top-menu {
+		display: flex;
+		justify-content: flex-start;
+		align-items: center;
+		padding: 10px 20px;
+		background-color: #141414;
+		border-bottom: 2px solid #3a3a3a;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+	}
+
+	.menu-item {
+		padding: 10px 20px;
+		color: #ffffff;
+		cursor: pointer;
+		font-weight: 500;
+		font-size: 14px;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	.menu-item:hover {
+		color: #167fa6;
+	}
   </style>
 </head>
 <body>
@@ -298,7 +320,9 @@
     <h1><i class="fas fa-gem"></i> Reward Pool NFT Interface</h1>
     <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
   </header>
-
+  <div class = "top-menu">
+	<a class = "menu-item" href="/mancala">Mancala</a>
+  </div>
   <!-- Notification Area -->
   <div id="notificationArea"></div>
 
