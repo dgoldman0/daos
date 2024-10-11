@@ -164,7 +164,7 @@ contract MancalaGame is Ownable {
         require(games[gameId].playerB == msg.sender, "You are not invited to this game");
         require(games[gameId].state == GameState.Pending, "Game is not pending");
         require(IERC721(keyContract).ownerOf(keyId) == msg.sender, "Key is not owned by sender");
-        IClaimNFTManager keyManager = IClaimNFTManager(keyContract);
+        IClaimNFTManager keyManager = IClaimNFTManager(keyDataContract);
         require(keyManager.getHealth(keyId) >= minKeyHealth, "Key health is too low");
         require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
