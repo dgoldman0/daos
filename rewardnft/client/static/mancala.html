@@ -74,6 +74,29 @@
             color: #55585C;
             font-weight: bold;
 		}
+		.match-area {
+			display: flex;
+			flex: 2;
+			justify-content: center;
+			align-items: center;
+			background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+			background-color: #e0d8c3;
+			padding: 40px;
+			border-radius: 20px;
+			box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+		}
+		.match-menu {
+			background-color: #e0d8c3;
+			padding: 20px;
+			border-radius: 10px;
+			box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+			margin-right: 20px;
+			margin-bottom: 100px;
+			flex: 1;
+			max-width: 300px;
+			overflow-y: auto;
+			height: 100%;
+		}
 
         .board-container {
             flex: 2;
@@ -223,36 +246,42 @@
 			<div id="keyContainer" class = "key-scrollable"></div>
         </div>
 
-        <div class="board-container">
-            <div class="board" id="mancalaBoard">
-                <!-- Player B's pits and store -->
-                <div class="store" id="storeB">
-                    <div class="store-title">Opponent Store</div>
-                    0
-                </div>
-                <div class="pit disabled" id="pit12" onclick="makeMove(12)">4</div>
-                <div class="pit disabled" id="pit11" onclick="makeMove(11)">4</div>
-                <div class="pit disabled" id="pit10" onclick="makeMove(10)">4</div>
-                <div class="pit disabled" id="pit9" onclick="makeMove(9)">4</div>
-                <div class="pit disabled" id="pit8" onclick="makeMove(8)">4</div>
-                <div class="pit disabled" id="pit7" onclick="makeMove(7)">4</div>
+		<div class="game-area">
+			<!-- List of ongoing matches-->
+			<div id="ongoingMatches" class = "match-menu">
+				<a href = "javascript:void(0);" onclick="setMatch(1);">Match ID#1</a><br>
+			</div>
+			<div class="board-container">
+				<div class="board" id="mancalaBoard">
+					<!-- Player B's pits and store -->
+					<div class="store" id="storeB">
+						<div class="store-title">Opponent Store</div>
+						0
+					</div>
+					<div class="pit disabled" id="pit12" onclick="makeMove(12)">4</div>
+					<div class="pit disabled" id="pit11" onclick="makeMove(11)">4</div>
+					<div class="pit disabled" id="pit10" onclick="makeMove(10)">4</div>
+					<div class="pit disabled" id="pit9" onclick="makeMove(9)">4</div>
+					<div class="pit disabled" id="pit8" onclick="makeMove(8)">4</div>
+					<div class="pit disabled" id="pit7" onclick="makeMove(7)">4</div>
 
-                <!-- Empty placeholder for symmetry -->
-                <div></div>
+					<!-- Empty placeholder for symmetry -->
+					<div></div>
 
-                <!-- Player A's pits and store -->
-                <div class="pit disabled" id="pit0" onclick="makeMove(0)">4</div>
-                <div class="pit disabled" id="pit1" onclick="makeMove(1)">4</div>
-                <div class="pit disabled" id="pit2" onclick="makeMove(2)">4</div>
-                <div class="pit disabled" id="pit3" onclick="makeMove(3)">4</div>
-                <div class="pit disabled" id="pit4" onclick="makeMove(4)">4</div>
-                <div class="pit disabled" id="pit5" onclick="makeMove(5)">4</div>
-                <div class="store" id="storeA">
-                    <div class="store-title">Your Store</div>
-                    0
-                </div>
-            </div>
-        </div>
+					<!-- Player A's pits and store -->
+					<div class="pit disabled" id="pit0" onclick="makeMove(0)">4</div>
+					<div class="pit disabled" id="pit1" onclick="makeMove(1)">4</div>
+					<div class="pit disabled" id="pit2" onclick="makeMove(2)">4</div>
+					<div class="pit disabled" id="pit3" onclick="makeMove(3)">4</div>
+					<div class="pit disabled" id="pit4" onclick="makeMove(4)">4</div>
+					<div class="pit disabled" id="pit5" onclick="makeMove(5)">4</div>
+					<div class="store" id="storeA">
+						<div class="store-title">Your Store</div>
+						0
+					</div>
+				</div>
+			</div>
+		</div>
     </div>
 	<div id="keyActionModal" class="modal" style="display: none;">
 		<div class="modal-content">
@@ -2351,15 +2380,8 @@
 				keyContract = new web3.eth.Contract(keyABI, keyContractAddress);
 				keyDataManagerContract = new web3.eth.Contract(keyDataManagerABI, keyDataManagerContractAddress);
 
-                // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
-				// Clear local storage
-                gameId = localStorage.getItem("gameId");
-
-                // Fetch the current state of the board and update UI
-				if (gameId) {
-	                updateBoard();
-				}
-				updateKeys();
+				await updateMatches();
+				await updateKeys();
 
                 // Listen to events
                 mancalaContract.events.MoveMade({}).on("data", event => {
@@ -2376,12 +2398,48 @@
             }
         }
 
+		async function updateMatches() {
+			let accounts = await web3.eth.getAccounts();
+			// Get the current game count and then get a list of ongoing games involving the user
+			let gameIdCounter = await mancalaContract.methods.gameIdCounter().call();
+			let ongoingGames = [];
+			for (let i = 1; i <= gameIdCounter; i++) {
+				let gameState = await mancalaContract.methods.getGameState(i).call();
+				if (gameState === "1") {
+					let players = await mancalaContract.methods.getPlayers(i).call();
+					if (players[0] === accounts[0] || players[1] === accounts[0]) {
+						ongoingGames.push(i);
+					}
+				}
+			}
+			// If there are ongoing games, select the first one
+			if (ongoingGames.length > 0) {
+				gameId = ongoingGames[0];
+				localStorage.setItem("gameId", gameId);
+			}	
+			// Update the ongoing matches div
+			let container = document.getElementById("ongoingMatches");
+			container.innerHTML = "";
+			for (let i = 0; i < ongoingGames.length; i++) {
+				let match = document.createElement("div");
+				match.classList.add("match");
+				match.innerHTML = `
+					<div class="match-label">Match ${ongoingGames[i]}</div>
+					<div class="match-button" onclick="loadMatch(${ongoingGames[i]})">Load</div>
+				`;
+				container.appendChild(match);
+			}
+
+		}
 		// Accept a match request
 		async function acceptMatch(gameId) {
 			let accounts = await web3.eth.getAccounts();
+			console.log(gameId);
 			await mancalaContract.methods.acceptMatch(gameId, selectedKeyId).send({ from: accounts[0] });
+			console.log("Match accepted!");
 			localStorage.setItem("gameId", gameId);
 			closeMatchRequestModal();
+			console.log("Closed");
 			updateBoard();
 		}
 
