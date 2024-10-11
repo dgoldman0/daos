@@ -236,7 +236,7 @@
 
     <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.2/dist/web3.min.js"></script>
     <script>
-        let mancalaContractAddress = "0xEF793f5400f2520e7be3A2C6e54e27f867a7F5DB";
+        let mancalaContractAddress = "0xfeA7E952d096ADA15F3eEa51fA2D428da840e7d5";
 		let keyContractAddress = "0x8946EE31706d064DEe3Ed3E3afd779B1b337E82A";
 		let keyDataManagerContractAddress = "0x6006313EcAD73d92C28e12549E5e98304Ef1d0E1";
 
@@ -2309,6 +2309,11 @@
 			const minKeyAge = await mancalaContract.methods.minKeyAge().call();
 			const minKeyClaims = await mancalaContract.methods.minKeyClaims().call();
 
+			// Log all three
+			console.log("Min health: ", minHealth);
+			console.log("Min key age: ", minKeyAge);
+			console.log("Min key claims: ", minKeyClaims);
+
 			const accounts = await web3.eth.getAccounts();
 			const balance = await keyContract.methods.balanceOf(accounts[0]).call();
 			let keys = [];
@@ -2324,7 +2329,8 @@
 				// Create key element and add
 				let key = document.createElement("div");
 				// If the key meets the requirements, add the key class, otherwise key-disabled
-				if (health >= minHealth && totalClaims >= minKeyClaims && mintDate <= minKeyAge) {
+				let age = Math.floor((Date.now() / 1000) - mintDate);
+				if (health >= minHealth && totalClaims >= minKeyClaims && age >= minKeyAge) {
 					key.classList.add("key");
 					key.onclick = () => selectKey(tokenId);
 				} else {
