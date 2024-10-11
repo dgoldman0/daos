@@ -194,10 +194,29 @@
 			color: #52382b;
 			font-weight: bold;
 		}
+		.top-menu {
+			display: flex;
+			justify-content: flex-start;
+			align-items: center;
+			padding: 10px 20px;
+			background-color: #8b5e34;
+			color: #f7f3e9;
+		}
+		.menu-item {
+			color: #f7f3e9;
+			text-decoration: none;
+			font-weight: bold;
+			padding: 10px 20px;
+		}
     </style>
 </head>
 <body>
+	<div class="top-menu">
+		<a class = "menu-item" href="/">Home</a>
+		<a class = "menu-item"  href="/mancala">Mancala</a>
+	</div>
     <h1>Mancala - Desert Wisdom</h1>
+
     <div class="game-container">
         <div class="key-container">
             <h2>Available Keys</h2>
@@ -208,28 +227,28 @@
             <div class="board" id="mancalaBoard">
                 <!-- Player B's pits and store -->
                 <div class="store" id="storeB">
-                    <div class="store-title">Player B's Store</div>
+                    <div class="store-title">Opponent Store</div>
                     0
                 </div>
-                <div class="pit" id="pit12" onclick="makeMove(12)">4</div>
-                <div class="pit" id="pit11" onclick="makeMove(11)">4</div>
-                <div class="pit" id="pit10" onclick="makeMove(10)">4</div>
-                <div class="pit" id="pit9" onclick="makeMove(9)">4</div>
-                <div class="pit" id="pit8" onclick="makeMove(8)">4</div>
-                <div class="pit" id="pit7" onclick="makeMove(7)">4</div>
+                <div class="pit disabled" id="pit12" onclick="makeMove(12)">4</div>
+                <div class="pit disabled" id="pit11" onclick="makeMove(11)">4</div>
+                <div class="pit disabled" id="pit10" onclick="makeMove(10)">4</div>
+                <div class="pit disabled" id="pit9" onclick="makeMove(9)">4</div>
+                <div class="pit disabled" id="pit8" onclick="makeMove(8)">4</div>
+                <div class="pit disabled" id="pit7" onclick="makeMove(7)">4</div>
 
                 <!-- Empty placeholder for symmetry -->
                 <div></div>
 
                 <!-- Player A's pits and store -->
-                <div class="pit" id="pit0" onclick="makeMove(0)">4</div>
-                <div class="pit" id="pit1" onclick="makeMove(1)">4</div>
-                <div class="pit" id="pit2" onclick="makeMove(2)">4</div>
-                <div class="pit" id="pit3" onclick="makeMove(3)">4</div>
-                <div class="pit" id="pit4" onclick="makeMove(4)">4</div>
-                <div class="pit" id="pit5" onclick="makeMove(5)">4</div>
+                <div class="pit disabled" id="pit0" onclick="makeMove(0)">4</div>
+                <div class="pit disabled" id="pit1" onclick="makeMove(1)">4</div>
+                <div class="pit disabled" id="pit2" onclick="makeMove(2)">4</div>
+                <div class="pit disabled" id="pit3" onclick="makeMove(3)">4</div>
+                <div class="pit disabled" id="pit4" onclick="makeMove(4)">4</div>
+                <div class="pit disabled" id="pit5" onclick="makeMove(5)">4</div>
                 <div class="store" id="storeA">
-                    <div class="store-title">Player A's Store</div>
+                    <div class="store-title">Your Store</div>
                     0
                 </div>
             </div>
