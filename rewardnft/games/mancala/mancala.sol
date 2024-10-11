@@ -50,6 +50,7 @@ contract MancalaGame is Ownable {
     enum GameState { Pending, Ongoing, Ended, Cancelled }
 
     address public keyContract; // Contract for NFTs that act as keys to play games
+    address public keyDataContract; // Contains the actual data
     // Minimum health of the key
     uint256 public minKeyHealth;
     // Minimum age of the key
@@ -95,8 +96,9 @@ contract MancalaGame is Ownable {
         _;
     }
 
-    constructor(address _keyContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims) Ownable() {
+    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims) Ownable() {
         keyContract = _keyContract;
+        keyDataContract = _keyDataContract;
         minKeyHealth = _minKeyHealth;
         minKeyAge = _minKeyAge;
         minKeyClaims = _minKeyClaims;
@@ -138,7 +140,7 @@ contract MancalaGame is Ownable {
         require(opponent != msg.sender, "Cannot play against yourself");
         // Require that the key is owned by the sender and meets the minimum requirements
         require(IERC721(keyContract).ownerOf(keyId) == msg.sender, "Key is not owned by sender");
-        IClaimNFTManager keyManager = IClaimNFTManager(keyContract);
+        IClaimNFTManager keyManager = IClaimNFTManager(keyDataContract);
         require(keyManager.getHealth(keyId) >= minKeyHealth, "Key health is too low");
         require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
