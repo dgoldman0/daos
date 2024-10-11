@@ -307,4 +307,21 @@ contract MancalaGame is Ownable {
 
         emit GameEnded(gameId, winner);
     }
+
+    // Owner only setters for game parameters
+    function setKeyContract(address _keyContract) public onlyOwner {
+        keyContract = _keyContract;
+    }
+    function setKeyDataContract(address _keyDataContract) public onlyOwner {
+        keyDataContract = _keyDataContract;
+    }
+    function setMinKeyHealth(uint256 _minKeyHealth) public onlyOwner {
+        minKeyHealth = _minKeyHealth;
+    }
+    function setMinKeyAge(uint256 _minKeyAge) public onlyOwner {
+        minKeyAge = _minKeyAge;
+    }
+    function setMinKeyClaims(uint256 _minKeyClaims) public onlyOwner {
+        minKeyClaims = _minKeyClaims;
+    }
 }
