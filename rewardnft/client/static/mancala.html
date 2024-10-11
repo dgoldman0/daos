@@ -177,11 +177,27 @@
 		.modal button:hover {
 			background-color: #b08a63;
 		}
+		
+		.match-scrollable {
+			overflow-y: auto;
+			max-height: 100px;
+		}
+
+		.match-request-block {
+			background-color: #f7f3e9;
+			border: 2px solid #8b5e34;
+			border-radius: 8px;
+			padding: 10px;
+			margin-bottom: 10px;
+			cursor: pointer;
+			text-align: left;
+			color: #52382b;
+			font-weight: bold;
+		}
     </style>
 </head>
 <body>
     <h1>Mancala - Desert Wisdom</h1>
-
     <div class="game-container">
         <div class="key-container">
             <h2>Available Keys</h2>
@@ -225,7 +241,7 @@
 			<p>Do you want to start a new match or accept an existing one?</p>
 			<button onclick="chooseAction('new')">Start New Match</button>
 			<button onclick="chooseAction('existing')">Accept Existing Match</button>
-			<button onclick="closeModal()">Cancel</button>
+			<button onclick="closeMainModal(true)">Cancel</button>
 		</div>
 	</div>
 	<!-- Modal for selecting a match request-->
@@ -233,8 +249,7 @@
 		<div class="modal-content">
 			<h3>Match Request</h3>
 			<div id="matchRequestList" class = "match-scrollable"></div>
-			<button onclick="acceptMatch()">Accept</button>
-			<button onclick="rejectMatch()">Reject</button>
+			<button onclick="closeMatchRequestModal(true)">Cancel</button>
 		</div>
 	</div>
     <div id="message">Connecting...</div>
@@ -2228,8 +2243,14 @@
 			document.getElementById("keyActionModal").style.display = "block";
 		}
 
-		function closeModal() {
+		function closeMainModal(clear = false) {
 			document.getElementById("keyActionModal").style.display = "none";
+			if (clear)
+				selectedKeyId = null;
+		}
+
+		function closeMatchRequestModal(clear = false) {
+			document.getElementById("matchRequestModal").style.display = "none";
 			selectedKeyId = null;
 		}
 
@@ -2241,15 +2262,21 @@
 				} else {
 					alert("You must enter an opponent's address to start a new match.");
 				}
+				closeMainModal();
 			} else if (action === 'existing') {
 				listMatchRequests(selectedKeyId);
+				closeMainModal();
+				// Open the match request modal
+				document.getElementById("matchRequestModal").style.display = "block";
 			}
-			closeModal();
 		}
 
 		async function startNewMatch(tokenId, opponent) {
 			let accounts = await web3.eth.getAccounts();
             gameId = await mancalaContract.methods.requestMatch(opponent, tokenId).send({ from: accounts[0] });  
+			// Convert to integer
+			console.log(gameId);
+			gameId = parseInt(gameId.events.MatchRequested.returnValues.gameId);
             localStorage.setItem("gameId", gameId);
 
 		}
@@ -2257,34 +2284,39 @@
 		// List matches by scanning events for MatchRequested events with the user's address as playerB
 		async function listMatchRequests() {
 			let accounts = await web3.eth.getAccounts();
-			console.log(events);
 			// Same but with pagination
 			let pageSize = 10;
-			let latestBlock = await web3.eth.getBlockNumber();
-			let events = [];
-			let blockStep = 1000; // Adjust this step size as needed
-			let startBlock = latestBlock;
-			while (events.length < pageSize && startBlock > 0) {
-				let endBlock = Math.max(0, startBlock - blockStep);
-				let chunk = await mancalaContract.getPastEvents("MatchRequested", {
-					filter: { playerB: accounts[0] },
-					fromBlock: endBlock,
-					toBlock: startBlock
-				});
-				events = events.concat(chunk);
-				startBlock = endBlock - 1;
-			}
-			events = events.slice(0, pageSize);
-			
-			let container = document.getElementById("matchRequestContainer");
+			// Use gameIdCounter to get the number of games, then scan through from newest to oldest, selecting those where playerB matches and where game is pending
+			let gameIdCounter = await mancalaContract.methods.gameIdCounter().call();
+			let requests = [];
+			let i = gameIdCounter;
+			while (requests.length < pageSize && i > 0) {
+				// Use the mancala contract to get the game state
+				let gameState = await mancalaContract.methods.getGameState(i).call();
+				if (gameState === "0") {
+					players = await mancalaContract.methods.getPlayers(i).call();
+					console.log(players[0]);
+					if (players[1] === accounts[0]) {
+						requests.push({
+							gameId: i,
+							playerA: players[0]
+						});
+					}
+
+				}
+				i--;
+			}			
+			let container = document.getElementById("matchRequestList");
 			container.innerHTML = "";
-			for (let i = 0; i < events.length; i++) {
-				let event = events[i];
+			for (let i = 0; i < requests.length; i++) {
+				let request = requests[i];
 				let match = document.createElement("div");
 				match.classList.add("match-request");
 				match.innerHTML = `
-					<div>Match request from ${event.returnValues.playerA}</div>
-					<button onclick="acceptMatch('${event.returnValues.gameId}')">Accept</button>
+					<div class = "match-request-block">
+					<div class = "match-request-label">Match request from ${request.playerA}</div>
+					<center><button class = "match-request-button" onclick="acceptMatch('${request.gameId}')">Accept</button></center>
+					</div>
 				`;
 				container.appendChild(match);
 			}
@@ -2301,10 +2333,13 @@
 				keyDataManagerContract = new web3.eth.Contract(keyDataManagerABI, keyDataManagerContractAddress);
 
                 // Get game ID from local storage or pop up that asks for game ID or if they want to start a new game
+				// Clear local storage
                 gameId = localStorage.getItem("gameId");
 
                 // Fetch the current state of the board and update UI
-                updateBoard();
+				if (gameId) {
+	                updateBoard();
+				}
 				updateKeys();
 
                 // Listen to events
@@ -2321,6 +2356,15 @@
                 alert("Please install MetaMask to play this game!");
             }
         }
+
+		// Accept a match request
+		async function acceptMatch(gameId) {
+			let accounts = await web3.eth.getAccounts();
+			await mancalaContract.methods.acceptMatch(gameId, selectedKeyId).send({ from: accounts[0] });
+			localStorage.setItem("gameId", gameId);
+			closeMatchRequestModal();
+			updateBoard();
+		}
 
         // Make a move by calling the contract's function
         async function makeMove(pitIndex) {
@@ -2386,8 +2430,9 @@
 		}
         // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
         async function updateBoard() {
-            let board = await mancalaContract.methods.getBoard(gameId).call();
+			// Get to string of gameId
             let gameState = await mancalaContract.methods.getGameState(gameId).call();
+            let board = await mancalaContract.methods.getBoard(gameId).call();
             currentPlayer = await mancalaContract.methods.getCurrentPlayer(gameId).call();
             players = await mancalaContract.methods.getPlayers(gameId).call();
             for (let i = 0; i < 6; i++) {
