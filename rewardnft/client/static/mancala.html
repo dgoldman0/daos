@@ -278,12 +278,12 @@
 						<div class="store-title">Opponent Store</div>
 						<span id="storeBSeeds">0</span>
 					</div>
-					<div class="pit disabled" id="pit12" onclick="makeMove(12)">4</div>
-					<div class="pit disabled" id="pit11" onclick="makeMove(11)">4</div>
-					<div class="pit disabled" id="pit10" onclick="makeMove(10)">4</div>
-					<div class="pit disabled" id="pit9" onclick="makeMove(9)">4</div>
-					<div class="pit disabled" id="pit8" onclick="makeMove(8)">4</div>
-					<div class="pit disabled" id="pit7" onclick="makeMove(7)">4</div>
+					<div class="pit disabled" id="pit12">4</div>
+					<div class="pit disabled" id="pit11">4</div>
+					<div class="pit disabled" id="pit10">4</div>
+					<div class="pit disabled" id="pit9">4</div>
+					<div class="pit disabled" id="pit8">4</div>
+					<div class="pit disabled" id="pit7">4</div>
 
 					<!-- Empty placeholder for symmetry -->
 					<div></div>
@@ -320,7 +320,7 @@
 			<button onclick="closeMatchRequestModal(true)">Cancel</button>
 		</div>
 	</div>
-    <div id="message">Connecting...</div>
+    <div id="message">Choose match or start new one...</div>
 
     <footer>
         &copy; 2024 Mancala by the Sands | Arcadium
@@ -2442,9 +2442,11 @@
 			container.innerHTML = "";
 			for (let i = 0; i < ongoingGames.length; i++) {
 				let match = document.createElement("div");
+				// Add onclick
+				match.onclick = () => loadMatch(ongoingGames[i]);
 				match.classList.add("match");
 				match.innerHTML = `
-					<div class="match-label" onclick="loadMatch(${ongoingGames[i]})">Match ${ongoingGames[i]}</div>
+					<div class="match-label">Match ${ongoingGames[i]}</div>
 				`;
 				container.appendChild(match);
 			}
