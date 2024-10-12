@@ -57,8 +57,8 @@ if __name__ == '__main__':
     # Parse command line arguments, including debug mode, server port, etc.
     parser = argparse.ArgumentParser(description='Arcadium Server')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    parser.add_argument('--port', type=int, default=80, help='Port number')
+    parser.add_argument('--port', type=int, default=5000, help='Port number')
     args = parser.parse_args()
 
     # Run the Flask app
-    app.run(debug=args.debug, port=args.port)
+    app.run(debug=args.debug, port=args.port, host='0.0.0.0')  # Set host to '
