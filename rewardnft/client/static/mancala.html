@@ -2545,7 +2545,7 @@
             for (let i = 0; i < 6; i++) {
                 let pitA = document.getElementById(`pit${i}`);
 
-                if (currentPlayer.toLowerCase() !== player.toLowerCase()) {
+                if (currentPlayer.toLowerCase() === player.toLowerCase()) {
                     pitA.classList.remove('disabled');
                     pitA.onclick = () => makeMove(i); // Enable Player A's pits
 				} else {
