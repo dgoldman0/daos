@@ -170,6 +170,12 @@
             cursor: not-allowed;
         }
 
+		.opponent {
+			background-color: #6b4f2b;
+			color: #999;
+			cursor: not-allowed;
+		}
+
         .store-title {
             position: absolute;
             top: -80px;
@@ -278,23 +284,23 @@
 						<div class="store-title">Opponent Store</div>
 						<span id="storeBSeeds">0</span>
 					</div>
-					<div class="pit disabled" id="pit12">4</div>
-					<div class="pit disabled" id="pit11">4</div>
-					<div class="pit disabled" id="pit10">4</div>
-					<div class="pit disabled" id="pit9">4</div>
-					<div class="pit disabled" id="pit8">4</div>
-					<div class="pit disabled" id="pit7">4</div>
+					<div class="pit opponent" id="pit12">X</div>
+					<div class="pit opponent" id="pit11">X</div>
+					<div class="pit opponent" id="pit10">X</div>
+					<div class="pit opponent" id="pit9">X</div>
+					<div class="pit opponent" id="pit8">X</div>
+					<div class="pit opponent" id="pit7">X</div>
 
 					<!-- Empty placeholder for symmetry -->
 					<div></div>
 
 					<!-- Player A's pits and store -->
-					<div class="pit" id="pit0" onclick="makeMove(0)">4</div>
-					<div class="pit" id="pit1" onclick="makeMove(1)">4</div>
-					<div class="pit" id="pit2" onclick="makeMove(2)">4</div>
-					<div class="pit" id="pit3" onclick="makeMove(3)">4</div>
-					<div class="pit" id="pit4" onclick="makeMove(4)">4</div>
-					<div class="pit" id="pit5" onclick="makeMove(5)">4</div>
+					<div class="pit" id="pit0" onclick="makeMove(0)">X</div>
+					<div class="pit" id="pit1" onclick="makeMove(1)">X</div>
+					<div class="pit" id="pit2" onclick="makeMove(2)">X</div>
+					<div class="pit" id="pit3" onclick="makeMove(3)">X</div>
+					<div class="pit" id="pit4" onclick="makeMove(4)">X</div>
+					<div class="pit" id="pit5" onclick="makeMove(5)">X</div>
 					<div class="store" id="storeA">
 						<div class="store-title">Your Store</div>
 						<span id="storeASeeds">0</span>
@@ -2556,7 +2562,8 @@
             players = await mancalaContract.methods.getPlayers(gameId).call();
 
 			const isPlayerA = players[0].toLowerCase() === accounts[0].toLowerCase();
-			console.log(isPlayerA);
+			const isCurrentPlayer = currentPlayer.toLowerCase() === accounts[0].toLowerCase();
+
 			let asPlayerA = `
 				<div class="board" id="mancalaBoard">
 					<!-- Player B's pits and store -->
@@ -2564,12 +2571,12 @@
 						<div class="store-title">Opponent Store</div>
 						<span id="storeBSeeds">0</span>
 					</div>
-					<div class="pit disabled" id="pit12">4</div>
-					<div class="pit disabled" id="pit11">4</div>
-					<div class="pit disabled" id="pit10">4</div>
-					<div class="pit disabled" id="pit9">4</div>
-					<div class="pit disabled" id="pit8">4</div>
-					<div class="pit disabled" id="pit7">4</div>
+					<div class="pit opponent" id="pit12">4</div>
+					<div class="pit opponent" id="pit11">4</div>
+					<div class="pit opponent" id="pit10">4</div>
+					<div class="pit opponent" id="pit9">4</div>
+					<div class="pit opponent" id="pit8">4</div>
+					<div class="pit opponent" id="pit7">4</div>
 
 					<!-- Empty placeholder for symmetry -->
 					<div></div>
@@ -2596,12 +2603,12 @@
 						<div class="store-title">Opponent Store</div>
 						<span id="storeASeeds">0</span>
 					</div>
-					<div class="pit disabled" id="pit5">4</div>
-					<div class="pit disabled" id="pit4">4</div>
-					<div class="pit disabled" id="pit3">4</div>
-					<div class="pit disabled" id="pit2">4</div>
-					<div class="pit disabled" id="pit1">4</div>
-					<div class="pit disabled" id="pit0">4</div>
+					<div class="pit opponent" id="pit5">4</div>
+					<div class="pit opponent" id="pit4">4</div>
+					<div class="pit opponent" id="pit3">4</div>
+					<div class="pit opponent" id="pit2">4</div>
+					<div class="pit opponent" id="pit1">4</div>
+					<div class="pit opponent" id="pit0">4</div>
 
 					<!-- Empty placeholder for symmetry -->
 					<div></div>
@@ -2631,17 +2638,14 @@
 
             // Enable or disable pits based on the current player
             for (let i = 0; i < 6; i++) {
-                let pit = (isPlayerA) ? document.getElementById(`pit${i}`) : document.getElementById(`pit${i + 7}`);
-
-                if (currentPlayer.toLowerCase() === player.toLowerCase()) {
-                    pit.classList.remove('disabled');
-					if (isPlayerA) 
-	                    pit.onclick = () => makeMove(i); // Enable Player A's pits
-					else
-						pit.onclick = () => makeMove(i + 7); // Enable Player B's pits
-				} 
-            }					
-        }
+				let q = (isPlayerA) ? i : i + 7;
+				if (isCurrentPlayer) {
+					document.getElementById(`pit${q}`).classList.remove("disabled");
+				} else {
+					document.getElementById(`pit${q}`).classList.add("disabled");
+				}
+			}
+	    }
 
         window.onload = initialize;
     </script>
