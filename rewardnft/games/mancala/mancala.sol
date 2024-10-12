@@ -212,7 +212,6 @@ contract MancalaGame is Ownable {
 
         while (seeds > 0) {
             currentIndex = (currentIndex + 1) % 14;
-            
             // Skip opponent's store
             if (msg.sender == game.playerA && currentIndex == PLAYER_B_STORE) continue;
             if (msg.sender == game.playerB && currentIndex == PLAYER_A_STORE) continue;
