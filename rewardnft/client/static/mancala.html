@@ -2493,12 +2493,12 @@
 
             try {
                 await mancalaContract.methods.moveSeeds(gameId, pitIndex).send({ from: player });
+				updateBoard();
                 document.getElementById("message").innerText = "Move made! Waiting for the next move...";
             } catch (err) {
                 console.error(err);
                 document.getElementById("message").innerText = "Error making move!";
             }
-			updateBoard();
         }
 
 		// Load NFT keys
