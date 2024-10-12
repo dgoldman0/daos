@@ -1,4 +1,3 @@
-<!-- Need to add a whole section for the NFTs to select keys. Basically should be able to click on a key to start a match maybe? Maybe a list of recent match requests too -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -270,12 +269,12 @@
 					<div></div>
 
 					<!-- Player A's pits and store -->
-					<div class="pit disabled" id="pit0" onclick="makeMove(0)">4</div>
-					<div class="pit disabled" id="pit1" onclick="makeMove(1)">4</div>
-					<div class="pit disabled" id="pit2" onclick="makeMove(2)">4</div>
-					<div class="pit disabled" id="pit3" onclick="makeMove(3)">4</div>
-					<div class="pit disabled" id="pit4" onclick="makeMove(4)">4</div>
-					<div class="pit disabled" id="pit5" onclick="makeMove(5)">4</div>
+					<div class="pit" id="pit0" onclick="makeMove(0)">4</div>
+					<div class="pit" id="pit1" onclick="makeMove(1)">4</div>
+					<div class="pit" id="pit2" onclick="makeMove(2)">4</div>
+					<div class="pit" id="pit3" onclick="makeMove(3)">4</div>
+					<div class="pit" id="pit4" onclick="makeMove(4)">4</div>
+					<div class="pit" id="pit5" onclick="makeMove(5)">4</div>
 					<div class="store" id="storeA">
 						<div class="store-title">Your Store</div>
 						0
@@ -2541,22 +2540,16 @@
             let accounts = await web3.eth.getAccounts();
             let player = accounts[0];
 
-            // Disable Player A's pits if it's Player B's turn: Not working correctly. Need to make sure proper turn analysis is taken into consideration.
             for (let i = 0; i < 6; i++) {
                 let pitA = document.getElementById(`pit${i}`);
-                let pitB = document.getElementById(`pit${i + 7}`);
 
                 if (currentPlayer.toLowerCase() === players[0].toLowerCase()) {
                     pitA.classList.remove('disabled');
-                    pitB.classList.add('disabled');
-                    pitB.onclick = null; // Disable Player B's pits
                     pitA.onclick = () => makeMove(i); // Enable Player A's pits
-                } else {
-                    pitA.classList.add('disabled');
-                    pitA.onclick = null; // Disable Player A's pits
-                    pitB.classList.remove('disabled');
-                    pitB.onclick = () => makeMove(i + 7); // Enable Player B's pits
-                }
+				} else {
+					pitA.classList.add('disabled');
+					pitA.onclick = null;
+				}
             }
         }
 
