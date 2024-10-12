@@ -10,25 +10,77 @@ contract MancalaMatchNFT is ERC721 {
     address public mancalaGame;
 
     struct MancalaMatch {
-        uint256 tokenId;
+        uint256 gameId;
         address playerA;
         address playerB;
-        uint256 gameId;
         address winner;
+        uint256 rounds;
+        mapping (uint256 => uint112) boardStates; // Packed board states
     }
 
-    constructor() ERC721("Mancala Match NFT", "MMNFT") {
+    mapping(uint256 => MancalaMatch) public matches; // Mapping of game IDs to match instances
+    
+    modifier onlyMancalaGame() {
+        require(msg.sender == mancalaGame, "Only the MancalaGame contract can call this function");
+        _;
+    }
+
+    constructor(address _mancalaGame) ERC721("Mancala Match NFT", "MMNFT") {
         nextTokenId = 1;
+        mancalaGame = _mancalaGame;
     }
 
     function setMancalaGame(address _mancalaGame) public onlyOwner {
         mancalaGame = _mancalaGame;
     }
 
-    function mint(address to) public {
-        require(msg.sender == mancalaGame, "Only the MancalaGame contract can mint tokens");
-        _safeMint(to, nextTokenId);
+    function initializeMatch(uint256 gameId, address playerA, address playerB) public onlyMancalaGame {
+        require(matches[gameId].gameId == 0, "Match already exists");
+        require(nextTokenId == gameId, "Invalid game ID");
+        MancalaMatch storage matchdetails = matches[gameId];
+        matchdetails.gameId = gameId;
+        matchdetails.playerA = playerA;
+        matchdetails.playerB = playerB;
+        _safeMint(address(this), gameId);
         nextTokenId++;
+    }
+
+    // Set winner
+    function setWinner(uint256 tokenId, address winner) public onlyMancalaGame {
+        require(tokenId < nextTokenId, "Invalid token ID");
+        require(winner != address(0), "Invalid winner address");
+        require(winner == matches[tokenId].playerA || winner == matches[tokenId].playerB, "Winner must be a player");
+        MancalaMatch storage matchdetails = matches[tokenId];
+        require(matchdetails.winner == address(0), "Match has already ended");
+        matchdetails.winner = winner;
+        // Transfer to winner
+        _safeTransfer(address(this), winner, tokenId, "");
+    }
+
+    // Function that adds a board state to an existing match converting uint8[14] to uint112
+    function addBoardState(uint256 tokenId, uint8[14] memory board) public onlyMancalaGame {
+        MancalaMatch storage matchdetails = matches[tokenId];
+        require(matchdetails.winner == address(0), "Match has already ended");
+        matchdetails.boardStates[matchdetails.rounds] = packBoardState(board);
+        matchdetails.rounds++;
+    }
+
+    // Function to pack a uint8[14] board state into a uint112
+    function packBoardState(uint8[14] memory board) public pure returns (uint112) {
+        uint112 packedBoard = 0;
+        for (uint8 i = 0; i < 14; i++) {
+            packedBoard |= uint112(board[i]) << (i * 8);
+        }
+        return packedBoard;
+    }
+
+    // Unpack a uint112 board state into a uint8[14]
+    function unpackBoardState(uint112 packedBoard) public pure returns (uint8[14] memory) {
+        uint8[14] memory board;
+        for (uint8 i = 0; i < 14; i++) {
+            board[i] = uint8(packedBoard >> (i * 8));
+        }
+        return board;
     }
 }
 
@@ -47,6 +99,9 @@ contract MancalaGame is Ownable {
 
     address public keyContract; // Contract for NFTs that act as keys to play games
     address public keyDataContract; // Contains the actual data
+
+    address public mancalaMatchNFT; // NFT contract for storing match data
+
     // Minimum health of the key
     uint256 public minKeyHealth;
     // Minimum age of the key
@@ -69,6 +124,7 @@ contract MancalaGame is Ownable {
 
     mapping(uint256 => Game) public games; // Mapping of game IDs to game instances
     uint256 public gameIdCounter;
+    uint256 public spareGameId;
 
     event MatchRequested(uint256 gameId, address playerA, address playerB);
     event GameStarted(uint256 gameId, address playerA, address playerB);
@@ -140,10 +196,18 @@ contract MancalaGame is Ownable {
         require(keyManager.getHealth(keyId) >= minKeyHealth, "Key health is too low");
         require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
+
+        require(mancalaMatchNFT != address(0), "MancalaMatchNFT contract not set");
         // Transfer the key to the contract
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
-        gameIdCounter += 1;
-        uint256 newGameId = gameIdCounter;
+        uint256 newGameId = gameIdCounter + 1;
+        if (spareGameId != 0) {
+            newGameId = spareGameId;
+            spareGameId = 0;
+        } else {
+            gameIdCounter += 1;
+        }
+            
         games[newGameId].requestTime = block.timestamp;
         games[newGameId].playerA = msg.sender;
         games[newGameId].playerB = opponent;
@@ -151,6 +215,7 @@ contract MancalaGame is Ownable {
         games[newGameId].currentPlayer = msg.sender; // Player A starts
         initializeBoard(games[newGameId].board);
         games[newGameId].state = GameState.Pending;
+        MancalaMatchNFT(mancalaMatchNFT).initializeMatch(newGameId, msg.sender, opponent);
         emit MatchRequested(newGameId, msg.sender, opponent);
         return newGameId;
     }
@@ -178,7 +243,7 @@ contract MancalaGame is Ownable {
         require(games[gameId].playerB == msg.sender, "You are not invited to this game");
         require(games[gameId].state == GameState.Pending, "Game is not pending");
         games[gameId].state = GameState.Ended;
-        // Transfer the key back to the player
+        spareGameId = gameId;
         IERC721(keyContract).transferFrom(address(this), games[gameId].playerA, games[gameId].keyA);
     }
 
@@ -188,7 +253,7 @@ contract MancalaGame is Ownable {
         require(games[gameId].state == GameState.Pending, "Game is not pending");
         require(block.timestamp >= games[gameId].requestTime + requestTimeout, "Timeout has not passed");
         games[gameId].state = GameState.Cancelled;
-        // Transfer the key back to the player
+        spareGameId = gameId;
         IERC721(keyContract).transferFrom(address(this), games[gameId].playerA, games[gameId].keyA);
     }
 
@@ -222,11 +287,12 @@ contract MancalaGame is Ownable {
 
         emit MoveMade(gameId, msg.sender, pitIndex);
 
+        // Need to change this paradigm because it doesn't work well... Also need to insert code to add the board state to the NFT
         // Check if last seed landed in player's store for extra turn
         if ((msg.sender == game.playerA && currentIndex == PLAYER_A_STORE) ||
             (msg.sender == game.playerB && currentIndex == PLAYER_B_STORE)) {
             emit TurnChanged(gameId, msg.sender); // Player gets an extra turn
-            return;
+            return; // Should be okay because no capture, but what about win condition? Need to check.
         }
 
         // Check if capture is possible
@@ -234,6 +300,9 @@ contract MancalaGame is Ownable {
             (msg.sender == game.playerB && currentIndex >= 7 && currentIndex < 13 && game.board[currentIndex] == 1)) {
             captureSeeds(game, currentIndex);
         }
+
+        // Add the board state to the NFT
+        MancalaMatchNFT(mancalaMatchNFT).addBoardState(gameId, game.board);
 
         // Check if the game is over
         if (isGameOver(game)) {
@@ -298,6 +367,11 @@ contract MancalaGame is Ownable {
             winner = game.playerB;
         } else {
             winner = address(0); // Draw
+            // Not sure what to do about draws wrt the NFT
+        }
+
+        if (winner != address(0)) {
+            MancalaMatchNFT(mancalaMatchNFT).setWinner(gameId, winner);
         }
 
         emit GameEnded(gameId, winner);
@@ -309,6 +383,9 @@ contract MancalaGame is Ownable {
     }
     function setKeyDataContract(address _keyDataContract) public onlyOwner {
         keyDataContract = _keyDataContract;
+    }
+    function setMancalaMatchNFT(address _mancalaMatchNFT) public onlyOwner {
+        mancalaMatchNFT = _mancalaMatchNFT;
     }
     function setMinKeyHealth(uint256 _minKeyHealth) public onlyOwner {
         minKeyHealth = _minKeyHealth;
