@@ -2475,6 +2475,7 @@
 
         // Make a move by calling the contract's function
         async function makeMove(pitIndex) {
+			console.log(pitIndex);
             let accounts = await web3.eth.getAccounts();
             let player = accounts[0];
 
@@ -2491,6 +2492,7 @@
                 console.error(err);
                 document.getElementById("message").innerText = "Error making move!";
             }
+			updateBoard();
         }
 
 		// Load NFT keys
@@ -2553,6 +2555,8 @@
             currentPlayer = await mancalaContract.methods.getCurrentPlayer(gameId).call();
             players = await mancalaContract.methods.getPlayers(gameId).call();
 
+			const isPlayerA = players[0].toLowerCase() === accounts[0].toLowerCase();
+			console.log(isPlayerA);
 			let asPlayerA = `
 				<div class="board" id="mancalaBoard">
 					<!-- Player B's pits and store -->
@@ -2604,11 +2608,11 @@
 
 					<!-- Player B's pits and store -->
 					<div class="pit" id="pit7" onclick="makeMove(7)">4</div>
-					<div class="pit" id="pit12" onclick="makeMove(12)">4</div>
-					<div class="pit" id="pit11" onclick="makeMove(11)">4</div>
-					<div class="pit" id="pit10" onclick="makeMove(10)">4</div>
-					<div class="pit" id="pit9" onclick="makeMove(9)">4</div>
 					<div class="pit" id="pit8" onclick="makeMove(8)">4</div>
+					<div class="pit" id="pit9" onclick="makeMove(9)">4</div>
+					<div class="pit" id="pit10" onclick="makeMove(10)">4</div>
+					<div class="pit" id="pit11" onclick="makeMove(11)">4</div>
+					<div class="pit" id="pit12" onclick="makeMove(12)">4</div>
 					<div class="store" id="storeB">
 						<div class="store-title">Your Store</div>
 						<span id="storeBSeeds">0</span>
@@ -2616,8 +2620,7 @@
 				</div>
 			`;
 
-			document.getElementById("board-area").innerHTML = (players[0] === accounts[0]) ? asPlayerA : asPlayerB;
-
+			document.getElementById("board-area").innerHTML = (isPlayerA) ? asPlayerA : asPlayerB;
 			for (let i = 0; i < 6; i++) {
                 document.getElementById(`pit${i}`).innerText = board[i];
                 document.getElementById(`pit${i + 7}`).innerText = board[i + 7];
@@ -2627,17 +2630,16 @@
             document.getElementById("storeBSeeds").innerText = board[13];
 
             // Enable or disable pits based on the current player
-
             for (let i = 0; i < 6; i++) {
-                let pitA = document.getElementById(`pit${i}`);
+                let pit = (isPlayerA) ? document.getElementById(`pit${i}`) : document.getElementById(`pit${i + 7}`);
 
                 if (currentPlayer.toLowerCase() === player.toLowerCase()) {
-                    pitA.classList.remove('disabled');
-                    pitA.onclick = () => makeMove(i); // Enable Player A's pits
-				} else {
-					pitA.classList.add('disabled');
-					pitA.onclick = null;
-				}
+                    pit.classList.remove('disabled');
+					if (isPlayerA) 
+	                    pit.onclick = () => makeMove(i); // Enable Player A's pits
+					else
+						pit.onclick = () => makeMove(i + 7); // Enable Player B's pits
+				} 
             }					
         }
 
