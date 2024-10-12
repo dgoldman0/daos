@@ -215,7 +215,6 @@ contract MancalaGame is Ownable {
         games[newGameId].currentPlayer = msg.sender; // Player A starts
         initializeBoard(games[newGameId].board);
         games[newGameId].state = GameState.Pending;
-        MancalaMatchNFT(mancalaMatchNFT).initializeMatch(newGameId, msg.sender, opponent);
         emit MatchRequested(newGameId, msg.sender, opponent);
         return newGameId;
     }
@@ -234,6 +233,7 @@ contract MancalaGame is Ownable {
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
         games[gameId].keyB = keyId;
         games[gameId].state = GameState.Ongoing;
+        MancalaMatchNFT(mancalaMatchNFT).initializeMatch(newGameId, msg.sender, opponent);
         emit GameStarted(gameId, games[gameId].playerA, games[gameId].playerB);
         emit TurnChanged(gameId, games[gameId].currentPlayer);
     }
