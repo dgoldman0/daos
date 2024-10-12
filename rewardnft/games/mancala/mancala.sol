@@ -5,36 +5,32 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../../utils/ownable.sol";
 
-// Will create a game NFT as well and a token representing ownership of that game. It'll include a copy of the final game state, the players, as well as each turn.abi
-// Scrap so far
-/*
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+contract MancalaMatchNFT is ERC721 {
+    uint256 public nextTokenId;
+    address public mancalaGame;
 
-contract MancalaMatchNFT is ERC1155 {
-    uint256 public gameIdCounter;
-
-    struct Match {
+    struct MancalaMatch {
+        uint256 tokenId;
         address playerA;
         address playerB;
         uint256 gameId;
-        // List of boards for each turn
-        uint8[14] finalBoard;
+        address winner;
     }
 
-    constructor() ERC1155("https://arcadium.games/api/mancala/{id}.json") {}
-
-    function mintMatchNFT(address owner, uint256 gameId) public {
-        gameIdCounter += 1;
-        _mint(owner, gameIdCounter, 1, "");
+    constructor() ERC721("Mancala Match NFT", "MMNFT") {
+        nextTokenId = 1;
     }
 
-    // Mint ERC-20 token representing ownership of the game
-    function mintMatchCoinage(address owner, uint256 gameId) public {
-        gameIdCounter += 1;
-        _mint(owner, gameIdCounter, 1, "");
+    function setMancalaGame(address _mancalaGame) public onlyOwner {
+        mancalaGame = _mancalaGame;
+    }
+
+    function mint(address to) public {
+        require(msg.sender == mancalaGame, "Only the MancalaGame contract can mint tokens");
+        _safeMint(to, nextTokenId);
+        nextTokenId++;
     }
 }
-*/
 
 // Needed so the game can interact with the NFT's internal data
 interface IClaimNFTManager {
