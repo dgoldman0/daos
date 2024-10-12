@@ -2413,7 +2413,7 @@
 				}
 			}
 			// If there are ongoing games, select the first one
-			if (ongoingGames.length > 0) {
+			if (ongoingGames.length > 0 && !localStorage.getItem("gameId")) {
 				gameId = ongoingGames[0];
 				localStorage.setItem("gameId", gameId);
 			}	
@@ -2433,11 +2433,12 @@
 		}
 
 		// Load match
-		async function loadMatch(gameId) {
-			localStorage.setItem("gameId", gameId);
+		async function loadMatch(_gameId) {
+			gameId = _gameId;
+			localStorage.setItem("gameId", _gameId);
 			updateBoard();
 		}
-		
+
 		// Accept a match request
 		async function acceptMatch(gameId) {
 			let accounts = await web3.eth.getAccounts();
@@ -2515,6 +2516,8 @@
         // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
         async function updateBoard() {
 			// Get to string of gameId
+			if (gameId === undefined) return;
+			
             let gameState = await mancalaContract.methods.getGameState(gameId).call();
             let board = await mancalaContract.methods.getBoard(gameId).call();
             currentPlayer = await mancalaContract.methods.getCurrentPlayer(gameId).call();
