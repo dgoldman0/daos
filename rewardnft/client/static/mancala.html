@@ -2431,6 +2431,13 @@
 			}
 
 		}
+
+		// Load match
+		async function loadMatch(gameId) {
+			localStorage.setItem("gameId", gameId);
+			updateBoard();
+		}
+		
 		// Accept a match request
 		async function acceptMatch(gameId) {
 			let accounts = await web3.eth.getAccounts();
