@@ -2541,7 +2541,7 @@
             let accounts = await web3.eth.getAccounts();
             let player = accounts[0];
 
-            // Disable Player A's pits if it's Player B's turn
+            // Disable Player A's pits if it's Player B's turn: Not working correctly. Need to make sure proper turn analysis is taken into consideration.
             for (let i = 0; i < 6; i++) {
                 let pitA = document.getElementById(`pit${i}`);
                 let pitB = document.getElementById(`pit${i + 7}`);
