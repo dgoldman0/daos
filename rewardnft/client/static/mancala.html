@@ -85,12 +85,31 @@
 			box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
 		}
 		.match-menu {
+			justify-content: flex-start;
 			background-color: #e0d8c3;
 			padding: 20px;
 			border-radius: 10px;
 			box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
 			margin-right: 20px;
 			margin-bottom: 100px;
+			flex: 1;
+			overflow-y: auto;
+			height: 100%;
+			display: flex;
+			flex-direction: row;
+			overflow-x: auto;
+		}
+		.match-label {
+			font-size: 1.2em;
+			color: #8b5e34;
+			font-weight: bold;
+		}
+		.match {
+			background-color: #e0d8c3;
+			padding: 20px;
+			border-radius: 10px;
+			box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+			margin-right: 20px;
 			flex: 1;
 			max-width: 300px;
 			overflow-y: auto;
@@ -206,6 +225,7 @@
 		}
 
 		.match-request-block {
+			justify-content: flex-start;
 			background-color: #f7f3e9;
 			border: 2px solid #8b5e34;
 			border-radius: 8px;
@@ -2424,8 +2444,7 @@
 				let match = document.createElement("div");
 				match.classList.add("match");
 				match.innerHTML = `
-					<div class="match-label">Match ${ongoingGames[i]}</div>
-					<div class="match-button" onclick="loadMatch(${ongoingGames[i]})">Load</div>
+					<div class="match-label" onclick="loadMatch(${ongoingGames[i]})">Match ${ongoingGames[i]}</div>
 				`;
 				container.appendChild(match);
 			}
