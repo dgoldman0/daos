@@ -243,6 +243,7 @@
     <div class="game-container">
         <div class="key-container">
             <h2>Available Keys</h2>
+			<input type="checkbox" id="hideInvalidKeys" onchange="updateKeys()"> Hide Invalid Keys<br>
 			<div id="keyContainer" class = "key-scrollable"></div>
         </div>
 
@@ -2290,7 +2291,7 @@
 			}
 			document.getElementById("keyActionModal").style.display = "block";
 		}
-
+		
 		function closeMainModal(clear = false) {
 			document.getElementById("keyActionModal").style.display = "none";
 			if (clear)
@@ -2480,9 +2481,14 @@
 
 			const accounts = await web3.eth.getAccounts();
 			const balance = await keyContract.methods.balanceOf(accounts[0]).call();
+
+			const hideInvalidKeys = document.getElementById("hideInvalidKeys").checked;
+
 			let keys = [];
-			// Get container
+
 			let container = document.getElementById("keyContainer");
+			container.innerHTML = "";
+
 			for (let i = 0; i < balance; i++) {
 				const tokenId = await keyContract.methods.tokenOfOwnerByIndex(accounts[0], i).call();
 				// Use the NFT data manager contract to get key details.
@@ -2498,6 +2504,7 @@
 					key.classList.add("key");
 					key.onclick = () => selectKey(tokenId);
 				} else {
+					if (hideInvalidKeys) continue;
 					key.classList.add("key-disabled");
 					key.onclick = () => selectKey(tokenId);
 				}
