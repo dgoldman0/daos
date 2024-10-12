@@ -2521,6 +2521,7 @@
 		}
         // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
         async function updateBoard() {
+			// Get user address
 			// Get to string of gameId
 			if (gameId === undefined) return;
 			
@@ -2543,7 +2544,7 @@
             for (let i = 0; i < 6; i++) {
                 let pitA = document.getElementById(`pit${i}`);
 
-                if (currentPlayer.toLowerCase() === players[0].toLowerCase()) {
+                if (currentPlayer.toLowerCase() !== player.toLowerCase()) {
                     pitA.classList.remove('disabled');
                     pitA.onclick = () => makeMove(i); // Enable Player A's pits
 				} else {
