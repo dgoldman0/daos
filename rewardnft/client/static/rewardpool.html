@@ -3138,7 +3138,7 @@
     }
 
     async function refreshData() {
-      await Promise.all([loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo(), loadPaymentAddresses()]);
+      await Promise.all([loadPaymentAddresses(), loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo()]);
     }
 
     async function loadMintPrice() {
@@ -3148,11 +3148,12 @@
 
 	// This function and others still need to properly get the number of decimals if not ETH.
     async function loadPotionPrice() {
-      const potionPrice = await potionContract.methods.purchasePrice().call();
+	  const potionPurchaseTokenAddress = await potionContract.methods.purchaseToken().call();
+	  const potionPrice = await potionContract.methods.purchasePrice().call();
 	  // Get the potion token symbol
-	  const potionToken = await new web3.eth.Contract(erc20Abi, potionPurchaseTokenAddress);
 	  let potionTokenSymbol = "ETH" 
 	  if (potionPurchaseTokenAddress != '0x0000000000000000000000000000000000000000') {
+		const potionToken = await new web3.eth.Contract(erc20Abi, potionPurchaseTokenAddress);
 		potionTokenSymbol = await potionToken.methods.symbol().call();
 	  }
       document.getElementById('potionPrice').textContent = web3.utils.fromWei(potionPrice, 'ether') + ' ' + potionTokenSymbol;
