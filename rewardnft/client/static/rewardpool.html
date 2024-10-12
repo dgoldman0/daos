@@ -3146,9 +3146,16 @@
       document.getElementById('mintPrice').textContent = web3.utils.fromWei(mintPrice, 'ether') + ' ETH';
     }
 
+	// This function and others still need to properly get the number of decimals if not ETH.
     async function loadPotionPrice() {
       const potionPrice = await potionContract.methods.purchasePrice().call();
-      document.getElementById('potionPrice').textContent = web3.utils.fromWei(potionPrice, 'ether') + ' Token';
+	  // Get the potion token symbol
+	  const potionToken = await new web3.eth.Contract(erc20Abi, potionPurchaseTokenAddress);
+	  let potionTokenSymbol = "ETH" 
+	  if (potionPurchaseTokenAddress != '0x0000000000000000000000000000000000000000') {
+		potionTokenSymbol = await potionToken.methods.symbol().call();
+	  }
+      document.getElementById('potionPrice').textContent = web3.utils.fromWei(potionPrice, 'ether') + ' ' + potionTokenSymbol;
     }
 
     async function loadPotionBalance() {
@@ -3355,9 +3362,17 @@
       const specialRewardRate = await paymentManagerContract.methods.specialRewardRate().call();
       const minClaims = await paymentManagerContract.methods.min_claims().call();
       const totalNfts = await nftContract.methods.totalSupply().call();
+	  const payoutToken = await paymentManagerContract.methods.rewardToken().call();
 
-      rewardRateElement.textContent = web3.utils.fromWei(rewardRate, 'ether') + ' Token';
-      specialRewardRateElement.textContent = web3.utils.fromWei(specialRewardRate, 'ether') + ' Token';
+	  let tokenName = "ETH";
+
+	  // Use the reward token address to get the token name if not ETH
+	  if (payoutToken != '0x0000000000000000000000000000000000000000') {
+		  let tokenContract = new web3.eth.Contract(erc20Abi, payoutToken);
+		  tokenName = await tokenContract.methods.name().call();
+	  }
+      rewardRateElement.textContent = web3.utils.fromWei(rewardRate, 'ether') + ' ' + tokenName;
+      specialRewardRateElement.textContent = web3.utils.fromWei(specialRewardRate, 'ether') + ' ' + tokenName;
       minClaimsElement.textContent = minClaims.toString();
       totalNftsElement.textContent = totalNfts.toString();
     }
