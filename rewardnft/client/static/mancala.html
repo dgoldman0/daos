@@ -256,7 +256,7 @@
 					<!-- Player B's pits and store -->
 					<div class="store" id="storeB">
 						<div class="store-title">Opponent Store</div>
-						0
+						<span id="storeBSeeds">0</span>
 					</div>
 					<div class="pit disabled" id="pit12" onclick="makeMove(12)">4</div>
 					<div class="pit disabled" id="pit11" onclick="makeMove(11)">4</div>
@@ -277,7 +277,7 @@
 					<div class="pit" id="pit5" onclick="makeMove(5)">4</div>
 					<div class="store" id="storeA">
 						<div class="store-title">Your Store</div>
-						0
+						<span id="storeASeeds">0</span>
 					</div>
 				</div>
 			</div>
@@ -2520,6 +2520,7 @@
 			}
 		}
         // Update the board with the latest game state from the contract. Need to actually reverse order if user is player B.
+		// Need to do a board flip depending on who is player A and who is player B. And I lose my labels...
         async function updateBoard() {
 			// Get user address
 			// Get to string of gameId
@@ -2534,8 +2535,8 @@
                 document.getElementById(`pit${i + 7}`).innerText = board[i + 7];
             }
 
-            document.getElementById("storeA").innerText = board[6];
-            document.getElementById("storeB").innerText = board[13];
+            document.getElementById("storeASeeds").innerText = board[6];
+            document.getElementById("storeBSeeds").innerText = board[13];
 
             // Enable or disable pits based on the current player
             let accounts = await web3.eth.getAccounts();
@@ -2551,7 +2552,7 @@
 					pitA.classList.add('disabled');
 					pitA.onclick = null;
 				}
-            }
+            }					
         }
 
         window.onload = initialize;
