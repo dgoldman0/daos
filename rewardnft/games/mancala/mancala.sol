@@ -264,6 +264,8 @@ contract MancalaGame is Ownable {
         require(pitIndex < 14, "Invalid pit index");
         require(game.board[pitIndex] > 0, "Selected pit is empty");
 
+        bool extraTurn = false;
+
         // Ensure the pit belongs to the current player
         if (msg.sender == game.playerA) {
             require(pitIndex >= 0 && pitIndex < 6, "Invalid pit for Player A");
@@ -287,15 +289,11 @@ contract MancalaGame is Ownable {
 
         emit MoveMade(gameId, msg.sender, pitIndex);
 
-        // Need to change this paradigm because it doesn't work well... Also need to insert code to add the board state to the NFT
         // Check if last seed landed in player's store for extra turn
-        if ((msg.sender == game.playerA && currentIndex == PLAYER_A_STORE) ||
-            (msg.sender == game.playerB && currentIndex == PLAYER_B_STORE)) {
-            emit TurnChanged(gameId, msg.sender); // Player gets an extra turn
-            return; // Should be okay because no capture, but what about win condition? Need to check.
-        }
+        extraTurn = ((msg.sender == game.playerA && currentIndex == PLAYER_A_STORE) ||
+            (msg.sender == game.playerB && currentIndex == PLAYER_B_STORE));
 
-        // Check if capture is possible
+        // Check if capture is possible: last seed lands in an empty pit on player's own side (except for new stone)
         if ((msg.sender == game.playerA && currentIndex >= 0 && currentIndex < 6 && game.board[currentIndex] == 1) ||
             (msg.sender == game.playerB && currentIndex >= 7 && currentIndex < 13 && game.board[currentIndex] == 1)) {
             captureSeeds(game, currentIndex);
@@ -310,9 +308,13 @@ contract MancalaGame is Ownable {
             return;
         }
 
-        // Switch turns
-        game.currentPlayer = (msg.sender == game.playerA) ? game.playerB : game.playerA;
-        emit TurnChanged(gameId, game.currentPlayer);
+        if (!extraTurn) {
+            // Switch turns
+            game.currentPlayer = (msg.sender == game.playerA) ? game.playerB : game.playerA;
+            emit TurnChanged(gameId, game.currentPlayer);
+        } else {
+            emit TurnChanged(gameId, msg.sender);
+        }
     }
 
     // Capture seeds from the opposite pit
