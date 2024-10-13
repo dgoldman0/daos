@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../../utils/ownable.sol";
 
-contract MancalaMatchNFT is ERC721 {
+contract MancalaMatchNFT is ERC721, Ownable {
     uint256 public nextTokenId;
     address public mancalaGame;
 
@@ -100,7 +100,7 @@ contract MancalaGame is Ownable {
     address public keyContract; // Contract for NFTs that act as keys to play games
     address public keyDataContract; // Contains the actual data
 
-    address public mancalaMatchNFT; // NFT contract for storing match data
+    address payable public mancalaMatchNFT; // NFT contract for storing match data
 
     // Minimum health of the key
     uint256 public minKeyHealth;
@@ -233,7 +233,7 @@ contract MancalaGame is Ownable {
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
         games[gameId].keyB = keyId;
         games[gameId].state = GameState.Ongoing;
-        MancalaMatchNFT(mancalaMatchNFT).initializeMatch(newGameId, msg.sender, opponent);
+        MancalaMatchNFT(mancalaMatchNFT).initializeMatch(gameId, games[gameId].playerA, games[gameId].playerB);
         emit GameStarted(gameId, games[gameId].playerA, games[gameId].playerB);
         emit TurnChanged(gameId, games[gameId].currentPlayer);
     }
@@ -386,7 +386,7 @@ contract MancalaGame is Ownable {
     function setKeyDataContract(address _keyDataContract) public onlyOwner {
         keyDataContract = _keyDataContract;
     }
-    function setMancalaMatchNFT(address _mancalaMatchNFT) public onlyOwner {
+    function setMancalaMatchNFT(address payable _mancalaMatchNFT) public onlyOwner {
         mancalaMatchNFT = _mancalaMatchNFT;
     }
     function setMinKeyHealth(uint256 _minKeyHealth) public onlyOwner {
