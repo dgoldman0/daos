@@ -12,7 +12,7 @@ interface IUniswapV3Factory {
     function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
 }
 
-contract UniswapCumulativeTick {
+contract RandomSeed is Ownable {
     IUniswapV3Factory public factory;
     struct Pool {
         address tokenA;
@@ -29,7 +29,16 @@ contract UniswapCumulativeTick {
 
     }
 
-    function getMostRecentPrice(uint256 poolIndex) public view returns (int56 tickCumulative) {
+    // Get the sum of tickCumulatives for the most recent price
+    function getSeed() public view returns (int256 tickSum) {
+        int256 sum = 0;
+        for (uint256 i = 0; i < pools.length; i++) {
+            sum += UINT256(getMostRecentTick(i));
+        }
+        return sum;
+    }
+
+    function getMostRecentTick(uint256 poolIndex) public view returns (int56 tickCumulative) {
         require(poolIndex < pools.length, "Invalid pool index");
         address poolAddress = getPool(pools[poolIndex].tokenA, pools[poolIndex].tokenB, pools[poolIndex].fee);
         IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
@@ -45,5 +54,15 @@ contract UniswapCumulativeTick {
     function getPool(address tokenA, address tokenB, uint24 fee) public view returns (address poolAddress) {
         require(address(factory) != address(0), "Invalid factory address");
         return IUniswapV3Factory(factory).getPool(tokenA, tokenB, fee);
+    }
+
+    function addPool(address tokenA, address tokenB, uint24 fee) public onlyOwner {
+        pools.push(Pool(tokenA, tokenB, fee));
+    }
+
+    function removePool(uint256 poolIndex) public onlyOwner {
+        require(poolIndex < pools.length, "Invalid pool index");
+        pools[poolIndex] = pools[pools.length - 1];
+        pools.pop();
     }
 }
