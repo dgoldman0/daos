@@ -32,13 +32,17 @@ app = Flask(__name__)
 def index():
     return app.send_static_file('rewardpool.html')
 
-@app.route('/mancala')
+@app.route('/games/mancala')
 def mancala():
-    return app.send_static_file('mancala.html')
+    return app.send_static_file('games/mancala.html')
 
-@app.route('/chess')
+@app.route('/games/chess')
 def chess():
-    return app.send_static_file('chess.html')
+    return app.send_static_file('games/chess.html')
+
+@app.route('/utils/random')
+def random():
+    return app.send_static_file('utils/random.html')
 
 @app.route('/media')
 def media():

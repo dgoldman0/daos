@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Seed Polling</title>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.3.0/dist/web3.min.js"></script>
+</head>
+<body>
+    <h1>Current Random Seed</h1>
+    <div id="seedValue">Loading...</div>
+    <h2>Average Interval Between Seed Changes: <span id="avgInterval">N/A</span> seconds</h2>
+
+    <script>
+        const contractAddress = '0x9BD8fa42ef0A360f9674BE4E8615a3F66169605D';
+        const abi = [
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "getSeed",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "int256"
+                    }
+                ],
+                "type": "function"
+            }
+        ];
+
+        const web3 = new Web3(Web3.givenProvider || "ws://localhost:8545");
+        const randomSeedContract = new web3.eth.Contract(abi, contractAddress);
+
+        let previousSeed = null;
+        let lastChangeTime = Date.now();
+        let intervals = [];
+        
+        async function fetchSeed() {
+            try {
+                const seed = await randomSeedContract.methods.getSeed().call();
+                document.getElementById('seedValue').innerText = `Seed: ${seed}`;
+                
+                if (previousSeed !== null && previousSeed !== seed) {
+                    const currentTime = Date.now();
+                    const interval = (currentTime - lastChangeTime) / 1000; // Convert to seconds
+                    intervals.push(interval);
+                    lastChangeTime = currentTime;
+                    updateAverageInterval();
+                }
+
+                previousSeed = seed;
+            } catch (error) {
+                console.error('Error fetching seed:', error);
+                document.getElementById('seedValue').innerText = 'Error fetching seed';
+            }
+        }
+
+        function updateAverageInterval() {
+            const sum = intervals.reduce((acc, cur) => acc + cur, 0);
+            const avg = (sum / intervals.length).toFixed(2);
+            document.getElementById('avgInterval').innerText = avg;
+        }
+
+        setInterval(fetchSeed, 1000);
+        fetchSeed();
+    </script>
+</body>
+</html>
