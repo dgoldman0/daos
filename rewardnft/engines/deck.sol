@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../utils/ownable.sol";
 import "../utils/irandomseedgenerator.sol"; 
-import "../utils/ideckmanager.sol";
+import "../engines/ideckmanager.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
 

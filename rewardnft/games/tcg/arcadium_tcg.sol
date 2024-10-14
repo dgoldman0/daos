@@ -1,7 +1,7 @@
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../../utils/ownable.sol";
 import "../../utils/irandomseedgenerator.sol";
-import "../../engines/deck.sol";
+import "../../engines/ideckmanager.sol";
 
 interface IPackFactory {
     function openPack() external returns (uint256[] memory);
