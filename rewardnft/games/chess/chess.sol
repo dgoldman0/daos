@@ -23,6 +23,7 @@ contract ChessGame is Ownable {
     enum GameState { Pending, Ongoing, Ended, Cancelled, Draw, WhiteWon, BlackWon }
 
     struct Game {
+        uint256 gameId;
         int8[64] board;
         bool whiteTurn;
         // Castling rights
@@ -42,6 +43,19 @@ contract ChessGame is Ownable {
         uint256 keyBlack;
         uint256 requestTime;
         mapping(bytes32 => uint8) positionOccurrences;
+    }
+
+    struct MoveData {
+        int8 piece;
+        int8 targetPiece;
+        bool resetHalfmoveClock;
+        bool isEnPassantMove;
+        uint8 capturedPawnIndex;
+        bool isCastlingMove;
+        uint8 rookFrom;
+        uint8 rookTo;
+        int8 previousEnPassantTarget;
+        bytes32 positionHash;
     }
 
     mapping(uint256 => Game) public games;
@@ -105,6 +119,7 @@ contract ChessGame is Ownable {
         }
 
         Game storage game = games[newGameId];
+        game.gameId = newGameId;
         game.playerWhite = msg.sender;
         game.playerBlack = opponent;
         game.keyWhite = keyId;
@@ -213,64 +228,209 @@ contract ChessGame is Ownable {
         IERC721(keyContract).transferFrom(address(this), game.playerWhite, game.keyWhite);
     }
 
-    // Move function with gameId
-    function move(uint256 gameId, uint8 fromIndex, uint8 toIndex, uint8 promotionChoice) public onlyPlayer(gameId) isPlayersTurn(gameId) returns (bool) {
+    // Modified move function
+    function move(uint256 gameId, uint8 fromIndex, uint8 toIndex, uint8 promotionChoice)
+        public
+        onlyPlayer(gameId)
+        isPlayersTurn(gameId)
+        returns (bool)
+    {
         Game storage game = games[gameId];
         require(game.gameState == GameState.Ongoing, "Game is not ongoing");
         require(fromIndex < 64 && toIndex < 64, "Invalid index.");
-        int8 piece = game.board[fromIndex];
-        require(piece != 0, "No piece at the source square.");
+
+        // Phase 1: Validation and preparation
+        MoveData memory moveData = validateAndPrepareMove(game, fromIndex, toIndex, promotionChoice);
+
+        // Phase 2: Execution of the move
+        executeMove(game, fromIndex, toIndex, promotionChoice, moveData);
+
+        // Phase 3: Post-move checks
+        if (isKingInCheck(game, game.whiteTurn)) {
+            // Revert the move
+            revertMove(game, fromIndex, toIndex, moveData);
+            revert("Move would leave king in check.");
+        }
+
+        // Emit move event
+        emit MoveMade(gameId, msg.sender, fromIndex, toIndex);
+
+        // Switch player
+        game.whiteTurn = !game.whiteTurn;
+
+        // Check for checkmate or stalemate
+        if (checkForCheckmateOrStalemate(game, gameId)) {
+            return true;
+        }
+
+        // Increment move number if black just moved
+        if (!game.whiteTurn) {
+            game.moveNumber++;
+        }
+
+        return true;
+    }
+
+    // Phase 1: Validation and preparation function
+    function validateAndPrepareMove(
+        Game storage game,
+        uint8 fromIndex,
+        uint8 toIndex,
+        uint8 promotionChoice
+    ) internal returns (MoveData memory moveData) {
+        moveData.piece = game.board[fromIndex];
+        require(moveData.piece != 0, "No piece at the source square.");
 
         // Check if it's the player's turn
-        if (game.whiteTurn) {
-            require(piece > 0, "It's White's turn.");
-        } else {
-            require(piece < 0, "It's Black's turn.");
-        }
+        require(
+            (game.whiteTurn && moveData.piece > 0) || (!game.whiteTurn && moveData.piece < 0),
+            "Not your turn."
+        );
 
-        int8 targetPiece = game.board[toIndex];
+        moveData.targetPiece = game.board[toIndex];
+
+        // Validate the move
         require(validateMove(game, fromIndex, toIndex), "Invalid move.");
 
-        bool resetHalfmoveClock = false;
-        if (abs(piece) == 1) {
-            resetHalfmoveClock = true;
-        }
-        if (targetPiece != 0) {
-            resetHalfmoveClock = true;
-        }
+        // Initialize variables
+        moveData.resetHalfmoveClock = false;
+        moveData.isEnPassantMove = false;
+        moveData.isCastlingMove = false;
+        moveData.previousEnPassantTarget = game.enPassantTarget;
 
         // En passant capture
-        if (abs(piece) == 1) {
-            int8 colFrom = int8(fromIndex % 8);
-            int8 colTo = int8(toIndex % 8);
-            if (colFrom != colTo && targetPiece == 0 && toIndex == uint8(game.enPassantTarget)) {
-                uint8 capturedPawnIndex = game.whiteTurn ? toIndex - 8 : toIndex + 8;
-                game.board[capturedPawnIndex] = 0;
+        if (abs(moveData.piece) == 1) {
+            if (handleEnPassant(game, fromIndex, toIndex)) {
+                moveData.isEnPassantMove = true;
+                moveData.capturedPawnIndex = game.whiteTurn ? toIndex - 8 : toIndex + 8;
             }
         }
 
         // Castling
-        if (abs(piece) == 6 && abs(int8(toIndex % 8) - int8(fromIndex % 8)) == 2) {
-            if (toIndex % 8 == 6) {
-                // King-side castling
-                uint8 rookFrom = fromIndex + 3;
-                uint8 rookTo = fromIndex + 1;
-                game.board[rookTo] = game.board[rookFrom];
-                game.board[rookFrom] = 0;
-            } else if (toIndex % 8 == 2) {
-                // Queen-side castling
-                uint8 rookFrom = fromIndex - 4;
-                uint8 rookTo = fromIndex - 1;
-                game.board[rookTo] = game.board[rookFrom];
-                game.board[rookFrom] = 0;
-            }
+        if (abs(moveData.piece) == 6 && abs(int8(toIndex % 8) - int8(fromIndex % 8)) == 2) {
+            (moveData.isCastlingMove, moveData.rookFrom, moveData.rookTo) = handleCastling(game, fromIndex, toIndex);
         }
 
+        // Update the halfmove clock
+        if (abs(moveData.piece) == 1 || moveData.targetPiece != 0 || moveData.isEnPassantMove) {
+            moveData.resetHalfmoveClock = true;
+        }
+    }
+
+    // Phase 2: Execution of the move
+    function executeMove(
+        Game storage game,
+        uint8 fromIndex,
+        uint8 toIndex,
+        uint8 promotionChoice,
+        MoveData memory moveData
+    ) internal {
         // Move the piece
-        game.board[toIndex] = piece;
+        game.board[toIndex] = moveData.piece;
         game.board[fromIndex] = 0;
 
+        // Handle en passant capture
+        if (moveData.isEnPassantMove) {
+            game.board[moveData.capturedPawnIndex] = 0;
+        }
+
+        // Handle castling
+        if (moveData.isCastlingMove) {
+            game.board[moveData.rookTo] = game.board[moveData.rookFrom];
+            game.board[moveData.rookFrom] = 0;
+        }
+
+        // Handle pawn promotion
+        if (abs(moveData.piece) == 1 && (toIndex / 8 == 0 || toIndex / 8 == 7)) {
+            handlePawnPromotion(game, toIndex, promotionChoice);
+        }
+
         // Update castling rights
+        updateCastlingRights(game, fromIndex, moveData.piece);
+
+        // Update en passant target
+        updateEnPassantTarget(game, moveData.piece, fromIndex, toIndex);
+
+        // Update halfmove clock
+        if (moveData.resetHalfmoveClock) {
+            game.halfmoveClock = 0;
+        } else {
+            game.halfmoveClock++;
+        }
+
+        // Generate the position hash after the move
+        moveData.positionHash = getPositionHash(game);
+        game.positionOccurrences[moveData.positionHash]++;
+
+        // Check for draw conditions
+        if (checkForDraw(game, moveData.positionHash)) {
+            finalizeGame(game.gameId);
+        }
+    }
+
+    // Revert move function
+    function revertMove(
+        Game storage game,
+        uint8 fromIndex,
+        uint8 toIndex,
+        MoveData memory moveData
+    ) internal {
+        game.board[fromIndex] = moveData.piece;
+        game.board[toIndex] = moveData.targetPiece;
+
+        // Revert en passant capture
+        if (moveData.isEnPassantMove) {
+            int8 capturedPawn = game.whiteTurn ? -1 : int8(1);
+            game.board[moveData.capturedPawnIndex] = capturedPawn;
+        }
+
+        // Revert castling
+        if (moveData.isCastlingMove) {
+            game.board[moveData.rookFrom] = game.board[moveData.rookTo];
+            game.board[moveData.rookTo] = 0;
+        }
+
+        // Restore en passant target
+        game.enPassantTarget = moveData.previousEnPassantTarget;
+    }
+
+    // Helper functions
+
+    function handleEnPassant(Game storage game, uint8 fromIndex, uint8 toIndex) internal view returns (bool) {
+        int8 piece = game.board[fromIndex];
+        int8 targetPiece = game.board[toIndex];
+        int8 colFrom = int8(fromIndex % 8);
+        int8 colTo = int8(toIndex % 8);
+
+        if (colFrom != colTo && targetPiece == 0 && toIndex == uint8(game.enPassantTarget)) {
+            return true;
+        }
+        return false;
+    }
+
+    function handleCastling(Game storage game, uint8 fromIndex, uint8 toIndex) internal view returns (bool, uint8, uint8) {
+        uint8 rookFrom;
+        uint8 rookTo;
+        if (toIndex % 8 == 6) {
+            // King-side castling
+            rookFrom = fromIndex + 3;
+            rookTo = fromIndex + 1;
+            return (true, rookFrom, rookTo);
+        } else if (toIndex % 8 == 2) {
+            // Queen-side castling
+            rookFrom = fromIndex - 4;
+            rookTo = fromIndex - 1;
+            return (true, rookFrom, rookTo);
+        }
+        return (false, 0, 0);
+    }
+
+    function handlePawnPromotion(Game storage game, uint8 toIndex, uint8 promotionChoice) internal {
+        require(promotionChoice >= 2 && promotionChoice <= 5, "Invalid promotion choice.");
+        game.board[toIndex] = int8(game.whiteTurn ? int8(promotionChoice) : -1 * int8(promotionChoice));
+    }
+
+    function updateCastlingRights(Game storage game, uint8 fromIndex, int8 piece) internal {
         if (abs(piece) == 6) {
             if (game.whiteTurn) {
                 game.whiteKingMoved = true;
@@ -295,102 +455,53 @@ contract ChessGame is Ownable {
                 }
             }
         }
+    }
 
-        // Handle pawn promotion
-        if (abs(piece) == 1 && (toIndex / 8 == 0 || toIndex / 8 == 7)) {
-            require(promotionChoice >= 2 && promotionChoice <= 5, "Invalid promotion choice.");
-            game.board[toIndex] = int8(game.whiteTurn ? int8(promotionChoice) : -1 * int8(promotionChoice));
-        }
-
-        // Update en passant target
+    function updateEnPassantTarget(Game storage game, int8 piece, uint8 fromIndex, uint8 toIndex) internal {
         if (abs(piece) == 1 && abs(int8(toIndex) - int8(fromIndex)) == 16) {
             game.enPassantTarget = int8((fromIndex + toIndex) / 2);
         } else {
             game.enPassantTarget = -1;
         }
+    }
 
-        // Update halfmove clock
-        if (resetHalfmoveClock) {
-            game.halfmoveClock = 0;
-        } else {
-            game.halfmoveClock++;
-        }
 
-        // Generate the position hash after the move
-        bytes32 positionHash = getPositionHash(game);
-        game.positionOccurrences[positionHash]++;
-
-        // Check for threefold repetition
+    function checkForDraw(Game storage game, bytes32 positionHash) internal returns (bool) {
+        // Threefold repetition
         if (game.positionOccurrences[positionHash] >= 3) {
             game.gameState = GameState.Draw;
-            finalizeGame(gameId);
             return true;
         }
 
-        // Check for insufficient material
+        // Insufficient material
         if (isInsufficientMaterial(game)) {
             game.gameState = GameState.Draw;
-            finalizeGame(gameId);
             return true;
         }
 
-        // Check for 50-move rule
+        // 50-move rule
         if (game.halfmoveClock >= 100) {
             game.gameState = GameState.Draw;
-            finalizeGame(gameId);
             return true;
         }
 
-        // Check if the player's own king is in check after the move
-        if (isKingInCheck(game, game.whiteTurn)) {
-            // Revert the move
-            game.board[fromIndex] = piece;
-            game.board[toIndex] = targetPiece;
-            // Revert castling if applicable
-            if (abs(piece) == 6 && abs(int8(toIndex % 8) - int8(fromIndex % 8)) == 2) {
-                if (toIndex % 8 == 6) {
-                    // King-side castling
-                    uint8 rookFrom = fromIndex + 3;
-                    uint8 rookTo = fromIndex + 1;
-                    game.board[rookFrom] = game.board[rookTo];
-                    game.board[rookTo] = 0;
-                } else if (toIndex % 8 == 2) {
-                    // Queen-side castling
-                    uint8 rookFrom = fromIndex - 4;
-                    uint8 rookTo = fromIndex - 1;
-                    game.board[rookFrom] = game.board[rookTo];
-                    game.board[rookTo] = 0;
-                }
-            }
-            revert("Move would leave king in check.");
-        }
+        return false;
+    }
 
-        // Emit move event
-        emit MoveMade(gameId, msg.sender, fromIndex, toIndex);
-
-        // Switch player
-        game.whiteTurn = !game.whiteTurn;
-
-        // Check for checkmate
+    function checkForCheckmateOrStalemate(Game storage game, uint256 gameId) internal returns (bool) {
         if (isKingInCheck(game, game.whiteTurn) && !hasLegalMoves(game, game.whiteTurn)) {
             game.gameState = game.whiteTurn ? GameState.BlackWon : GameState.WhiteWon;
             finalizeGame(gameId);
             return true;
         }
 
-        // Check for stalemate
         if (!isKingInCheck(game, game.whiteTurn) && !hasLegalMoves(game, game.whiteTurn)) {
             game.gameState = GameState.Draw;
             finalizeGame(gameId);
             return true;
         }
 
-        // Increment move number if black just moved
-        if (!game.whiteTurn) {
-            game.moveNumber++;
-        }
-
-        return true;
+        return false;
     }
 
     // Finalize the game and transfer keys
@@ -622,11 +733,10 @@ contract ChessGame is Ownable {
             for (uint8 toIndex = 0; toIndex < 64; toIndex++) {
                 if (game.board[toIndex] * player > 0) continue;
 
-                int8 piece = game.board[fromIndex];
-                int8 targetPiece = game.board[toIndex];
-
-                if (validateMoveForCheck(game, fromIndex, toIndex, isWhite)) {
+                if (validateMove(game, fromIndex, toIndex)) {
                     // Simulate the move
+                    int8 piece = game.board[fromIndex];
+                    int8 targetPiece = game.board[toIndex];
                     game.board[toIndex] = piece;
                     game.board[fromIndex] = 0;
 
@@ -669,7 +779,7 @@ contract ChessGame is Ownable {
         return false;
     }
 
-    function validatePawnMoveForCheck(Game storage game, uint8 fromIndex, uint8 toIndex, bool isWhite) internal view returns (bool) {
+    function validatePawnMoveForCheck(Game storage game, uint8 fromIndex, uint8 toIndex, bool isWhite) internal pure returns (bool) {
         int8 direction = isWhite ? int8(1) : -1;
         int8 rowFrom = int8(fromIndex / 8);
         int8 rowTo = int8(toIndex / 8);
