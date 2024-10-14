@@ -40,6 +40,8 @@ contract RandomSeed is Ownable {
         pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 3000));
         // Add USDC-USDT pool with 3% fee tier (Arbitrum)
         pools.push(Pool(0xaf88d065e77c8cC2239327C5EDb3A432268e5831, 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9, 3000));
+        // PENDLE-ETH pool with 0.05% fee tier (Arbitrum)
+        pools.push(Pool(0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8, 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, 500));
         pools.push(Pool(0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 100));
         pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 100));
         pools.push(Pool(0xaf88d065e77c8cC2239327C5EDb3A432268e5831, 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9, 100));
@@ -56,7 +58,7 @@ contract RandomSeed is Ownable {
         for (uint256 i = 0; i < pools.length; i++) {
             int256 tick = int256(getMostRecentTick(i));
             uint256 tickAbs = uint256(tick < 0 ? -tick : tick);
-            sum += tickAbs ** 3; // (int56)^3 => (uint55)^3 => uint165 
+            sum += tickAbs ** 4; // (int56)^4 => (uint55)^4 => uint220
         }
         return sum % 2**128;  // Transform into a 128-bit number
     }
