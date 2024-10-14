@@ -114,8 +114,9 @@ contract DeckManager is Ownable {
     function chooseCard(uint256 deckId) external onlyDeckAuthorizer returns (uint256) { 
         Deck storage deck = decks[deckId];
         require(deck.remainingCards.length > 0, "No cards remaining");
-        uint256 random = randomSeedGenerator.getSeed();
-        uint256 index = random % deck.remainingCards.length;
+        // Might want to use a hash and timestamp to generate a random number
+        uint256 seed = randomSeedGenerator.getSeed();
+        uint256 index = uint256(keccak256(abi.encodePacked(seed, block.timestamp, msg.sender))) % deck.remainingCards.length;
         uint256 chosenCard = deck.remainingCards[index];
         deck.chosenCards.push(chosenCard);
         deck.remainingCards[index] = deck.remainingCards[deck.remainingCards.length - 1];
