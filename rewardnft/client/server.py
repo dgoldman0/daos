@@ -36,6 +36,10 @@ def index():
 def mancala():
     return app.send_static_file('mancala.html')
 
+@app.route('/chess')
+def chess():
+    return app.send_static_file('chess.html')
+
 @app.route('/media')
 def media():
     sparkle_opacity_value = 0.9

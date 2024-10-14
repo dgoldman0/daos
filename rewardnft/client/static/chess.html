@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Arcadium Chess</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+            color: #00ff99;
+            font-size: 2.5em;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin: 20px auto;
+            width: 95%;
+        }
+
+        .key-container {
+            background-color: #2e2e2e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-right: 20px;
+            flex: 1;
+            max-width: 300px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .key-scrollable {
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .key {
+            background-color: #3e3e3e;
+            border: 2px solid #00ff99;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            text-align: left;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .key:hover {
+            background-color: #00ff99;
+            color: #000;
+        }
+
+        .key-disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+            border: 2px solid #888;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .match-menu {
+            justify-content: flex-start;
+            background-color: #2e2e2e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-right: 20px;
+            margin-bottom: 100px;
+            flex: 1;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            overflow-x: auto;
+        }
+
+        .match-label {
+            font-size: 1.2em;
+            color: #00ff99;
+            font-weight: bold;
+        }
+
+        .match {
+            background-color: #3e3e3e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-right: 20px;
+            flex: 1;
+            max-width: 300px;
+            overflow-y: auto;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .board-container {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #2e2e2e;
+            padding: 20px;
+            border-radius: 20px;
+        }
+
+        .chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 2px solid #00ff99;
+            border-radius: 10px;
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            font-size: 2em;
+            line-height: 60px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .white-square {
+            background-color: #eee;
+            color: #000;
+        }
+
+        .black-square {
+            background-color: #444;
+            color: #fff;
+        }
+
+        .highlight {
+            background-color: #00ff99 !important;
+            color: #000 !important;
+        }
+
+        .disabled {
+            pointer-events: none;
+        }
+
+        #message {
+            font-size: 1.5em;
+            margin-top: 20px;
+            color: #00ff99;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .top-menu {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #111;
+            color: #fff;
+        }
+
+        .menu-item {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 10px 20px;
+        }
+
+        .menu-item:hover {
+            color: #00ff99;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(30, 30, 30, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #2e2e2e;
+            border: 2px solid #00ff99;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            width: 400px;
+        }
+
+        .modal-content h3 {
+            color: #00ff99;
+        }
+
+        .modal-content p {
+            color: #fff;
+        }
+
+        .modal button {
+            margin: 5px;
+            padding: 10px 20px;
+            background-color: #00ff99;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .modal button:hover {
+            background-color: #00cc77;
+        }
+
+        .match-request-block {
+            background-color: #3e3e3e;
+            border: 2px solid #00ff99;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .match-request-label {
+            margin-bottom: 10px;
+        }
+
+        .match-request-button {
+            padding: 5px 10px;
+            background-color: #00ff99;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .match-request-button:hover {
+            background-color: #00cc77;
+        }
+
+        .match-scrollable {
+            overflow-y: auto;
+            max-height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-menu">
+        <a class="menu-item" href="/">Home</a>
+        <a class="menu-item" href="/chess">Chess</a>
+    </div>
+    <h1>Arcadium Chess</h1>
+    <div class="game-container">
+        <div class="key-container">
+            <h2>Your Keys</h2>
+            <input type="checkbox" id="hideInvalidKeys" onchange="updateKeys()"> Hide Invalid Keys<br>
+            <div id="keyContainer" class="key-scrollable"></div>
+        </div>
+        <div class="game-area">
+            <div id="ongoingMatches" class="match-menu"></div>
+            <div class="board-container" id="board-area">
+                <div class="chessboard" id="chessboard">
+                    <!-- Empty chessboard squares -->
+                    <!-- Rows 8 to 1, columns a to h -->
+                    <script>
+                        const boardElement = document.getElementById('chessboard');
+                        if (boardElement) {
+                            for (let row = 7; row >= 0; row--) {
+                                for (let col = 0; col < 8; col++) {
+                                    const square = document.createElement('div');
+                                    square.classList.add('square');
+                                    const isWhiteSquare = (row + col) % 2 === 0;
+                                    square.classList.add(isWhiteSquare ? 'white-square' : 'black-square');
+                                    boardElement.appendChild(square);
+                                }
+                            }
+                        }
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="keyActionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Select Action</h3>
+            <p>Do you want to start a new match or accept an existing one?</p>
+            <button onclick="chooseAction('new')">Start New Match</button>
+            <button onclick="chooseAction('existing')">Accept Existing Match</button>
+            <button onclick="closeMainModal(true)">Cancel</button>
+        </div>
+    </div>
+    <!-- Modal for selecting a match request-->
+    <div id="matchRequestModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Match Requests</h3>
+            <div id="matchRequestList" class="match-scrollable"></div>
+            <button onclick="closeMatchRequestModal(true)">Cancel</button>
+        </div>
+    </div>
+    <div id="message">Select a key to start or join a match...</div>
+    <footer>
+        &copy; 2024 Arcadium Chess | Powered by Web3
+    </footer>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.2/dist/web3.min.js"></script>
+    <script>
+        let chessContractAddress = "YOUR_CHESS_CONTRACT_ADDRESS";
+        let keyContractAddress = "YOUR_KEY_CONTRACT_ADDRESS";
+        let keyDataManagerContractAddress = "YOUR_KEY_DATA_MANAGER_CONTRACT_ADDRESS";
+
+        let chessABI = []; // Fill in your chess contract ABI here
+        let keyABI = []; // Fill in your key contract ABI here
+        let keyDataManagerABI = []; // Fill in your key data manager ABI here
+
+        let web3;
+        let chessContract;
+        let keyContract;
+        let keyDataManagerContract;
+        let gameId;
+        let currentPlayer;
+        let players;
+        let boardState = [];
+        let selectedKeyId = null;
+        let selectedFromIndex = null;
+        let highlightedSquares = [];
+
+        async function selectKey(keyId) {
+            let accounts = await web3.eth.getAccounts();
+            selectedKeyId = keyId;
+            // Check if key is approved
+            let approved = await keyContract.methods.getApproved(keyId).call();
+            if (approved.toLowerCase() !== chessContractAddress.toLowerCase()) {
+                await keyContract.methods.approve(chessContractAddress, keyId).send({ from: accounts[0] });
+            }
+            document.getElementById("keyActionModal").style.display = "flex";
+        }
+
+        function closeMainModal(clear = false) {
+            document.getElementById("keyActionModal").style.display = "none";
+            if (clear)
+                selectedKeyId = null;
+        }
+
+        function closeMatchRequestModal(clear = false) {
+            document.getElementById("matchRequestModal").style.display = "none";
+            if (clear)
+                selectedKeyId = null;
+        }
+
+        function chooseAction(action) {
+            if (action === 'new') {
+                let opponent = prompt("Enter the opponent's address:");
+                if (opponent) {
+                    startNewMatch(selectedKeyId, opponent);
+                } else {
+                    alert("You must enter an opponent's address to start a new match.");
+                }
+                closeMainModal();
+            } else if (action === 'existing') {
+                listMatchRequests(selectedKeyId);
+                closeMainModal();
+                document.getElementById("matchRequestModal").style.display = "flex";
+            }
+        }
+
+        async function startNewMatch(tokenId, opponent) {
+            let accounts = await web3.eth.getAccounts();
+            // Implement your own method to start a new match on the smart contract
+            // For example:
+            // gameId = await chessContract.methods.requestMatch(opponent, tokenId).send({ from: accounts[0] });
+            // Save gameId to localStorage
+            // localStorage.setItem("gameId", gameId);
+            alert("Start new match functionality needs to be implemented.");
+        }
+
+        async function listMatchRequests() {
+            let accounts = await web3.eth.getAccounts();
+            // Implement your own method to list match requests
+            // For example, you can fetch events from the contract where you are the opponent
+            alert("List match requests functionality needs to be implemented.");
+        }
+
+        async function initialize() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                let accounts = await web3.eth.getAccounts();
+                chessContract = new web3.eth.Contract(chessABI, chessContractAddress);
+                keyContract = new web3.eth.Contract(keyABI, keyContractAddress);
+                keyDataManagerContract = new web3.eth.Contract(keyDataManagerABI, keyDataManagerContractAddress);
+
+                await updateMatches();
+                await updateKeys();
+
+                // Listen to events
+                // Implement event listeners for your smart contract
+            } else {
+                alert("Please install MetaMask to play this game!");
+            }
+        }
+
+        async function updateMatches() {
+            let accounts = await web3.eth.getAccounts();
+            // Implement your own method to update matches
+            // For example, get ongoing games involving the user
+            alert("Update matches functionality needs to be implemented.");
+        }
+
+        async function loadMatch(_gameId) {
+            gameId = _gameId;
+            localStorage.setItem("gameId", _gameId);
+            document.getElementById("message").innerText = "Match loaded!";
+            updateBoard();
+        }
+
+        async function acceptMatch(gameId) {
+            let accounts = await web3.eth.getAccounts();
+            // Implement your own method to accept a match
+            // For example:
+            // await chessContract.methods.acceptMatch(gameId, selectedKeyId).send({ from: accounts[0] });
+            alert("Accept match functionality needs to be implemented.");
+            closeMatchRequestModal();
+            updateBoard();
+        }
+
+        async function updateKeys() {
+            // Implement key loading similar to the Mancala example
+            alert("Update keys functionality needs to be implemented.");
+        }
+
+        async function updateBoard() {
+            // Implement board update logic
+            // Fetch board state from the contract and render it
+            alert("Update board functionality needs to be implemented.");
+        }
+
+        function renderBoard() {
+            let boardContainer = document.getElementById("board-area");
+            boardContainer.innerHTML = '';
+            let chessboard = document.createElement("div");
+            chessboard.classList.add("chessboard");
+
+            for (let i = 0; i < 64; i++) {
+                let square = document.createElement("div");
+                square.classList.add("square");
+                let row = Math.floor(i / 8);
+                let col = i % 8;
+                let isWhiteSquare = (row + col) % 2 === 0;
+                square.classList.add(isWhiteSquare ? "white-square" : "black-square");
+
+                let piece = boardState[i];
+                if (piece) {
+                    square.innerHTML = getPieceUnicode(piece);
+                }
+
+                square.onclick = () => squareClicked(i);
+                chessboard.appendChild(square);
+            }
+
+            boardContainer.appendChild(chessboard);
+        }
+
+        function getPieceUnicode(piece) {
+            // Return the Unicode character for the given piece
+            const pieces = {
+                1: '♙',
+                2: '♘',
+                3: '♗',
+                4: '♖',
+                5: '♕',
+                6: '♔',
+                '-1': '♟',
+                '-2': '♞',
+                '-3': '♝',
+                '-4': '♜',
+                '-5': '♛',
+                '-6': '♚',
+            };
+            return pieces[piece] || '';
+        }
+
+        function squareClicked(index) {
+            if (selectedFromIndex === null) {
+                // First click, select the piece
+                if (boardState[index] && ((boardState[index] > 0 && currentPlayerIsWhite()) || (boardState[index] < 0 && !currentPlayerIsWhite()))) {
+                    selectedFromIndex = index;
+                    highlightSquare(index);
+                }
+            } else {
+                // Second click, attempt to move
+                movePiece(selectedFromIndex, index);
+                clearHighlights();
+                selectedFromIndex = null;
+            }
+        }
+
+        function highlightSquare(index) {
+            clearHighlights();
+            let chessboard = document.querySelector(".chessboard");
+            let square = chessboard.children[index];
+            square.classList.add("highlight");
+            highlightedSquares.push(square);
+        }
+
+        function clearHighlights() {
+            highlightedSquares.forEach(square => square.classList.remove("highlight"));
+            highlightedSquares = [];
+        }
+
+        function currentPlayerIsWhite() {
+            // Implement logic to determine if the current player is white
+            return true; // Placeholder
+        }
+
+        async function movePiece(fromIndex, toIndex) {
+            let accounts = await web3.eth.getAccounts();
+            let player = accounts[0];
+            // Implement move logic by calling the smart contract's move function
+            // For example:
+            // await chessContract.methods.move(fromIndex, toIndex, promotionChoice).send({ from: player });
+            alert("Move piece functionality needs to be implemented.");
+        }
+
+        window.onload = initialize;
+    </script>
+</body>
+</html>
