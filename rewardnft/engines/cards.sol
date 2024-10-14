@@ -73,10 +73,11 @@ contract DeckManager is Ownable {
     // Reset the deck to its original state (copy cardIds to remainingCards and clear chosenCards)
     function resetDeck(uint256 deckId) external onlyOwner {
         Deck storage deck = decks[deckId];
+        delete deck.remainingCards;
         for (uint256 i = 0; i < deck.cardIds.length; i++) {
-            deck.remainingCards[i] = deck.cardIds[i];
+            deck.remainingCards.push(deck.cardIds[i]);
         }
-        deck.chosenCards = new uint256[](0);
+        delete deck.chosenCards;
     }
 
     // Set the random seed generator
