@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
 import './ownable.sol';
 
 // Interface for Uniswap V3 Pool
@@ -12,7 +14,7 @@ interface IUniswapV3Factory {
     function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
 }
 
-contract RandomSeed is Ownable {
+contract RandomSeedGenerator is Ownable {
     IUniswapV3Factory public factory;
     struct Pool {
         address tokenA;
@@ -57,12 +59,14 @@ contract RandomSeed is Ownable {
         }
     }
 
+    // Since this function writes to the chain it should update regularly
     function getSeed() public returns (uint256 seed) {
-        emit SeedGenerated(getFreeSeed());
-        return getFreeSeed();
+        uint256 seed = getFreeSeed();
+        emit SeedGenerated(seed);
+        return seed;
     }
 
-    // Works but seems to not update regularly beacuse it's a view. 
+    // Works but seems to not update regularly beacuse it's a view
     function getFreeSeed() public view returns (uint256 tickSum) {
         uint256 sum = 0;
         for (uint256 i = 0; i < pools.length; i++) {
