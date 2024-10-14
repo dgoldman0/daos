@@ -955,7 +955,6 @@
           if (feeTokenAddress != '0x0000000000000000000000000000000000000000') {
             const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
             feeTokenSymbol = await feeTokenContract.methods.symbol().call();
-            const decimals = await feeTokenContract.methods.decimals().call();
             document.getElementById('entryFee').textContent = `${web3.utils.fromWei(entryFee, 'ether')} ${feeTokenSymbol}`;
           } else {
             document.getElementById('entryFee').textContent = `${web3.utils.fromWei(entryFee, 'ether')} ${feeTokenSymbol}`;
@@ -965,7 +964,6 @@
           if (rewardTokenAddress != '0x0000000000000000000000000000000000000000') {
             const rewardTokenContract = new web3.eth.Contract(erc20Abi, rewardTokenAddress);
             rewardTokenSymbol = await rewardTokenContract.methods.symbol().call();
-            const decimals = await rewardTokenContract.methods.decimals().call();
             document.getElementById('prizeAmount').textContent = `${web3.utils.fromWei(prizeAmount, 'ether')} ${rewardTokenSymbol}`;
           } else {
             document.getElementById('prizeAmount').textContent = `${web3.utils.fromWei(prizeAmount, 'ether')} ${rewardTokenSymbol}`;
@@ -987,9 +985,11 @@
           const entryFee = await lottoContract.methods.feeAmount().call();
           const feeTokenAddress = await lottoContract.methods.feeToken().call();
 
+          let txReceipt;
+
           if (feeTokenAddress == '0x0000000000000000000000000000000000000000') {
             // ETH payment
-            await lottoContract.methods.play().send({ from: userAddress, value: entryFee });
+            txReceipt = await lottoContract.methods.play().send({ from: userAddress, value: entryFee });
           } else {
             // ERC20 payment
             const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
@@ -997,28 +997,31 @@
             if (allowance < entryFee) {
               await feeTokenContract.methods.approve(lottoContractAddress, entryFee).send({ from: userAddress });
             }
-            await lottoContract.methods.play().send({ from: userAddress });
+            txReceipt = await lottoContract.methods.play().send({ from: userAddress });
           }
 
-          // Listen for the Play event
-          lottoContract.once('Play', {}, (error, event) => {
-            if (error) {
-              console.error('Error in Play event', error);
-              showNotification('Failed to retrieve play result.', true);
-            } else {
-              const { player, win, prize } = event.returnValues;
-              if (win) {
-                document.getElementById('resultMessage').textContent = `Congratulations! You won ${web3.utils.fromWei(prize, 'ether')} tokens!`;
-                showNotification('You won the lottery!');
-              } else {
-                document.getElementById('resultMessage').textContent = `Sorry, you didn't win this time. Try again!`;
-                showNotification('You did not win. Better luck next time!');
-              }
-            }
-          });
+          handlePlayEvent(txReceipt);
         } catch (error) {
           console.error('Failed to play lottery', error);
           showNotification('Failed to play lottery.', true);
+        }
+      }
+
+      function handlePlayEvent(txReceipt) {
+        if (txReceipt && txReceipt.events && txReceipt.events.Play) {
+          const event = txReceipt.events.Play;
+          const { player, win, prize } = event.returnValues;
+
+          if (win) {
+            document.getElementById('resultMessage').textContent = `Congratulations! You won ${web3.utils.fromWei(prize, 'ether')} tokens!`;
+            showNotification('You won the lottery!');
+          } else {
+            document.getElementById('resultMessage').textContent = `Sorry, you didn't win this time. Try again!`;
+            showNotification('You did not win. Better luck next time!');
+          }
+        } else {
+          console.error('Play event not found in receipt', txReceipt);
+          showNotification('Failed to retrieve play result.', true);
         }
       }
 
