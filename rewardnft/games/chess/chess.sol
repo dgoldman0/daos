@@ -140,7 +140,7 @@ contract ChessGame {
         // Handle pawn promotion
         if (abs(piece) == 1 && (toIndex / 8 == 0 || toIndex / 8 == 7)) {
             require(promotionChoice >= 2 && promotionChoice <= 5, "Invalid promotion choice.");
-            board[toIndex] = int8(whiteTurn ? promotionChoice : -promotionChoice);
+            board[toIndex] = int8(whiteTurn ? int8(promotionChoice) : -1 * int8(promotionChoice));
         }
 
         // Update en passant target
@@ -251,7 +251,7 @@ contract ChessGame {
     }
 
     function validatePawnMove(uint8 fromIndex, uint8 toIndex) internal view returns (bool) {
-        int8 direction = whiteTurn ? 1 : -1;
+        int8 direction = whiteTurn ? int8(1) : -1;
         int8 rowFrom = int8(fromIndex / 8);
         int8 rowTo = int8(toIndex / 8);
         int8 colFrom = int8(fromIndex % 8);
@@ -363,8 +363,8 @@ contract ChessGame {
 
         if (rowDiff != 0 && colDiff != 0) return false;
 
-        int8 rowStep = rowDiff != 0 ? rowDiff / abs(rowDiff) : 0;
-        int8 colStep = colDiff != 0 ? colDiff / abs(colDiff) : 0;
+        int8 rowStep = rowDiff != 0 ? rowDiff / abs(rowDiff) : int8(0);
+        int8 colStep = colDiff != 0 ? colDiff / abs(colDiff) : int8(0);
 
         return pathIsClear(fromIndex, toIndex, rowStep, colStep);
     }
@@ -398,7 +398,7 @@ contract ChessGame {
     }
 
     function isKingInCheck(bool isWhite) internal view returns (bool) {
-        int8 player = isWhite ? 1 : -1;
+        int8 player = isWhite ? int8(1) : -1;
         uint8 kingIndex = 64;
         for (uint8 i = 0; i < 64; i++) {
             if (board[i] == 6 * player) {
@@ -420,7 +420,7 @@ contract ChessGame {
     }
 
     function hasLegalMoves(bool isWhite) internal returns (bool) {
-        int8 player = isWhite ? 1 : -1;
+        int8 player = isWhite ? int8(1) : -1;
         for (uint8 fromIndex = 0; fromIndex < 64; fromIndex++) {
             if (board[fromIndex] * player <= 0) continue;
 
@@ -452,7 +452,7 @@ contract ChessGame {
 
     function validateMoveForCheck(uint8 fromIndex, uint8 toIndex, bool isWhite) internal view returns (bool) {
         int8 piece = board[fromIndex];
-        int8 player = isWhite ? 1 : -1;
+        int8 player = isWhite ? int8(1) : -1;
         if (piece * player <= 0) return false;
         int8 targetPiece = board[toIndex];
         if (targetPiece * player > 0) return false;
@@ -475,7 +475,7 @@ contract ChessGame {
     }
 
     function validatePawnMoveForCheck(uint8 fromIndex, uint8 toIndex, bool isWhite) internal view returns (bool) {
-        int8 direction = isWhite ? 1 : -1;
+        int8 direction = isWhite ? int8(1) : -1;
         int8 rowFrom = int8(fromIndex / 8);
         int8 rowTo = int8(toIndex / 8);
         int8 colFrom = int8(fromIndex % 8);
