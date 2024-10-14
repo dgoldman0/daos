@@ -14,6 +14,9 @@ contract LottoMachine is Ownable {
     uint256 public feeAmount;
     uint128 public odds; 
 
+    // Events
+    event Play(address indexed player, uint256 seed, uint256 random, bool win, uint256 prize);
+
     constructor(address _randomseedgenerator) Ownable() {
         randomseedgenerator = _randomseedgenerator;
     }
@@ -25,11 +28,7 @@ contract LottoMachine is Ownable {
         require(odds > 0, "Odds not set");
         require(prizeAmount > 0 || prizePermyriad > 0, "No reward set");
 
-        uint256 actualPrize = prizeAmount;
-        if (prizeAmount == 0) {
-            uint256 bal = feeToken == address(0) ? address(this).balance : IERC20(feeToken).balanceOf(address(this));
-            actualPrize = (bal * prizePermyriad) / 10000;
-        }
+        uint256 actualPrize = getPrizeAmount();
 
         // Ensure balance is enough
         require(feeToken == address(0) ? address(this).balance >= actualPrize : IERC20(feeToken).balanceOf(address(this)) >= actualPrize, "Insufficient funds");
@@ -40,7 +39,7 @@ contract LottoMachine is Ownable {
         } else if (feeToken != address(0) && IERC20(feeToken).balanceOf(msg.sender) > feeAmount) {
             IERC20(feeToken).transferFrom(msg.sender, address(this), feeAmount);
         }
-        
+
         uint256 seed = IRandomSeedGenerator(randomseedgenerator).getSeed();
         uint256 random = uint256(keccak256(abi.encodePacked(seed, block.timestamp, msg.sender))) % odds;
         if (random == 0) {
@@ -49,9 +48,21 @@ contract LottoMachine is Ownable {
             } else {
                 IERC20(rewardToken).transfer(msg.sender, actualPrize);
             }
+            emit Play(msg.sender, seed, random, true, actualPrize);
+        } else {
+            emit Play(msg.sender, seed, random, false, 0);
         }
+
     }
 
+    function getPrizeAmount() public view returns (uint256) {
+        if (prizeAmount == 0) {
+            uint256 bal = feeToken == address(0) ? address(this).balance : IERC20(feeToken).balanceOf(address(this));
+            return (bal * prizePermyriad) / 10000;
+        }
+        return prizeAmount;
+    }
+    
     function setRandomSeedGenerator(address _randomseedgenerator) external onlyOwner {
         randomseedgenerator = _randomseedgenerator;
     }
