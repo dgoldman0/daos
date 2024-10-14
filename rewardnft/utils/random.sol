@@ -24,27 +24,41 @@ contract RandomSeed is Ownable {
     constructor() {
         // Valid for Arbitrum
         factory = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
-        // Add the LINK-UNI pool with 3000 fee tier (Arbitrum)
-        pools.push(Pool(0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 3000)); // Works
-        // Add ARB-UNI pool with 3000 fee tier (Arbitrum)
-        pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 3000)); // Works
-        // Add ARB-LINK pool with 3000 fee tier (Arbitrum)
+        // ETH-ARB pool with 0.05% fee tier (Arbitrum)
+        pools.push(Pool(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, 0x912CE59144191C1204E64559FE8253a0e49E6548, 500));
+        // Add WBTC-ETH pool with 0.05 fee tier (Arbitrum)
+        pools.push(Pool(0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f, 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, 500));
+        // Add ETH-USDC pool with 0.05 fee tier (Arbitrum)
+        pools.push(Pool(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8, 500));
+        // Add ARB-USDC pool with 0.05 fee tier (Arbitrum)
+        pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8, 500));
+        // Add the LINK-UNI pool with 3% fee tier (Arbitrum)
+        pools.push(Pool(0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 3000));
+        // Add ARB-UNI pool with 3% fee tier (Arbitrum)
+        pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 3000));
+        // Add ARB-LINK pool with 3% fee tier (Arbitrum)
         pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 3000));
-        // Add USDC-USDT pool with 3000 fee tier (Arbitrum)
+        // Add USDC-USDT pool with 3% fee tier (Arbitrum)
         pools.push(Pool(0xaf88d065e77c8cC2239327C5EDb3A432268e5831, 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9, 3000));
-        // Might need to add in lower fee ones. 0.01% fee tier
         pools.push(Pool(0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 100));
         pools.push(Pool(0x912CE59144191C1204E64559FE8253a0e49E6548, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 100));
         pools.push(Pool(0xaf88d065e77c8cC2239327C5EDb3A432268e5831, 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9, 100));
+        for (uint256 i = 0; i < pools.length; i++) {
+            // Ensure that the pool is actually a pool
+            Pool memory pool = pools[i];
+            address poolAddress = getPool(pool.tokenA, pool.tokenB, pool.fee);   
+            require(poolAddress != address(0), "Invalid pool");         
+        }
     }
 
-    // Get the sum of tickCumulatives for the most recent price
-    function getSeed() public view returns (int256 tickSum) {
-        int256 sum = 0;
+    function getSeed() public view returns (uint256 tickSum) {
+        uint256 sum = 0;
         for (uint256 i = 0; i < pools.length; i++) {
-            sum += int256(getMostRecentTick(i));
+            int256 tick = int256(getMostRecentTick(i));
+            uint256 tickAbs = uint256(tick < 0 ? -tick : tick);
+            sum += tickAbs ** 3; // (int56)^3 => (uint55)^3 => uint165 
         }
-        return sum;
+        return sum % 2**128;  // Transform into a 128-bit number
     }
 
     function getMostRecentTick(uint256 poolIndex) public view returns (int56 tickCumulative) {
