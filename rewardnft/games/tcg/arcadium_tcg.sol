@@ -1,6 +1,6 @@
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../../utils/ownable.sol";
-import "../../utils/random.sol";
+import "../../utils/irandomseedgenerator.sol";
 import "../../engines/deck.sol";
 
 interface IPackFactory {

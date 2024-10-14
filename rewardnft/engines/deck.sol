@@ -2,21 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "../utils/ownable.sol";
+import "../utils/irandomseedgenerator.sol"; 
+import "../utils/ideckmanager.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@4.9.0/utils/Strings.sol";
-
-interface IRandomSeedGenerator {
-    function getSeed() external returns (uint256 seed);
-}
-
-interface IDeckManager {
-    function addDeck(string memory name, uint256[] memory cardIds, bool allow_duplicates) external;
-    function addCardToDeck(uint256 deckId, uint256 cardId) external;
-    function removeCardFromDeck(uint256 deckId, uint256 cardId, bool allinstancs) external;
-    function chooseCard(uint256 deckId) external returns (uint256);
-    function returnCard(uint256 deckId, uint256 cardId) external;
-    function resetDeck(uint256 deckId) external;
-}
 
 contract DeckManager is Ownable {
     IRandomSeedGenerator public randomSeedGenerator;

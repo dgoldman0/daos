@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import './ownable.sol';
+import './irandomseedgenerator.sol';
 
 // Interface for Uniswap V3 Pool
 interface IUniswapV3Pool {
@@ -12,10 +13,6 @@ interface IUniswapV3Pool {
 // Interface for Uniswap V3 Factory
 interface IUniswapV3Factory {
     function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
-}
-
-interface IRandomSeedGenerator {
-    function getSeed() external returns (uint256 seed);
 }
 
 contract RandomSeedGenerator is Ownable {
