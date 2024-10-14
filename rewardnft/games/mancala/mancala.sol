@@ -91,6 +91,7 @@ interface IClaimNFTManager {
     function getTotalClaims(uint256 tokenId) external view returns (uint256);
 }
 
+// Should have it where the person creating the game can set a prize pool (and even what token it is paid in) where other player would have to match to accept, and the winner gets the pool.
 contract MancalaGame is Ownable {
     uint8 constant PLAYER_A_STORE = 6;
     uint8 constant PLAYER_B_STORE = 13;
