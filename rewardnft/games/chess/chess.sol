@@ -1,295 +1,416 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-library ChessGame {
+contract ChessGame {
+    // Board representation as a 64-element array
+    int8[64] public board;
+    
+    // Tracks the current player (1 for white, -1 for black)
+    int8 public currentPlayer;
+    
+    // Castling rights
+    bool public whiteKingMoved = false;
+    bool public whiteRookKingSideMoved = false;
+    bool public whiteRookQueenSideMoved = false;
+    bool public blackKingMoved = false;
+    bool public blackRookKingSideMoved = false;
+    bool public blackRookQueenSideMoved = false;
 
-    // Enum to represent piece types
-    enum PieceType {
-        None,     // 0: Empty square
-        Pawn,     // 1
-        Rook,     // 2
-        Knight,   // 3
-        Bishop,   // 4
-        Queen,    // 5
-        King      // 6
+    // En passant target square index (-1 if not available)
+    int8 public enPassantTarget = -1;
+
+    // Halfmove clock for the 50-move rule
+    uint256 public halfmoveClock = 0;
+
+    // Mapping from position hash to occurrence count (for threefold repetition)
+    mapping(bytes32 => uint8) public positionOccurrences;
+
+    // Game state enum
+    enum GameState { Active, WhiteWon, BlackWon, Draw }
+    GameState public gameState = GameState.Active;
+
+    // Move number
+    uint256 public moveNumber = 1;
+
+    // Constructor to initialize the board to the standard starting position
+    constructor() {
+        initializeBoard();
+        currentPlayer = 1;  // White starts
     }
 
-    // Enum to represent player color
-    enum PlayerColor {
-        White,    // 0
-        Black     // 1
-    }
-
-    // Struct to represent a piece (type and color)
-    struct Piece {
-        PieceType pieceType;
-        PlayerColor color;
-    }
-
-    // Struct to represent a move
-    struct Move {
-        uint8 from;  // From square (0-63)
-        uint8 to;    // To square (0-63)
-        bytes32 moveData; // Extra information (promotion, en passant, etc.)
-    }
-
-    // Game state
-    struct GameState {
-        address white;    // Address of the white player
-        address black;    // Address of the black player
-        Piece[64] board;  // 64-element array representing the board
-        Move[] moveHistory; // Array to store all moves made
-        bool isWhiteTurn;  // Track whose turn it is
-    }
-
-    // Initialize a new game
-    function initialize(GameState storage self, address _white, address _black) public {
-        self.white = _white;
-        self.black = _black;
-        self.isWhiteTurn = true;
-
-        // Clear the board
-        for (uint8 i = 0; i < 64; i++) {
-            self.board[i] = Piece(PieceType.None, PlayerColor.White); // Empty board initially
-        }
-
-        // Set up the starting positions for pawns (rows 2 and 7)
+    // Initialize board to standard chess starting position
+    function initializeBoard() internal {
+        // White pieces
+        board[0] = 4;   // Rook
+        board[1] = 2;   // Knight
+        board[2] = 3;   // Bishop
+        board[3] = 5;   // Queen
+        board[4] = 6;   // King
+        board[5] = 3;   // Bishop
+        board[6] = 2;   // Knight
+        board[7] = 4;   // Rook
         for (uint8 i = 8; i < 16; i++) {
-            self.board[i] = Piece(PieceType.Pawn, PlayerColor.White);  // White pawns on row 2
-            self.board[i + 40] = Piece(PieceType.Pawn, PlayerColor.Black); // Black pawns on row 7
+            board[i] = 1; // Pawns
         }
 
-        // Set up the starting positions for rooks, knights, bishops, queen, and king (rows 1 and 8)
-        // White pieces on row 1
-        self.board[0] = Piece(PieceType.Rook, PlayerColor.White);
-        self.board[1] = Piece(PieceType.Knight, PlayerColor.White);
-        self.board[2] = Piece(PieceType.Bishop, PlayerColor.White);
-        self.board[3] = Piece(PieceType.Queen, PlayerColor.White);
-        self.board[4] = Piece(PieceType.King, PlayerColor.White);
-        self.board[5] = Piece(PieceType.Bishop, PlayerColor.White);
-        self.board[6] = Piece(PieceType.Knight, PlayerColor.White);
-        self.board[7] = Piece(PieceType.Rook, PlayerColor.White);
+        // Black pieces
+        board[56] = -4;  // Rook
+        board[57] = -2;  // Knight
+        board[58] = -3;  // Bishop
+        board[59] = -5;  // Queen
+        board[60] = -6;  // King
+        board[61] = -3;  // Bishop
+        board[62] = -2;  // Knight
+        board[63] = -4;  // Rook
+        for (uint8 i = 48; i < 56; i++) {
+            board[i] = -1; // Pawns
+        }
 
-        // Black pieces on row 8
-        self.board[56] = Piece(PieceType.Rook, PlayerColor.Black);
-        self.board[57] = Piece(PieceType.Knight, PlayerColor.Black);
-        self.board[58] = Piece(PieceType.Bishop, PlayerColor.Black);
-        self.board[59] = Piece(PieceType.Queen, PlayerColor.Black);
-        self.board[60] = Piece(PieceType.King, PlayerColor.Black);
-        self.board[61] = Piece(PieceType.Bishop, PlayerColor.Black);
-        self.board[62] = Piece(PieceType.Knight, PlayerColor.Black);
-        self.board[63] = Piece(PieceType.Rook, PlayerColor.Black);
+        // Empty squares
+        for (uint8 i = 16; i < 48; i++) {
+            board[i] = 0;
+        }
     }
 
-    // Apply a move from one square to another
-    function applyMove(GameState storage self, uint8 from, uint8 to) public {
-        require(from < 64 && to < 64, "Invalid move: out of board bounds");
+    // Move function with promotion and special move handling (en passant, castling)
+    function move(uint8 fromIndex, uint8 toIndex, uint8 promotionChoice) public returns (bool) {
+        require(gameState == GameState.Active, "The game has ended.");
+        require(fromIndex < 64 && toIndex < 64, "Invalid index, must be within 0 and 63.");
+        require(board[fromIndex] * currentPlayer > 0, "You can only move your own pieces.");
 
-        // Get the piece at the 'from' position
-        Piece memory piece = self.board[from];
-        require(piece.pieceType != PieceType.None, "No piece at from square");
+        int8 piece = board[fromIndex];
+        int8 targetPiece = board[toIndex];
 
-        // Check if it's the current player's turn
-        if (self.isWhiteTurn) {
-            require(msg.sender == self.white, "Not white player's turn");
-            require(piece.color == PlayerColor.White, "Not white piece");
-        } else {
-            require(msg.sender == self.black, "Not black player's turn");
-            require(piece.color == PlayerColor.Black, "Not black piece");
+        // Validate move
+        require(validateMove(fromIndex, toIndex), "Invalid move.");
+
+        // Determine if the halfmove clock should reset
+        bool resetHalfmoveClock = false;
+        if (abs(piece) == 1) {
+            resetHalfmoveClock = true; // Pawn move
+        }
+        if (targetPiece != 0) {
+            resetHalfmoveClock = true; // Capture
         }
 
-        // Validate the move
-        require(isMoveValid(self, from, to), "Invalid move according to piece rules");
+        // En passant logic
+        if (piece == 1 * currentPlayer) {
+            int8 colFrom = int8(fromIndex % 8);
+            int8 colTo = int8(toIndex % 8);
 
-        // Move the piece to the 'to' position
-        self.board[to] = piece;
-        self.board[from] = Piece(PieceType.None, PlayerColor.White); // Clear the from square
-
-        // Add the move to the move history
-        self.moveHistory.push(Move(from, to, bytes32(0))); // Optionally use moveData for special cases like promotion
-
-        // Change turn
-        self.isWhiteTurn = !self.isWhiteTurn;
-    }
-
-    // Helper function to validate moves
-    function isMoveValid(GameState storage self, uint8 from, uint8 to) internal view returns (bool) {
-        Piece memory piece = self.board[from];
-        Piece memory targetPiece = self.board[to];
-
-        uint8 fromRow = from / 8;
-        uint8 fromCol = from % 8;
-        uint8 toRow = to / 8;
-        uint8 toCol = to % 8;
-
-        // Check if target square has a piece of the same color
-        if (targetPiece.pieceType != PieceType.None && targetPiece.color == piece.color) {
-            return false;
+            if (colFrom != colTo && targetPiece == 0 && toIndex == uint8(enPassantTarget)) {
+                uint8 capturedPawnIndex = currentPlayer == 1 ? toIndex - 8 : toIndex + 8;
+                board[capturedPawnIndex] = 0; // Remove the captured pawn
+            }
         }
 
-        // Calculate differences
-        int8 rowDiff = int8(int8(toRow) - int8(fromRow));
-        int8 colDiff = int8(int8(toCol) - int8(fromCol));
+        // Castling logic
+        if (piece == 6 * currentPlayer) {
+            if (abs(int8(toIndex % 8) - int8(fromIndex % 8)) == 2) {
+                // Castling
+                if (toIndex % 8 == 6) {
+                    // King-side castling
+                    uint8 rookFrom = fromIndex + 3;
+                    uint8 rookTo = fromIndex + 1;
+                    board[rookTo] = board[rookFrom];
+                    board[rookFrom] = 0;
+                } else if (toIndex % 8 == 2) {
+                    // Queen-side castling
+                    uint8 rookFrom = fromIndex - 4;
+                    uint8 rookTo = fromIndex - 1;
+                    board[rookTo] = board[rookFrom];
+                    board[rookFrom] = 0;
+                }
 
-        // Validate movement based on the piece type
-        if (piece.pieceType == PieceType.Pawn) {
-            return validatePawnMove(self, piece, from, to, fromRow, fromCol, toRow, toCol, rowDiff, colDiff);
-        } else if (piece.pieceType == PieceType.Rook) {
-            return validateRookMove(self, from, to, fromRow, fromCol, toRow, toCol);
-        } else if (piece.pieceType == PieceType.Knight) {
-            return validateKnightMove(rowDiff, colDiff);
-        } else if (piece.pieceType == PieceType.Bishop) {
-            return validateBishopMove(self, from, to, rowDiff, colDiff);
-        } else if (piece.pieceType == PieceType.Queen) {
-            return validateQueenMove(self, from, to, fromRow, fromCol, toRow, toCol, rowDiff, colDiff);
-        } else if (piece.pieceType == PieceType.King) {
-            return validateKingMove(rowDiff, colDiff);
-        }
-
-        return false;
-    }
-
-    // Validate pawn moves
-    function validatePawnMove(
-        GameState storage self,
-        Piece memory piece,
-        uint8 from,
-        uint8 to,
-        uint8 fromRow,
-        uint8 fromCol,
-        uint8 toRow,
-        uint8 toCol,
-        int8 rowDiff,
-        int8 colDiff
-    ) internal view returns (bool) {
-        Piece memory targetPiece = self.board[to];
-
-        if (piece.color == PlayerColor.White) {
-            // Move forward
-            if (colDiff == 0 && targetPiece.pieceType == PieceType.None) {
-                if (rowDiff == 1) {
-                    return true; // Move one square forward
-                } else if (rowDiff == 2 && fromRow == 1 && self.board[from + 8].pieceType == PieceType.None) {
-                    return true; // Move two squares from starting position
+                // Update castling rights
+                if (currentPlayer == 1) {
+                    whiteKingMoved = true;
+                } else {
+                    blackKingMoved = true;
                 }
             }
-            // Capture
-            else if (rowDiff == 1 && (colDiff == 1 || colDiff == -1) && targetPiece.pieceType != PieceType.None && targetPiece.color == PlayerColor.Black) {
-                return true; // Diagonal capture
-            }
+        }
+
+        // Move the piece
+        board[toIndex] = piece;
+        board[fromIndex] = 0;
+
+        // Handle pawn promotion
+        if (piece == 1 * currentPlayer && (toIndex / 8 == 0 || toIndex / 8 == 7)) {
+            require(promotionChoice >= 2 && promotionChoice <= 5, "Invalid promotion choice.");
+            board[toIndex] = int8(promotionChoice) * currentPlayer;
+        }
+
+        // Update en passant target
+        if (piece == 1 * currentPlayer && abs(int8(toIndex) - int8(fromIndex)) == 16) {
+            enPassantTarget = int8((fromIndex + toIndex) / 2);
         } else {
-            // Move forward
-            if (colDiff == 0 && targetPiece.pieceType == PieceType.None) {
-                if (rowDiff == -1) {
-                    return true; // Move one square forward
-                } else if (rowDiff == -2 && fromRow == 6 && self.board[from - 8].pieceType == PieceType.None) {
-                    return true; // Move two squares from starting position
-                }
-            }
-            // Capture
-            else if (rowDiff == -1 && (colDiff == 1 || colDiff == -1) && targetPiece.pieceType != PieceType.None && targetPiece.color == PlayerColor.White) {
-                return true; // Diagonal capture
-            }
+            enPassantTarget = -1;
         }
-        return false;
-    }
 
-    // Validate rook moves
-    function validateRookMove(
-        GameState storage self,
-        uint8 from,
-        uint8 to,
-        uint8 fromRow,
-        uint8 fromCol,
-        uint8 toRow,
-        uint8 toCol
-    ) internal view returns (bool) {
-        if (fromRow == toRow || fromCol == toCol) {
-            return isPathClear(self, from, to);
+        // Update halfmove clock
+        if (resetHalfmoveClock) {
+            halfmoveClock = 0;
+        } else {
+            halfmoveClock++;
         }
-        return false;
-    }
 
-    // Validate knight moves
-    function validateKnightMove(int8 rowDiff, int8 colDiff) internal pure returns (bool) {
-        if ((abs(rowDiff) == 2 && abs(colDiff) == 1) || (abs(rowDiff) == 1 && abs(colDiff) == 2)) {
+        // Generate the position hash after the move
+        bytes32 positionHash = getPositionHash();
+
+        // Update the position occurrences
+        positionOccurrences[positionHash]++;
+
+        // Check for threefold repetition
+        if (positionOccurrences[positionHash] >= 3) {
+            gameState = GameState.Draw;
             return true;
         }
-        return false;
-    }
 
-    // Validate bishop moves
-    function validateBishopMove(
-        GameState storage self,
-        uint8 from,
-        uint8 to,
-        int8 rowDiff,
-        int8 colDiff
-    ) internal view returns (bool) {
-        if (abs(rowDiff) == abs(colDiff)) {
-            return isPathClear(self, from, to);
-        }
-        return false;
-    }
-
-    // Validate queen moves
-    function validateQueenMove(
-        GameState storage self,
-        uint8 from,
-        uint8 to,
-        uint8 fromRow,
-        uint8 fromCol,
-        uint8 toRow,
-        uint8 toCol,
-        int8 rowDiff,
-        int8 colDiff
-    ) internal view returns (bool) {
-        if (fromRow == toRow || fromCol == toCol || abs(rowDiff) == abs(colDiff)) {
-            return isPathClear(self, from, to);
-        }
-        return false;
-    }
-
-    // Validate king moves
-    function validateKingMove(int8 rowDiff, int8 colDiff) internal pure returns (bool) {
-        if (abs(rowDiff) <= 1 && abs(colDiff) <= 1) {
+        // Check for insufficient material
+        if (isInsufficientMaterial()) {
+            gameState = GameState.Draw;
             return true;
         }
-        return false;
-    }
 
-    // Helper function to check if the path between two squares is clear (for rooks, bishops, and queens)
-    function isPathClear(GameState storage self, uint8 from, uint8 to) internal view returns (bool) {
-        int8 fromRow = int8(from / 8);
-        int8 fromCol = int8(from % 8);
-        int8 toRow = int8(to / 8);
-        int8 toCol = int8(to % 8);
+        // Check for 50-move rule
+        if (halfmoveClock >= 100) {
+            gameState = GameState.Draw;
+            return true;
+        }
 
-        int8 rowDirection = (toRow > fromRow) ? int8(1) : (toRow < fromRow) ? int8(-1) : int8(0);
-        int8 colDirection = (toCol > fromCol) ? int8(1) : (toCol < fromCol) ? int8(-1) : int8(0);
+        // Switch player
+        currentPlayer *= -1;
 
-        int8 currentRow = fromRow + rowDirection;
-        int8 currentCol = fromCol + colDirection;
+        // Check for stalemate
+        if (isStalemate(currentPlayer)) {
+            gameState = GameState.Draw;
+            return true;
+        }
 
-        while (currentRow != toRow || currentCol != toCol) {
-            if (currentRow < 0 || currentRow >= 8 || currentCol < 0 || currentCol >= 8) {
-                return false; // Out of bounds
-            }
-
-            uint8 currentSquare = uint8(uint8(currentRow) * 8 + uint8(currentCol));
-            if (self.board[currentSquare].pieceType != PieceType.None) {
-                return false; // Path is blocked
-            }
-
-            currentRow += rowDirection;
-            currentCol += colDirection;
+        // Check for checkmate
+        if (isKingInCheck(currentPlayer) && !hasLegalMoves(currentPlayer)) {
+            gameState = currentPlayer == 1 ? GameState.BlackWon : GameState.WhiteWon;
+            return true;
         }
 
         return true;
     }
 
-    // Helper function to compute absolute value of int8
-    function abs(int8 x) internal pure returns (uint8) {
-        return uint8(x >= 0 ? x : -x);
+    // Utility function to calculate absolute value
+    function abs(int8 x) internal pure returns (int8) {
+        return x >= 0 ? x : -x;
+    }
+
+    // Position hashing for threefold repetition
+    function getPositionHash() internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(
+            board,
+            currentPlayer,
+            enPassantTarget,
+            whiteKingMoved,
+            whiteRookKingSideMoved,
+            whiteRookQueenSideMoved,
+            blackKingMoved,
+            blackRookKingSideMoved,
+            blackRookQueenSideMoved
+        ));
+    }
+
+    // Insufficient material detection
+    function isInsufficientMaterial() internal view returns (bool) {
+        uint8 whitePieces;
+        uint8 blackPieces;
+        uint8 whiteBishops;
+        uint8 blackBishops;
+        uint8 whiteKnights;
+        uint8 blackKnights;
+
+        for (uint8 i = 0; i < 64; i++) {
+            int8 piece = board[i];
+            if (piece == 0) continue;
+
+            int8 absPiece = abs(piece);
+
+            if (piece > 0) {
+                if (absPiece == 1 || absPiece == 4 || absPiece == 5) return false; // Pawn, Rook, Queen
+                if (absPiece == 3) whiteBishops++;
+                if (absPiece == 2) whiteKnights++;
+                whitePieces++;
+            } else {
+                if (absPiece == 1 || absPiece == 4 || absPiece == 5) return false; // Pawn, Rook, Queen
+                if (absPiece == 3) blackBishops++;
+                if (absPiece == 2) blackKnights++;
+                blackPieces++;
+            }
+        }
+
+        // Only kings left
+        if (whitePieces == 1 && blackPieces == 1) {
+            return true;
+        }
+
+        // King and Bishop or Knight vs. King
+        if ((whitePieces == 2 && blackPieces == 1) || (whitePieces == 1 && blackPieces == 2)) {
+            if ((whiteBishops == 1 || whiteKnights == 1) || (blackBishops == 1 || blackKnights == 1)) {
+                return true;
+            }
+        }
+
+        // King and Bishop vs. King and Bishop (same color bishops)
+        if (whitePieces == 2 && blackPieces == 2 && whiteBishops == 1 && blackBishops == 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // Check if the player's king is in check
+    function isKingInCheck(int8 player) internal view returns (bool) {
+        uint8 kingIndex = 64;
+        for (uint8 i = 0; i < 64; i++) {
+            if (board[i] == 6 * player) {
+                kingIndex = i;
+                break;
+            }
+        }
+        require(kingIndex < 64, "King not found on the board.");
+
+        for (uint8 i = 0; i < 64; i++) {
+            if (board[i] * player < 0) {
+                if (validateMoveForCheck(i, kingIndex, -player)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // Stalemate detection
+    function isStalemate(int8 player) internal returns (bool) {
+        if (isKingInCheck(player)) {
+            return false;
+        }
+        return !hasLegalMoves(player);
+    }
+
+    // Legal move detection
+    function hasLegalMoves(int8 player) internal returns (bool) {
+        for (uint8 fromIndex = 0; fromIndex < 64; fromIndex++) {
+            if (board[fromIndex] * player <= 0) continue;
+
+            for (uint8 toIndex = 0; toIndex < 64; toIndex++) {
+                if (board[toIndex] * player > 0) continue;
+
+                int8 piece = board[fromIndex];
+                int8 targetPiece = board[toIndex];
+
+                if (validateMoveForCheck(fromIndex, toIndex, player)) {
+                    board[toIndex] = piece;
+                    board[fromIndex] = 0;
+
+                    bool kingSafe = !isKingInCheck(player);
+
+                    board[fromIndex] = piece;
+                    board[toIndex] = targetPiece;
+
+                    if (kingSafe) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // Check if a move is valid for checking purposes (simplified for check detection)
+    function validateMoveForCheck(uint8 fromIndex, uint8 toIndex, int8 player) internal view returns (bool) {
+        int8 piece = board[fromIndex];
+        if (piece * player <= 0) return false;
+        int8 targetPiece = board[toIndex];
+        if (targetPiece * player > 0) return false;
+
+        if (abs(piece) == 1) {
+            int8 direction = player == 1 ? 1 : -1;
+            int8 rowFrom = int8(fromIndex / 8);
+            int8 rowTo = int8(toIndex / 8);
+            int8 colFrom = int8(fromIndex % 8);
+            int8 colTo = int8(toIndex % 8);
+            if (rowTo == rowFrom + direction && (colTo == colFrom + 1 || colTo == colFrom - 1)) {
+                return true;
+            }
+        } else if (abs(piece) == 2) {
+            return validateKnightMove(fromIndex, toIndex);
+        } else if (abs(piece) == 3) {
+            return validateDiagonalMove(fromIndex, toIndex);
+        } else if (abs(piece) == 4) {
+            return validateStraightMove(fromIndex, toIndex);
+        } else if (abs(piece) == 5) {
+            return validateQueenMove(fromIndex, toIndex);
+        } else if (abs(piece) == 6) {
+            int8 rowDiff = int8(toIndex / 8) - int8(fromIndex / 8);
+            int8 colDiff = int8(toIndex % 8) - int8(fromIndex % 8);
+            if (abs(rowDiff) <= 1 && abs(colDiff) <= 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Straight move validation (Rook, Queen movement)
+    function validateStraightMove(uint8 fromIndex, uint8 toIndex) internal view returns (bool) {
+        int8 rowDiff = int8(toIndex / 8) - int8(fromIndex / 8);
+        int8 colDiff = int8(toIndex % 8) - int8(fromIndex % 8);
+
+        if (rowDiff != 0 && colDiff != 0) return false;
+
+        int8 rowStep = rowDiff != 0 ? rowDiff / abs(rowDiff) : 0;
+        int8 colStep = colDiff != 0 ? colDiff / abs(colDiff) : 0;
+
+        return pathIsClear(fromIndex, toIndex, rowStep, colStep);
+    }
+
+    // Diagonal move validation (Bishop, Queen movement)
+    function validateDiagonalMove(uint8 fromIndex, uint8 toIndex) internal view returns (bool) {
+        int8 rowDiff = int8(toIndex / 8) - int8(fromIndex / 8);
+        int8 colDiff = int8(toIndex % 8) - int8(fromIndex % 8);
+
+        if (abs(rowDiff) != abs(colDiff)) return false;
+
+        int8 rowStep = rowDiff / abs(rowDiff);
+        int8 colStep = colDiff / abs(colDiff);
+
+        return pathIsClear(fromIndex, toIndex, rowStep, colStep);
+    }
+
+    // Knight move validation
+    function validateKnightMove(uint8 fromIndex, uint8 toIndex) internal pure returns (bool) {
+        int8 rowDiff = int8(toIndex / 8) - int8(fromIndex / 8);
+        int8 colDiff = int8(toIndex % 8) - int8(fromIndex % 8);
+
+        return (abs(rowDiff) == 2 && abs(colDiff) == 1) || (abs(rowDiff) == 1 && abs(colDiff) == 2);
+    }
+
+    // Validate path for clear movement (straight and diagonal)
+    function pathIsClear(uint8 fromIndex, uint8 toIndex, int8 rowStep, int8 colStep) internal view returns (bool) {
+        int8 rowFrom = int8(fromIndex / 8);
+        int8 colFrom = int8(fromIndex % 8);
+        int8 rowTo = int8(toIndex / 8);
+        int8 colTo = int8(toIndex % 8);
+
+        rowFrom += rowStep;
+        colFrom += colStep;
+
+        while (rowFrom != rowTo || colFrom != colTo) {
+            if (board[uint8(rowFrom * 8 + colFrom)] != 0) {
+                return false;
+            }
+            rowFrom += rowStep;
+            colFrom += colStep;
+        }
+
+        return true;
     }
 }
