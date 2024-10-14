@@ -8,7 +8,7 @@ interface IRandomSeedGenerator {
 }
 
 contract DeckManager is Ownable {
-    IRandomSeedGenerator public randomSeed;
+    IRandomSeedGenerator public randomSeedGenerator;
     address public deckAuthorizer;
 
     // Generic deck which can be linked to any tokens 1:1 through cardIds
@@ -24,8 +24,8 @@ contract DeckManager is Ownable {
     mapping(uint256 => Deck) public decks;
     uint256 nextDeckId = 1;
 
-    constructor(address _randomSeed) Ownable() {
-        randomSeed = IRandomSeedGenerator(_randomSeed);
+    constructor(address _randomSeedGenerator) Ownable() {
+        randomSeedGenerator = IRandomSeedGenerator(_randomSeedGenerator);
         deckAuthorizer = msg.sender;
 
     }
@@ -61,7 +61,7 @@ contract DeckManager is Ownable {
     function chooseCard(uint256 deckId) external returns (uint256) {
         Deck storage deck = decks[deckId];
         require(deck.remainingCards.length > 0, "No cards remaining");
-        uint256 random = randomSeed.getSeed();
+        uint256 random = randomSeedGenerator.getSeed();
         uint256 index = random % deck.remainingCards.length;
         uint256 chosenCard = deck.remainingCards[index];
         deck.chosenCards.push(chosenCard);
@@ -81,7 +81,7 @@ contract DeckManager is Ownable {
 
     // Set the random seed generator
     function setRandomSeedGenerator(address _randomSeedGenerator) external onlyOwner {
-        randomSeed = IRandomSeedGenerator(_randomSeed);
+        randomSeedGenerator = IRandomSeedGenerator(_randomSeedGenerator);
     }
 
     function setDeckAuthorizer(address _deckAuthorizer) external onlyOwner {
