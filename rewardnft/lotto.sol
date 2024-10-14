@@ -21,23 +21,33 @@ contract LottoMachine is Ownable {
     function play() public payable returns (uint256) {
         // If contract is 0 then it's ETH, otherwise ERC20
         require((feeToken == address(0) && msg.value >= feeAmount) || IERC20(feeToken).balanceOf(msg.sender) >= feeAmount, "No funds sent");
+        
+        require(odds > 0, "Odds not set");
+        require(prizeAmount > 0 || prizePermyriad > 0, "No reward set");
+
+        uint256 actualPrize = prizeAmount;
+        if (prizeAmount == 0) {
+            uint256 bal = feeToken == address(0) ? address(this).balance : IERC20(feeToken).balanceOf(address(this));
+            actualPrize = (bal * prizePermyriad) / 10000;
+        }
+
+        // Ensure balance is enough
+        require(feeToken == address(0) ? address(this).balance >= actualPrize : IERC20(feeToken).balanceOf(address(this)) >= actualPrize, "Insufficient funds");
+
         // Refund excess if there is any
         if (feeToken == address(0) && msg.value > feeAmount) {
             payable(msg.sender).transfer(msg.value - feeAmount);
         } else if (feeToken != address(0) && IERC20(feeToken).balanceOf(msg.sender) > feeAmount) {
             IERC20(feeToken).transferFrom(msg.sender, address(this), feeAmount);
         }
+        
         uint256 seed = IRandomSeedGenerator(randomseedgenerator).getSeed();
         uint256 random = uint256(keccak256(abi.encodePacked(seed, block.timestamp, msg.sender))) % odds;
         if (random == 0) {
-            uint256 amt = prizeAmount;
-            if (prizeAmount == 0) {
-                amt = (feeAmount * prizePermyriad) / 10000;
-            }
             if (rewardToken == address(0)) {
-                payable(msg.sender).transfer(amt);
+                payable(msg.sender).transfer(actualPrize);
             } else {
-                IERC20(rewardToken).transfer(msg.sender, amt);
+                IERC20(rewardToken).transfer(msg.sender, actualPrize);
             }
         }
     }
@@ -46,15 +56,29 @@ contract LottoMachine is Ownable {
         randomseedgenerator = _randomseedgenerator;
     }
 
+    function setOdds(uint128 _odds) external onlyOwner {
+        odds = _odds;
+    }
+
     function setRewardToken(address _rewardToken) external onlyOwner {
         rewardToken = _rewardToken;
     }
 
     function setPrizeAmount(uint256 _prizeAmount) external onlyOwner {
+        require(prizePermyriad == 0 || _prizeAmount == 0, "Prize permyriad is set");
         prizeAmount = _prizeAmount;
     }
 
-    function setOdds(uint128 _odds) external onlyOwner {
-        odds = _odds;
+    function setPrizePermyriad(uint256 _prizePermyriad) external onlyOwner {
+        require(prizeAmount == 0 || _prizePermyriad == 0, "Prize amount is set");
+        prizePermyriad = _prizePermyriad;
+    }
+
+    function setFeeToken(address _feeToken) external onlyOwner {
+        feeToken = _feeToken;
+    }
+
+    function setFeeAmount(uint256 _feeAmount) external onlyOwner {
+        feeAmount = _feeAmount;
     }
 }
