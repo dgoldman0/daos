@@ -21,6 +21,10 @@ contract RandomSeed is Ownable {
     }
     Pool[] public pools;
 
+    event PoolAdded(address tokenA, address tokenB, uint24 fee);
+    event PoolRemoved(address tokenA, address tokenB, uint24 fee);
+    event SeedGenerated(uint256 seed);
+
     constructor() {
         // Valid for Arbitrum
         factory = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
@@ -53,7 +57,13 @@ contract RandomSeed is Ownable {
         }
     }
 
-    function getSeed() public view returns (uint256 tickSum) {
+    function getSeed() public returns (uint256 seed) {
+        emit SeedGenerated(getFreeSeed());
+        return getFreeSeed();
+    }
+
+    // Works but seems to not update regularly beacuse it's a view. 
+    function getFreeSeed() public view returns (uint256 tickSum) {
         uint256 sum = 0;
         for (uint256 i = 0; i < pools.length; i++) {
             int256 tick = int256(getMostRecentTick(i));
@@ -83,11 +93,13 @@ contract RandomSeed is Ownable {
 
     function addPool(address tokenA, address tokenB, uint24 fee) public onlyOwner {
         pools.push(Pool(tokenA, tokenB, fee));
+        emit PoolAdded(tokenA, tokenB, fee);
     }
 
     function removePool(uint256 poolIndex) public onlyOwner {
         require(poolIndex < pools.length, "Invalid pool index");
         pools[poolIndex] = pools[pools.length - 1];
         pools.pop();
+        emit PoolRemoved(pools[poolIndex].tokenA, pools[poolIndex].tokenB, pools[poolIndex].fee);
     }
 }
