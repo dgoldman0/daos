@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lotto Game Interface</title>
+  <!-- Google Fonts for better typography -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+  <style>
+    /* Reset some default browser styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Body styling */
+    body {
+      font-family: 'Press Start 2P', sans-serif; /* Futuristic gamer font */
+      background-color: #1a1a1a;
+      color: #e2e2e2;
+      line-height: 1.6;
+      letter-spacing: 0.05em;
+      overflow-x: hidden;
+    }
+
+    /* Header styling */
+    header {
+      background-color: #141414;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+      border-bottom: 2px solid #3a3a3a;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    header h1 {
+      font-size: 22px;
+      text-transform: uppercase;
+      color: #f5f5f5;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    }
+
+    .connect-wallet {
+      padding: 12px 25px;
+      background-color: #00ffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      text-transform: uppercase;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      box-shadow: 0 0 15px #00ffff;
+    }
+
+    .connect-wallet:hover {
+      background-color: #1a1a1a;
+      color: #00ffff;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+    }
+
+    /* Container styling */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* Section styling */
+    .section h2 {
+      margin-top: 40px;
+      margin-bottom: 20px;
+      font-size: 24px;
+      color: #ffffff;
+      border-bottom: 3px solid #00ffff;
+      padding-bottom: 10px;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px #ff00ff;
+      letter-spacing: 0.1em;
+    }
+
+    .info {
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #dcdcdc;
+    }
+
+    .info span {
+      font-weight: 600;
+      color: #00ffff;
+    }
+
+    .button {
+      padding: 15px 25px;
+      background-color: #00ffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      box-shadow: 0 0 15px #00ffff;
+      transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+      margin-top: 20px;
+    }
+
+    .button:hover {
+      background-color: #1a1a1a;
+      color: #00ffff;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+      transform: translateY(-2px);
+    }
+
+    /* Footer styling */
+    footer {
+      background-color: #141414;
+      padding: 20px;
+      text-align: center;
+      color: #ffffff;
+      border-top: 2px solid #3a3a3a;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    footer p {
+      margin: 0;
+      color: #00ffff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 12px;
+    }
+
+    /* Notification area */
+    #notificationArea {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      width: 300px;
+      z-index: 1000;
+    }
+
+    .notification {
+      background-color: #00ffff;
+      color: #1a1a1a;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      animation: fadeOut 4s forwards;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+    }
+
+    .error-notification {
+      background-color: #ff0055;
+      box-shadow: 0 0 20px #ff0055, 0 0 40px #ff00ff;
+    }
+
+    /* Fade out animation */
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      75% { opacity: 1; }
+      100% { opacity: 0; display: none; }
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+
+      header h1 {
+        font-size: 20px;
+      }
+
+      .connect-wallet {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+
+      .section h2 {
+        font-size: 22px;
+      }
+
+      .button {
+        padding: 12px 20px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-dice"></i> Lotto Game Interface</h1>
+    <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
+  </header>
+
+  <!-- Notification Area -->
+  <div id="notificationArea"></div>
+
+  <div class="container">
+    <!-- Lotto Game Section -->
+    <div class="section" id="lottoGameSection">
+      <h2>Lotto Game</h2>
+      <div class="info">Entry Fee: <span id="entryFee"></span></div>
+      <div class="info">Prize Amount: <span id="prizeAmount"></span></div>
+      <div class="info">Odds of Winning: <span id="odds"></span></div>
+      <button id="playButton" class="button">Play Lottery</button>
+    </div>
+
+    <!-- Result Section -->
+    <div class="section" id="resultSection">
+      <h2>Result</h2>
+      <div class="info" id="resultMessage">Click "Play Lottery" to try your luck!</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2024 Lotto Game Interface</p>
+  </footer>
+
+  <!-- Include web3.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
+
+  <script>
+    // Contract ABI (replace with actual ABI)
+    const lottoAbi = [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_randomseedgenerator",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "cancelledBy",
+						"type": "address"
+					}
+				],
+				"name": "NominationCancelled",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnerNominated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "player",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "seed",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "random",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "bool",
+						"name": "win",
+						"type": "bool"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "prize",
+						"type": "uint256"
+					}
+				],
+				"name": "Play",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "acceptOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "cancelTransfer",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "changeOwner",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "feeAmount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "feeToken",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getPrizeAmount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "nominationDate",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "odds",
+				"outputs": [
+					{
+						"internalType": "uint128",
+						"name": "",
+						"type": "uint128"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "ownerNominee",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "play",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "prizeAmount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "prizePermyriad",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "randomseedgenerator",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "rejectOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "rewardToken",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_feeAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "setFeeAmount",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_feeToken",
+						"type": "address"
+					}
+				],
+				"name": "setFeeToken",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint128",
+						"name": "_odds",
+						"type": "uint128"
+					}
+				],
+				"name": "setOdds",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_prizeAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "setPrizeAmount",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_prizePermyriad",
+						"type": "uint256"
+					}
+				],
+				"name": "setPrizePermyriad",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_randomseedgenerator",
+						"type": "address"
+					}
+				],
+				"name": "setRandomSeedGenerator",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_rewardToken",
+						"type": "address"
+					}
+				],
+				"name": "setRewardToken",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_token",
+						"type": "address"
+					}
+				],
+				"name": "withdraw",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		];
+
+        const erc20Abi = [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "value",
+						"type": "uint256"
+					}
+				],
+				"name": "Approval",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "value",
+						"type": "uint256"
+					}
+				],
+				"name": "Transfer",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					}
+				],
+				"name": "allowance",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "approve",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "balanceOf",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "decimals",
+				"outputs": [
+					{
+						"internalType": "uint8",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "subtractedValue",
+						"type": "uint256"
+					}
+				],
+				"name": "decreaseAllowance",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "addedValue",
+						"type": "uint256"
+					}
+				],
+				"name": "increaseAllowance",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "name",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "symbol",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalSupply",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "transfer",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "transferFrom",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		];
+
+
+    // Replace with actual contract address
+    const lottoContractAddress = '0x4E6CAB3Aaa42FA43019cfED8e58Ef954cf2FdcC7';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let web3;
+      let userAddress;
+
+      let lottoContract;
+
+      const connectWalletButton = document.getElementById('connectWalletButton');
+      connectWalletButton.addEventListener('click', async () => {
+        await connectWallet();
+      });
+
+      async function connectWallet() {
+        if (window.ethereum) {
+          try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            web3 = new Web3(window.ethereum);
+            const accounts = await web3.eth.getAccounts();
+            userAddress = accounts[0];
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+            initializeContracts();
+            refreshData();
+          } catch (error) {
+            console.error('User denied account access');
+          }
+        } else {
+          alert('Please install MetaMask!');
+        }
+      }
+
+      function initializeContracts() {
+        lottoContract = new web3.eth.Contract(lottoAbi, lottoContractAddress);
+      }
+
+      async function refreshData() {
+        await loadLottoParameters();
+      }
+
+      async function loadLottoParameters() {
+        try {
+          const entryFee = await lottoContract.methods.feeAmount().call();
+          const feeTokenAddress = await lottoContract.methods.feeToken().call();
+          const prizeAmount = await lottoContract.methods.getPrizeAmount().call();
+          const rewardTokenAddress = await lottoContract.methods.rewardToken().call();
+          const odds = await lottoContract.methods.odds().call();
+
+          let feeTokenSymbol = 'ETH';
+          if (feeTokenAddress != '0x0000000000000000000000000000000000000000') {
+            const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
+            feeTokenSymbol = await feeTokenContract.methods.symbol().call();
+            const decimals = await feeTokenContract.methods.decimals().call();
+            document.getElementById('entryFee').textContent = `${web3.utils.fromWei(entryFee, 'ether')} ${feeTokenSymbol}`;
+          } else {
+            document.getElementById('entryFee').textContent = `${web3.utils.fromWei(entryFee, 'ether')} ${feeTokenSymbol}`;
+          }
+
+          let rewardTokenSymbol = 'ETH';
+          if (rewardTokenAddress != '0x0000000000000000000000000000000000000000') {
+            const rewardTokenContract = new web3.eth.Contract(erc20Abi, rewardTokenAddress);
+            rewardTokenSymbol = await rewardTokenContract.methods.symbol().call();
+            const decimals = await rewardTokenContract.methods.decimals().call();
+            document.getElementById('prizeAmount').textContent = `${web3.utils.fromWei(prizeAmount, 'ether')} ${rewardTokenSymbol}`;
+          } else {
+            document.getElementById('prizeAmount').textContent = `${web3.utils.fromWei(prizeAmount, 'ether')} ${rewardTokenSymbol}`;
+          }
+
+          document.getElementById('odds').textContent = `1 in ${odds}`;
+        } catch (error) {
+          console.error('Failed to load lotto parameters', error);
+        }
+      }
+
+      const playButton = document.getElementById('playButton');
+      playButton.addEventListener('click', async () => {
+        await playLottery();
+      });
+
+      async function playLottery() {
+        try {
+          const entryFee = await lottoContract.methods.feeAmount().call();
+          const feeTokenAddress = await lottoContract.methods.feeToken().call();
+
+          if (feeTokenAddress == '0x0000000000000000000000000000000000000000') {
+            // ETH payment
+            await lottoContract.methods.play().send({ from: userAddress, value: entryFee });
+          } else {
+            // ERC20 payment
+            const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
+            const allowance = await feeTokenContract.methods.allowance(userAddress, lottoContractAddress).call();
+            if (allowance < entryFee) {
+              await feeTokenContract.methods.approve(lottoContractAddress, entryFee).send({ from: userAddress });
+            }
+            await lottoContract.methods.play().send({ from: userAddress });
+          }
+
+          // Listen for the Play event
+          lottoContract.once('Play', {}, (error, event) => {
+            if (error) {
+              console.error('Error in Play event', error);
+              showNotification('Failed to retrieve play result.', true);
+            } else {
+              const { player, win, prize } = event.returnValues;
+              if (win) {
+                document.getElementById('resultMessage').textContent = `Congratulations! You won ${web3.utils.fromWei(prize, 'ether')} tokens!`;
+                showNotification('You won the lottery!');
+              } else {
+                document.getElementById('resultMessage').textContent = `Sorry, you didn't win this time. Try again!`;
+                showNotification('You did not win. Better luck next time!');
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Failed to play lottery', error);
+          showNotification('Failed to play lottery.', true);
+        }
+      }
+
+      function showNotification(message, isError = false) {
+        const notificationArea = document.getElementById('notificationArea');
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        if (isError) {
+          notification.classList.add('error-notification');
+        }
+        notification.textContent = message;
+        notificationArea.appendChild(notification);
+        setTimeout(() => {
+          notificationArea.removeChild(notification);
+        }, 4000);
+      }
+
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        web3.eth.getAccounts().then(accounts => {
+          if (accounts.length > 0) {
+            userAddress = accounts[0];
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+            initializeContracts();
+            refreshData();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
