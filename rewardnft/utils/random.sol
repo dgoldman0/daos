@@ -1,64 +1,49 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+import './ownable.sol';
 
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
+// Interface for Uniswap V3 Pool
+interface IUniswapV3Pool {
+    function observe(uint32[] calldata secondsAgos) 
+        external view returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128);
 }
 
-interface SeedGenerator {
-    function generateSeed() external view returns (int256);
+// Interface for Uniswap V3 Factory
+interface IUniswapV3Factory {
+    function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
 }
 
+contract UniswapCumulativeTick {
+    IUniswapV3Factory public factory;
+    struct Pool {
+        address tokenA;
+        address tokenB;
+        uint24 fee;
+    }
+    Pool[] public pools;
 
-contract FourTokenSeedGenerator is SeedGenerator {
-    IERC20 public token1;
-    IERC20 public token2;
-    IERC20 public token3;
-    IERC20 public token4;
-    
-    uint256 public initialTotalSupply;
+    constructor() {
+        // Valid for Arbitrum
+        factory = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
+        // Add the UNI-LINK pool with 3000 fee tier (Arbitrum)
+        pools.push(Pool(0xf97f4df75117a78c1A5a0DBb814Af92458539FB4, 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0, 3000));
 
-    constructor(
-        address _token1,
-        address _token2,
-        address _token3,
-        address _token4
-    ) {
-        token1 = IERC20(_token1);
-        token2 = IERC20(_token2);
-        token3 = IERC20(_token3);
-        token4 = IERC20(_token4);
-
-        // Store the initial total supply
-        initialTotalSupply = token1.totalSupply() + token2.totalSupply() + token3.totalSupply() + token4.totalSupply();
     }
 
-    function generateSeed() external view returns (int256) {
-        uint256 currentTotalSupply = token1.totalSupply() + token2.totalSupply() + token3.totalSupply() + token4.totalSupply();
-        int256 difference = int256(currentTotalSupply) - int256(initialTotalSupply);
-
-        // Use modulus to ensure the seed is positive and within a certain range (e.g., 1 to 1e18)
-        int256 seed = (difference >= 0 ? difference : -difference) % int256(1e18);
-
-        return seed;
-    }
-}
-
-contract Random {
-    SeedGenerator public seedGenerator;
-
-    constructor(address _seedGenerator) {
-        seedGenerator = SeedGenerator(_seedGenerator);
+    function getMostRecentPrice(uint256 poolIndex) public view returns (int56 tickCumulative) {
+        require(poolIndex < pools.length, "Invalid pool index");
+        address poolAddress = getPool(pools[poolIndex].tokenA, pools[poolIndex].tokenB, pools[poolIndex].fee);
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
+        
+        uint32[] memory secondsAgos = new uint32[](1);
+        secondsAgos[0] = 0;  // Asking for the most recent price (0 seconds ago)
+        
+        (int56[] memory tickCumulatives, ) = pool.observe(secondsAgos);
+        
+        return tickCumulatives[0];  // The most recent tick cumulative
     }
 
-    function randomFromSeed(uint256 max) external view returns (uint256) {
-        // Ensure max is greater than 0 to avoid division by zero
-        require(max > 0, "Max must be greater than zero");
-
-        // Generate the seed
-        uint256 seed = uint256(keccak256(abi.encodePacked(seedGenerator.generateSeed(), block.timestamp, block.prevrandao)));
-
-        // Return a random number between 1 and max
-        return (seed % max) + 1;
+    function getPool(address tokenA, address tokenB, uint24 fee) public view returns (address poolAddress) {
+        require(address(factory) != address(0), "Invalid factory address");
+        return IUniswapV3Factory(factory).getPool(tokenA, tokenB, fee);
     }
 }
