@@ -244,10 +244,16 @@
       <h2>Result</h2>
       <div class="info" id="resultMessage">Click "Play Lottery" to try your luck!</div>
     </div>
+
+	<!-- Contract Address Section -->
+	<div class="section" id="contractAddressSection">
+	  <h2>Contract Address</h2>
+	  <div class="info">Lotto Contract Address: <span id="lottoContractAddress"></span></div>
+	</div>
   </div>
 
   <footer>
-    <p>&copy; 2024 Lotto Game Interface</p>
+    <p>&copy; 2024 Arcadium DAO</p>
   </footer>
 
   <!-- Include web3.js CDN -->
@@ -975,6 +981,8 @@
           const rewardTokenAddress = await lottoContract.methods.rewardToken().call();
           const odds = await lottoContract.methods.odds().call();
 
+		  document.getElementById('lottoContractAddress').textContent = lottoContractAddress;
+		  
           let feeTokenSymbol = 'ETH';
           if (feeTokenAddress != '0x0000000000000000000000000000000000000000') {
             const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
@@ -997,13 +1005,15 @@
 
 		  // Check if tokens are the same for fee and reward, otherwise we cannot do the calculation right now.
 		  if (feeTokenSymbol == rewardTokenSymbol) {
+            const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress)	;
+			const decimals = new BigNumber(await feeTokenContract.methods.decimals().call());
 			// Convert to BigNumbers
 			const entryFeeBN = new BigNumber(entryFee);
 			const prizeAmountBN = new BigNumber(prizeAmount);
 			const oddsBN = new BigNumber(odds);
 
-			const expectedGainLossBN = prizeAmountBN - (entryFeeBN * (oddsBN));
-			document.getElementById('expectedGainLoss').textContent = `${web3.utils.fromWei(expectedGainLossBN.toString(), 'ether')} ${rewardTokenSymbol}`;
+			const expectedGainLossBN = (prizeAmountBN.minus(entryFeeBN.times(oddsBN))).div(new BigNumber(10).pow(decimals)).toFixed(2);
+			document.getElementById('expectedGainLoss').textContent = `${expectedGainLossBN} ${rewardTokenSymbol}`;
 		  } else {
 			document.getElementById('expectedGainLoss').textContent = 'N/A';
 		  }
