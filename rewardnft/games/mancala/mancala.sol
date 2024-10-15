@@ -25,9 +25,8 @@ contract MancalaMatchNFT is ERC721, Ownable {
         _;
     }
 
-    constructor(address _mancalaGame) ERC721("Mancala Match NFT", "MMNFT") {
+    constructor() ERC721("Mancala Match NFT", "MMNFT") {
         nextTokenId = 1;
-        mancalaGame = _mancalaGame;
     }
 
     function setMancalaGame(address _mancalaGame) public onlyOwner {
@@ -157,13 +156,16 @@ contract MancalaGame is Ownable {
         _;
     }
 
-    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims, bool _returnKeys) Ownable() {
+    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims, bool _returnKeys, address payable _mancalaMatchNFT, address _potToken, uint256 _potFee) Ownable() {
         keyContract = _keyContract;
         keyDataContract = _keyDataContract;
         minKeyHealth = _minKeyHealth;
         minKeyAge = _minKeyAge;
         minKeyClaims = _minKeyClaims;
         returnKeys = _returnKeys;
+        mancalaMatchNFT = _mancalaMatchNFT;
+        potToken = _potToken;
+        potFee = _potFee;
     }
 
     // Get the players of a given game
