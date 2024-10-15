@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to Arcadium</title>
+  <!-- Google Fonts for better typography -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+  <style>
+    /* Reset some default browser styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Body styling */
+    body {
+      font-family: 'Press Start 2P', sans-serif;
+      background-color: #1a1a1a;
+      color: #e2e2e2;
+      line-height: 1.6;
+      letter-spacing: 0.05em;
+      overflow-x: hidden;
+    }
+
+    /* Header styling */
+    header {
+      background-color: #141414;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+      border-bottom: 2px solid #3a3a3a;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    header h1 {
+      font-size: 22px;
+      text-transform: uppercase;
+      color: #f5f5f5;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    }
+
+    .connect-wallet {
+      padding: 12px 25px;
+      background-color: #00ffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      text-transform: uppercase;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      box-shadow: 0 0 15px #00ffff;
+    }
+
+    .connect-wallet:hover {
+      background-color: #1a1a1a;
+      color: #00ffff;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+    }
+
+    /* Core content styling */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .hero-section {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .hero-section h2 {
+      font-size: 32px;
+      color: #00ffff;
+      text-shadow: 0 0 10px #ff00ff;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+    }
+
+    .hero-section p {
+      font-size: 18px;
+      color: #e2e2e2;
+      line-height: 1.8;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-section p span {
+      color: #ff00ff;
+      font-weight: 700;
+    }
+
+    /* Highlights section */
+    .highlights {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 80px;
+    }
+
+    .highlight {
+      width: 280px;
+      background-color: #262626;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #3a3a3a;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      transition: transform 0.2s, border 0.2s, box-shadow 0.2s;
+      text-align: center;
+    }
+
+    .highlight:hover {
+      transform: translateY(-5px);
+      border: 2px solid #00ffff;
+      box-shadow: 0 4px 30px #00ffff, 0 0 40px #ff00ff;
+    }
+
+    .highlight h3 {
+      font-size: 24px;
+      color: #ffffff;
+      text-shadow: 0 0 5px #ff00ff;
+      margin-bottom: 15px;
+    }
+
+    .highlight p {
+      font-size: 16px;
+      color: #e2e2e2;
+    }
+
+    /* Button styling */
+    .button {
+      padding: 10px 20px;
+      background-color: #00ffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-weight: 500;
+      font-size: 14px;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px #00ffff;
+      transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    }
+
+    .button:hover {
+      background-color: #141414;
+      color: #00ffff;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+      transform: translateY(-2px);
+    }
+
+    /* Footer styling */
+    footer {
+      background-color: #141414;
+      padding: 20px;
+      text-align: center;
+      color: #ffffff;
+      border-top: 2px solid #3a3a3a;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    footer p {
+      color: #00ffff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 12px;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .highlights {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .highlight {
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      .hero-section h2 {
+        font-size: 28px;
+      }
+
+      .hero-section p {
+        font-size: 16px;
+      }
+    }
+	.top-menu {
+		display: flex;
+		justify-content: flex-start;
+		align-items: center;
+		padding: 10px 20px;
+		background-color: #141414;
+		border-bottom: 2px solid #3a3a3a;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+	}
+
+	.menu-item {
+		padding: 10px 20px;
+		color: #ffffff;
+		cursor: pointer;
+		font-weight: 500;
+		font-size: 14px;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	.menu-item:hover {
+		color: #167fa6;
+	}  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-gamepad"></i> Arcadium</h1>
+    <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
+  </header>
+  <div class = "top-menu">
+    <a class = "menu-item" href="/">Home</a>
+	<a class = "menu-item" href="/lotto">Lotto</a>
+  </div>
+
+  <div class="container">
+    <div class="hero-section">
+      <h2>Welcome to Arcadium</h2>
+      <p>Your new **homebase** where **gamers** and **creatives** lead the charge. <span>The future of fun</span> is in your hands. Ready to dive in?</p>
+    </div>
+  
+    <div class="highlights">
+      <div class="highlight">
+        <h3><i class="fas fa-dice"></i> Mini Games</h3>
+        <p>Endless fun, endless rewards. From classics like **Mancala** to brand-new **Arcadium originals**, there’s always a game waiting for you.</p>
+      </div>
+      <div class="highlight">
+        <h3><i class="fas fa-cogs"></i> Community Driven</h3>
+        <p>Arcadium is run by **you**. Want a say in the action? This is where players and creators shape the game and the world.</p>
+      </div>
+      <div class="highlight">
+        <h3><i class="fas fa-heart"></i> Life & Play</h3>
+        <p>Entertainment goes beyond fun—it’s a way to **level up** life. Whether it's through **games for wellness** or creative projects, Arcadium's got your back.</p>
+      </div>
+    </div>
+  
+    <a href ="https://app.aragon.org/#/daos/arbitrum/0xa3be8738bdd17ea103ec1ba8f878793f0c4a38ed/dashboard" class="button">Discover More</button>
+  </div>
+  
+  <footer>
+    <p>&copy; 2024 Arcadium DAO - Powered by Gamers, Creatives, and a Decentralized Future</p>
+  </footer>
+
+  <!-- Include web3.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
+
+  <script>
+    let web3;
+    let userAddress;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const connectWalletButton = document.getElementById('connectWalletButton');
+      connectWalletButton.addEventListener('click', async () => {
+        await connectWallet();
+      });
+
+      async function connectWallet() {
+        if (window.ethereum) {
+          try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            web3 = new Web3(window.ethereum);
+            const accounts = await web3.eth.getAccounts();
+            userAddress = accounts[0];
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+          } catch (error) {
+            console.error('User denied account access');
+          }
+        } else {
+          alert('Please install MetaMask!');
+        }
+      }
+
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        const accounts = await web3.eth.getAccounts();
+        if (accounts.length > 0) {
+          userAddress = accounts[0];
+          connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

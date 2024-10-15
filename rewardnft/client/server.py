@@ -28,9 +28,14 @@ def apply_sparkles(base_img, overlay_img, sparkle_opacity=1.0):
 
 app = Flask(__name__)
 
+
 @app.route('/')
 def index():
-    return app.send_static_file('rewardpool.html')
+    return app.send_static_file('index.html')
+
+#@app.route('/pool')
+#def index():
+#    return app.send_static_file('rewardpool.html')
 
 #@app.route('/games/mancala')
 #def mancala():
