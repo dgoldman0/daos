@@ -230,8 +230,8 @@ contract MancalaGame is Ownable {
 
         // Pay the pot
         if (potFee > 0) {
-            games[gameIdCounter].potToken = potToken;
-            games[gameIdCounter].potFee = potFee;
+            games[newGameId].potToken = potToken;
+            games[newGameId].potFee = potFee;
             if (potToken != address(0)) {
                 IERC20(potToken).transferFrom(msg.sender, address(this), potFee);
             } else {
