@@ -109,6 +109,11 @@ contract MancalaGame is Ownable {
     uint256 public minKeyAge;
     // Minimum number of claims
     uint256 public minKeyClaims;
+    // Whether to return keys to the players after the game ends
+    bool public returnKeys;
+
+    address public potToken;
+    uint256 public potFee;
 
     uint256 public requestTimeout = 1 days;
 
@@ -123,7 +128,12 @@ contract MancalaGame is Ownable {
         uint256 keyB;
     }
 
+    struct Pot {
+        address token;
+        uint256 balance;
+    }
     mapping(uint256 => Game) public games; // Mapping of game IDs to game instances
+    mapping(uint256 => Pot) public potBalances; // Mapping of game IDs to pot balances (necessary because pot parameters could change over time)
     uint256 public gameIdCounter;
     uint256 public spareGameId;
 
@@ -131,7 +141,7 @@ contract MancalaGame is Ownable {
     event GameStarted(uint256 gameId, address playerA, address playerB);
     event MoveMade(uint256 gameId, address player, uint8 pitIndex);
     event TurnChanged(uint256 gameId, address currentPlayer);
-    event GameEnded(uint256 gameId, address winner);
+    event GameEnded(uint256 gameId, address winner, address token, uint256 balance);
 
     modifier onlyPlayer(uint256 gameId) {
         require(
@@ -149,12 +159,13 @@ contract MancalaGame is Ownable {
         _;
     }
 
-    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims) Ownable() {
+    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims, bool _returnKeys) Ownable() {
         keyContract = _keyContract;
         keyDataContract = _keyDataContract;
         minKeyHealth = _minKeyHealth;
         minKeyAge = _minKeyAge;
         minKeyClaims = _minKeyClaims;
+        returnKeys = _returnKeys;
     }
 
     // Get the players of a given game
@@ -188,7 +199,7 @@ contract MancalaGame is Ownable {
     }
 
     // Function to start a new game
-    function requestMatch(address opponent, uint256 keyId) public returns (uint256) {
+    function requestMatch(address opponent, uint256 keyId) public payable returns (uint256) {
         require(opponent != address(0), "Invalid opponent address");
         require(opponent != msg.sender, "Cannot play against yourself");
         // Require that the key is owned by the sender and meets the minimum requirements
@@ -199,6 +210,22 @@ contract MancalaGame is Ownable {
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
 
         require(mancalaMatchNFT != address(0), "MancalaMatchNFT contract not set");
+        // Pay the pot
+        if (potFee > 0) {
+            if (potToken != address(0)) {
+                IERC20(potToken).transferFrom(msg.sender, address(this), potFee);
+                potBalances[gameIdCounter].token = potToken;
+                potBalances[gameIdCounter].balance = potFee;
+            } else {
+                require(msg.value >= potFee, "Insufficient pot fee");
+                potBalances[gameIdCounter].token = address(0);
+                potBalances[gameIdCounter].balance = potFee;
+                // Return excess of over
+                if (msg.value > potFee) {
+                    payable(msg.sender).transfer(msg.value - potFee);
+                }
+            }
+        }
         // Transfer the key to the contract
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
         uint256 newGameId = gameIdCounter + 1;
@@ -221,7 +248,7 @@ contract MancalaGame is Ownable {
     }
 
     // Accept the game invitation and start the game
-    function acceptMatch(uint256 gameId, uint256 keyId) public {
+    function acceptMatch(uint256 gameId, uint256 keyId) public payable {
         require(games[gameId].playerB == msg.sender, "You are not invited to this game");
         require(games[gameId].state == GameState.Pending, "Game is not pending");
         require(IERC721(keyContract).ownerOf(keyId) == msg.sender, "Key is not owned by sender");
@@ -229,6 +256,22 @@ contract MancalaGame is Ownable {
         require(keyManager.getHealth(keyId) >= minKeyHealth, "Key health is too low");
         require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
+
+        // Pay the pot (match the address and value of the existing pot for the gameId
+        address potToken = potBalances[gameId].token;
+        uint256 potFee = potBalances[gameId].balance;
+        if (potFee > 0) {
+            if (potToken != address(0)) {
+                IERC20(potToken).transferFrom(msg.sender, address(this), potFee);
+            } else {
+                require(msg.value >= potFee, "Insufficient pot fee");
+                // Return excess of over
+                if (msg.value > potFee) {
+                    payable(msg.sender).transfer(msg.value - potFee);
+                }
+            }
+        }
+        potBalances[gameId].balance += potFee;
 
         // Transfer the key to the contract
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
@@ -377,7 +420,22 @@ contract MancalaGame is Ownable {
             MancalaMatchNFT(mancalaMatchNFT).setWinner(gameId, winner);
         }
 
-        emit GameEnded(gameId, winner);
+        // Return keys to the player if enabled
+        if (returnKeys) {
+            IERC721(keyContract).transferFrom(address(this), game.playerA, game.keyA);
+            IERC721(keyContract).transferFrom(address(this), game.playerB, game.keyB);
+        }
+
+        // Transfer the pot to the winner
+        if (potBalances[gameId].balance > 0) {
+            if (potBalances[gameId].token != address(0)) {
+                IERC20(potBalances[gameId].token).transfer(winner, potBalances[gameId].balance);
+            } else {
+                payable(winner).transfer(potBalances[gameId].balance);
+            }
+        }
+
+        emit GameEnded(gameId, winner, potBalances[gameId].token, potBalances[gameId].balance);    
     }
 
     // Owner only setters for game parameters
@@ -399,4 +457,13 @@ contract MancalaGame is Ownable {
     function setMinKeyClaims(uint256 _minKeyClaims) public onlyOwner {
         minKeyClaims = _minKeyClaims;
     }
+    function setReturnKeys(bool _returnKeys) public onlyOwner {
+        returnKeys = _returnKeys;
+    }
+    function setPotToken(address _potToken) public onlyOwner {
+        potToken = _potToken;
+    }
+    function setPotFee(uint256 _potFee) public onlyOwner {
+        potFee = _potFee;
+    }    
 }
