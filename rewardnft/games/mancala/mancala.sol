@@ -124,16 +124,14 @@ contract MancalaGame is Ownable {
         address currentPlayer;
         GameState state;
         uint256 requestTime;
+        uint256 startTime;
         uint256 keyA;
         uint256 keyB;
+        address potToken;
+        uint256 potFee;
     }
 
-    struct Pot {
-        address token;
-        uint256 balance;
-    }
     mapping(uint256 => Game) public games; // Mapping of game IDs to game instances
-    mapping(uint256 => Pot) public potBalances; // Mapping of game IDs to pot balances (necessary because pot parameters could change over time)
     uint256 public gameIdCounter;
     uint256 public spareGameId;
 
@@ -210,22 +208,8 @@ contract MancalaGame is Ownable {
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
 
         require(mancalaMatchNFT != address(0), "MancalaMatchNFT contract not set");
-        // Pay the pot
-        if (potFee > 0) {
-            if (potToken != address(0)) {
-                IERC20(potToken).transferFrom(msg.sender, address(this), potFee);
-                potBalances[gameIdCounter].token = potToken;
-                potBalances[gameIdCounter].balance = potFee;
-            } else {
-                require(msg.value >= potFee, "Insufficient pot fee");
-                potBalances[gameIdCounter].token = address(0);
-                potBalances[gameIdCounter].balance = potFee;
-                // Return excess of over
-                if (msg.value > potFee) {
-                    payable(msg.sender).transfer(msg.value - potFee);
-                }
-            }
-        }
+
+        require(potToken == address(0) ? msg.value >= potFee : IERC20(potToken).balanceOf(msg.sender) >= potFee, "Insufficient pot fee");
         // Transfer the key to the contract
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
         uint256 newGameId = gameIdCounter + 1;
@@ -241,6 +225,20 @@ contract MancalaGame is Ownable {
         games[newGameId].playerB = opponent;
         games[newGameId].keyA = keyId;
         games[newGameId].currentPlayer = msg.sender; // Player A starts
+
+        // Pay the pot
+        if (potFee > 0) {
+            games[gameIdCounter].potToken = potToken;
+            games[gameIdCounter].potFee = potFee;
+            if (potToken != address(0)) {
+                IERC20(potToken).transferFrom(msg.sender, address(this), potFee);
+            } else {
+                // Return excess of over
+                if (msg.value > potFee) {
+                    payable(msg.sender).transfer(msg.value - potFee);
+                }
+            }
+        }
         initializeBoard(games[newGameId].board);
         games[newGameId].state = GameState.Pending;
         emit MatchRequested(newGameId, msg.sender, opponent);
@@ -257,22 +255,21 @@ contract MancalaGame is Ownable {
         require(keyManager.getMintDate(keyId) <= block.timestamp - minKeyAge, "Key is too young");
         require(keyManager.getTotalClaims(keyId) >= minKeyClaims, "Key has not been claimed enough");
 
+        require(potToken == address(0) ? msg.value >= potFee : IERC20(potToken).balanceOf(msg.sender) >= potFee, "Insufficient pot fee");
+
         // Pay the pot (match the address and value of the existing pot for the gameId
-        address potToken = potBalances[gameId].token;
-        uint256 potFee = potBalances[gameId].balance;
+        address potToken = games[gameId].potToken;
+        uint256 potFee = games[gameId].potFee;
         if (potFee > 0) {
             if (potToken != address(0)) {
                 IERC20(potToken).transferFrom(msg.sender, address(this), potFee);
             } else {
-                require(msg.value >= potFee, "Insufficient pot fee");
                 // Return excess of over
                 if (msg.value > potFee) {
                     payable(msg.sender).transfer(msg.value - potFee);
                 }
             }
         }
-        potBalances[gameId].balance += potFee;
-
         // Transfer the key to the contract
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
         games[gameId].keyB = keyId;
@@ -308,6 +305,17 @@ contract MancalaGame is Ownable {
         require(pitIndex < 14, "Invalid pit index");
         require(game.board[pitIndex] > 0, "Selected pit is empty");
 
+        // Ensure that there's enough funds for the pot, should the game end
+        address potToken = game.potToken;
+        uint256 payout = game.potFee  * 2; // Double the pot since it's a 1v1 game
+        if (payout > 0) {
+            if (potToken != address(0)) {
+                require(IERC20(potToken).balanceOf(address(this)) >= payout, "Insufficient pot funds");
+            } else {
+                require(address(this).balance >= payout, "Insufficient pot funds");
+            }
+        }
+        
         bool extraTurn = false;
 
         // Ensure the pit belongs to the current player
@@ -427,15 +435,17 @@ contract MancalaGame is Ownable {
         }
 
         // Transfer the pot to the winner
-        if (potBalances[gameId].balance > 0) {
-            if (potBalances[gameId].token != address(0)) {
-                IERC20(potBalances[gameId].token).transfer(winner, potBalances[gameId].balance);
+        address potToken = games[gameId].potToken;
+        uint256 payout = games[gameId].potFee * 2; // Double the pot since it was paid by both players
+        if (payout > 0) {
+            if (potToken != address(0)) {
+                IERC20(potToken).transfer(winner, payout);
             } else {
-                payable(winner).transfer(potBalances[gameId].balance);
+                payable(winner).transfer(payout);
             }
         }
 
-        emit GameEnded(gameId, winner, potBalances[gameId].token, potBalances[gameId].balance);    
+        emit GameEnded(gameId, winner, potToken, payout);    
     }
 
     // Owner only setters for game parameters
