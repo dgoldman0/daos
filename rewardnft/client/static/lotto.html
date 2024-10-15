@@ -1013,7 +1013,7 @@
 			const oddsBN = new BigNumber(odds);
 			
 			// The exepcted gain is the prize amount / odds - entry fee
-			const expectedGainLossBN = prizeAmountBN.div(oddsBN).minus(entryFeeBN)).div(new BigNumber(10).pow(decimals));
+			const expectedGainLossBN = prizeAmountBN.div(oddsBN).minus(entryFeeBN).div(new BigNumber(10).pow(decimals));
 			document.getElementById('expectedGainLoss').textContent = `${expectedGainLossBN} ${rewardTokenSymbol}`;
 		  } else {
 			document.getElementById('expectedGainLoss').textContent = 'N/A';
