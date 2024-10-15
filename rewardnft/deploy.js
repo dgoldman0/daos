@@ -1,4 +1,5 @@
 async function main() {
+    const acmToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Dummy for now, change to actual ACM when live.
     try {
         // Get accounts from web3
         const accounts = await web3.eth.getAccounts();
@@ -12,7 +13,7 @@ async function main() {
         const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimNFTManager.json'));
 
         const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
-        const paymentToken = "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f"; // Token address for repair potions: Change to ACM when live.
+        const paymentToken = acmToken;
         const cost = web3.utils.toWei("5", "ether"); // Cost of repair potion as string
 
         // Deploy RepairPotion
@@ -98,17 +99,19 @@ async function main() {
         const mancalaMatchNFT = await MancalaMatchNFT.deploy({ data: mancalaMatchArtifact.data.bytecode.object })
             .send({ from: deployer, gas: 5000000 });
 
-        // Deploy Mancala Game
-        const potToken = rewardToken;
+        // Deploy Mancala Game: 255 health as the max health, one hour age as the minimum age of the NFT to play, and 5 claims is the minimum claims in the key to play, use the rewardToken as the pot token with a value of 1000 tokens
+        const potToken = acmToken;
         const potFee = web3.utils.toWei("1000", "ether");
         const mancalaGameArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'games/artifacts/MancalaGame.json'));
         const MancalaGame = new web3.eth.Contract(mancalaGameArtifact.abi);
-        // Deploy game with 255 health as the max health, one hour age as the minimum age of the NFT to play, and 5 claims is the minimum claims in the key to play, use the rewardToken as the pot token with a value of 
         const mancalaGame = await MancalaGame.deploy({
             data: mancalaGameArtifact.data.bytecode.object,
             arguments: [claimManager.options.address, 255, 3600, 5, true, mancalaMatchNFT.options.address, potToken, potFee]
         }).send({ from: deployer, gas: 5000000 });
-        
+
+        console.log("MancalaMatchNFT deployed to:", mancalaMatchNFT.options.address);
+        // Setting the game address in the NFT
+        await mancalaMatchNFT.methods.setMancalaGame(mancalaGame.options.address).send({ from: deployer });
         console.log("MancalaGame deployed to:", mancalaGame.options.address);
 
     } catch (error) {
