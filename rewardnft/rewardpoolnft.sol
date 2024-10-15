@@ -36,17 +36,14 @@ contract RepairPotion is ERC20, Ownable {
         require(amount > 0, "Amount must be greater than zero");
         require(amount + totalSupply() <= maxSupply, "Exceeds maximum supply");
         uint256 cost = purchasePrice * amount;
-        require((purchaseToken == address(0) && msg.value == cost) || IERC20(purchaseToken).transferFrom(msg.sender, address(this), cost), "Invalid payment");
+        require((purchaseToken == address(0) && msg.value == cost) || IERC20(purchaseToken).balanceOf(msg.sender) >= cost && IERC20(purchaseToken).allowance(msg.sender, address(this)) >= cost, "Insufficient funds or allowance");
+        require(purchaseToken == address(0) || msg.value == 0, "ETH payment not allowed");
+        IERC20(purchaseToken).transferFrom(msg.sender, address(this), cost);
 
         if (purchaseToken == address(0)) {
             // Refund any excess payment
             if (msg.value > cost) {
                 payable(msg.sender).transfer(msg.value - cost);
-            }
-        } else {
-            // Refund any excess tokens
-            if (IERC20(purchaseToken).balanceOf(address(this)) > cost) {
-                IERC20(purchaseToken).transfer(msg.sender, IERC20(purchaseToken).balanceOf(address(this)) - cost);
             }
         }
         _mint(msg.sender, amount);
@@ -205,7 +202,6 @@ contract PaymentManager is Ownable {
 // Handles NFT detials and claims... 
 contract ClaimNFTManager is Ownable {
     address public potionToken;
-    mapping (address => bool) public controllers; // Only the controller contract can modify data
 
     struct NFTInfo {
         uint256 mintDate;
@@ -245,6 +241,7 @@ contract ClaimNFTManager is Ownable {
 
     // Function to initialize claim data for a new NFT (only controller can call this)
     function initializeNFT(uint256 tokenId) external {
+        require(msg.sender == nftContract, "Only the NFT contract can call this function");
         claimData[tokenId] = NFTInfo(block.timestamp, 0, false, 255);
     }
 
