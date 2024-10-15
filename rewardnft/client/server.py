@@ -32,17 +32,17 @@ app = Flask(__name__)
 def index():
     return app.send_static_file('rewardpool.html')
 
-@app.route('/games/mancala')
-def mancala():
-    return app.send_static_file('games/mancala.html')
+#@app.route('/games/mancala')
+#def mancala():
+#    return app.send_static_file('games/mancala.html')
 
-@app.route('/games/chess')
-def chess():
-    return app.send_static_file('games/chess.html')
+#@app.route('/games/chess')
+#def chess():
+#    return app.send_static_file('games/chess.html')
 
-@app.route('/utils/random')
-def random():
-    return app.send_static_file('utils/random.html')
+#@app.route('/utils/random')
+#def random():
+#    return app.send_static_file('utils/random.html')
 
 @app.route('/lotto')
 def lotto():
@@ -64,6 +64,11 @@ def media():
 
     # Use send_file to send the image from the buffer
     return send_file(img_io, mimetype='image/png')
+
+# All other routes should go to a static page about feature not yet being implemented rather than basic 404
+@app.errorhandler(404)
+def page_not_found(e):
+    return app.send_static_file('not_implemented.html')
 
 if __name__ == '__main__':
     # Parse command line arguments, including debug mode, server port, etc.
