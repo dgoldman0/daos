@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../../utils/ownable.sol";
+import "../../iclaimnftmanager.sol";
 
 contract MancalaMatchNFT is ERC721, Ownable {
     uint256 public nextTokenId;
@@ -81,13 +82,6 @@ contract MancalaMatchNFT is ERC721, Ownable {
         }
         return board;
     }
-}
-
-// Needed so the game can interact with the NFT's internal data
-interface IClaimNFTManager {
-    function getHealth(uint256 tokenId) external view returns (uint256);
-    function getMintDate(uint256 tokenId) external view returns (uint256);
-    function getTotalClaims(uint256 tokenId) external view returns (uint256);
 }
 
 // Should have it where the person creating the game can set a prize pool (and even what token it is paid in) where other player would have to match to accept, and the winner gets the pool.
