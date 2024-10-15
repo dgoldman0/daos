@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "./utils/irandomseedgenerator.sol";
 import "./utils/ownable.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "./iclaimnftmanager.sol";
 
 // Should add the NFT keys to the contract so each NFT can only play once every so often. 
 contract LottoMachine is Ownable {
@@ -15,11 +17,18 @@ contract LottoMachine is Ownable {
     uint256 public feeAmount;
     uint128 public odds; 
 
+    address keyNFTContract;
+    address keyDataManager;
+
+    mapping (uint256 => uint256) public lastPlayed; // Record of when the NFT last used to play
+
     // Events
     event Play(address indexed player, uint256 seed, uint256 random, bool win, uint256 prize);
 
-    constructor(address _randomseedgenerator) Ownable() {
+    constructor(address _randomseedgenerator, address _keyNFTContract, address _keyDataManager) Ownable() {
         randomseedgenerator = _randomseedgenerator;
+        keyNFTContract = _keyNFTContract;
+        keyDataManager = _keyDataManager;
     }
 
     function play() public payable returns (uint256) {
@@ -92,5 +101,13 @@ contract LottoMachine is Ownable {
 
     function setFeeAmount(uint256 _feeAmount) external onlyOwner {
         feeAmount = _feeAmount;
+    }
+
+    function setKeyNFTContract(address _keyNFTContract) external onlyOwner {
+        keyNFTContract = _keyNFTContract;
+    }
+
+    function setKeyDataManager(address _keyDataManager) external onlyOwner {
+        keyDataManager = _keyDataManager;
     }
 }
