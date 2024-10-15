@@ -1001,6 +1001,7 @@
           }
 
           handlePlayEvent(txReceipt);
+		  await loadLottoParameters();
         } catch (error) {
           console.error('Failed to play lottery', error);
           showNotification('Failed to play lottery.', true);
