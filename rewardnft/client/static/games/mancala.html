@@ -20,6 +20,46 @@
             font-size: 2.5em;
         }
 
+		header {
+			background-color: #8b5e34; /* Matches the color scheme of the desert theme */
+			padding: 20px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			color: #f7f3e9; /* Lighter, earthy tones for text */
+			border-bottom: 2px solid #e0d8c3; /* Subtle border to match page */
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Softer shadow to blend with the organic theme */
+		}
+
+		header h1 {
+			font-size: 22px;
+			text-transform: uppercase;
+			color: #f7f3e9; /* Matches lighter text tone */
+			letter-spacing: 0.1em;
+			text-shadow: 0 0 5px #b08a63; /* Softer glow with desert tones */
+		}
+
+		.connect-wallet {
+			padding: 12px 25px;
+			background-color: #e0d8c3; /* Matches the background color of the page */
+			color: #8b5e34; /* Uses the same brown from the header */
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+			font-weight: 500;
+			transition: background-color 0.3s, box-shadow 0.3s;
+			text-transform: uppercase;
+			font-size: 14px;
+			letter-spacing: 0.1em;
+			box-shadow: 0 0 15px rgba(139, 94, 52, 0.5); /* Softer shadow with earth tones */
+		}
+
+		.connect-wallet:hover {
+			background-color: #b08a63; /* Darker brown on hover for contrast */
+			color: #f7f3e9; /* Light text on hover */
+			box-shadow: 0 0 20px rgba(139, 94, 52, 0.7), 0 0 40px rgba(139, 94, 52, 0.7); /* Enhanced shadow effect on hover */
+		}
+
         .game-container {
             display: flex;
             justify-content: center;
@@ -259,11 +299,14 @@
     </style>
 </head>
 <body>
-	<div class="top-menu">
+	<header>
+		<h1><i class="fa-solid fa-gem"></i> Mancala - Desert Wisdom</h1>
+		<button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
+	  </header>
+		<div class="top-menu">
 		<a class = "menu-item" href="/">Home</a>
-		<a class = "menu-item"  href="/mancala">Mancala</a>
+		<a class = "menu-item"  href="/lotto">Lotto</a>
 	</div>
-    <h1>Mancala - Desert Wisdom</h1>
 
     <div class="game-container">
         <div class="key-container">
@@ -2305,7 +2348,29 @@
 
 		let selectedKeyId = null;
 
-		async function selectKey(keyId) {
+		const connectWalletButton = document.getElementById('connectWalletButton');
+			connectWalletButton.addEventListener('click', async () => {
+			await connectWallet();
+			});
+			
+			async function connectWallet() {
+				if (window.ethereum) {
+					try {
+						await window.ethereum.request({ method: 'eth_requestAccounts' });
+						web3 = new Web3(window.ethereum);
+						const accounts = await web3.eth.getAccounts();
+						userAddress = accounts[0];
+						connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+						await initialize(); // Reset
+					} catch (error) {
+					console.error('User denied account access');
+					}
+				} else {
+					alert('Please install MetaMask!');
+				}
+			}
+
+			async function selectKey(keyId) {
 			let accounts = await web3.eth.getAccounts();
 			selectedKeyId = keyId;
 			// Check if key is approved to be
@@ -2401,9 +2466,11 @@
                 web3 = new Web3(window.ethereum);
                 await window.ethereum.request({ method: "eth_requestAccounts" });
                 let accounts = await web3.eth.getAccounts();
+				let userAddress = accounts[0];
                 mancalaContract = new web3.eth.Contract(mancalaABI, mancalaContractAddress);
 				keyContract = new web3.eth.Contract(keyABI, keyContractAddress);
 				keyDataManagerContract = new web3.eth.Contract(keyDataManagerABI, keyDataManagerContractAddress);
+		          connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
 
 				await updateMatches();
 				await updateKeys();

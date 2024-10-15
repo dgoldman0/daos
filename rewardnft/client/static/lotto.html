@@ -193,6 +193,27 @@
         font-size: 14px;
       }
     }
+	.top-menu {
+		display: flex;
+		justify-content: flex-start;
+		align-items: center;
+		padding: 10px 20px;
+		background-color: #141414;
+		border-bottom: 2px solid #3a3a3a;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+	}
+	.menu-item {
+		padding: 10px 20px;
+		color: #ffffff;
+		cursor: pointer;
+		font-weight: 500;
+		font-size: 14px;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	.menu-item:hover {
+		color: #167fa6;
+	}
   </style>
 </head>
 <body>
@@ -200,6 +221,10 @@
     <h1><i class="fas fa-dice"></i> Lotto Game Interface</h1>
     <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
   </header>
+  <div class = "top-menu">
+	<a class = "menu-item" href="/">Reward Pool</a>
+	<a class = "menu-item" href="/games/mancala">Mancala</a>
+  </div>
 
   <!-- Notification Area -->
   <div id="notificationArea"></div>
@@ -211,6 +236,7 @@
       <div class="info">Entry Fee: <span id="entryFee"></span></div>
       <div class="info">Prize Amount: <span id="prizeAmount"></span></div>
       <div class="info">Odds of Winning: <span id="odds"></span></div>
+	  <div class="info">Expected Gain/Loss: <span id="expectedGainLoss"></span></div>
       <button id="playButton" class="button">Play Lottery</button>
     </div>
 
@@ -227,7 +253,7 @@
 
   <!-- Include web3.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bignumber.js/8.0.2/bignumber.min.js"></script>  
   <script>
     // Contract ABI (replace with actual ABI)
     const lottoAbi = [
@@ -969,6 +995,19 @@
           }
 
           document.getElementById('odds').textContent = `1 in ${odds}`;
+
+		  // Check if tokens are the same for fee and reward, otherwise we cannot do the calculation right now.
+		  if (feeTokenSymbol == rewardTokenSymbol) {
+			// Convert to BigNumbers
+			const entryFeeBN = new BigNumber(entryFee);
+			const prizeAmountBN = new BigNumber(prizeAmount);
+			const oddsBN = new BigNumber(odds);
+
+			const expectedGainLossBN = prizeAmountBN - (entryFeeBN * (oddsBN));
+			document.getElementById('expectedGainLoss').textContent = `${web3.utils.fromWei(expectedGainLossBN.toString(), 'ether')} ${rewardTokenSymbol}`;
+		  } else {
+			document.getElementById('expectedGainLoss').textContent = 'N/A';
+		  }
         } catch (error) {
           console.error('Failed to load lotto parameters', error);
         }
