@@ -5,6 +5,7 @@ import "./utils/irandomseedgenerator.sol";
 import "./utils/ownable.sol";
 import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
 
+// Should add the NFT keys to the contract so each NFT can only play once every so often. 
 contract LottoMachine is Ownable {
     address public randomseedgenerator;
     address public rewardToken;
