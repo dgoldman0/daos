@@ -7,7 +7,7 @@ import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./iclaimnftmanager.sol";
 
-// Should add the NFT keys to the contract so each NFT can only play once every so often. 
+// Still a lot of work to do, gotta add minimum age, etc. 
 contract LottoMachine is Ownable {
     address public randomseedgenerator;
     address public rewardToken;
@@ -16,9 +16,17 @@ contract LottoMachine is Ownable {
     address public feeToken;
     uint256 public feeAmount;
     uint128 public odds; 
+    uint256 public cooldownPeriod; // Cooldown period for NFTs
 
     address keyNFTContract;
     address keyDataManager;
+
+    // Minimum health of the key
+    uint256 public minKeyHealth;
+    // Minimum age of the key
+    uint256 public minKeyAge;
+    // Minimum number of claims
+    uint256 public minKeyClaims;    
 
     mapping (uint256 => uint256) public lastPlayed; // Record of when the NFT last used to play
 
@@ -31,7 +39,7 @@ contract LottoMachine is Ownable {
         keyDataManager = _keyDataManager;
     }
 
-    function play() public payable returns (uint256) {
+    function play(uint256 _key) public payable returns (uint256) {
         // If contract is 0 then it's ETH, otherwise ERC20
         require((feeToken == address(0) && msg.value >= feeAmount) || IERC20(feeToken).balanceOf(msg.sender) >= feeAmount, "No funds sent");
         
@@ -42,6 +50,15 @@ contract LottoMachine is Ownable {
 
         // Ensure balance is enough
         require(feeToken == address(0) ? address(this).balance >= actualPrize : IERC20(feeToken).balanceOf(address(this)) >= actualPrize, "Insufficient funds");
+
+        // Check if the key is valid
+        require(IERC721(keyNFTContract).ownerOf(_key) == msg.sender, "Not the owner of the key");
+        require(IClaimNFTManager(keyDataManager).getHealth(_key) >= minKeyHealth, "Key health too low");
+        require(block.timestamp - IClaimNFTManager(keyDataManager).getMintDate(_key) >= minKeyAge, "Key age too low");
+        require(IClaimNFTManager(keyDataManager).getTotalClaims(_key) >= minKeyClaims, "Key claims too low");
+        require(block.timestamp - lastPlayed[_key] >= cooldownPeriod, "Key on cooldown");
+
+        lastPlayed[_key] = block.timestamp;
 
         // Refund excess if there is any
         if (feeToken == address(0) && msg.value > feeAmount) {
@@ -79,6 +96,22 @@ contract LottoMachine is Ownable {
 
     function setOdds(uint128 _odds) external onlyOwner {
         odds = _odds;
+    }
+
+    function setMinKeyHealth(uint256 _minKeyHealth) external onlyOwner {
+        minKeyHealth = _minKeyHealth;
+    }
+
+    function setMinKeyAge(uint256 _minKeyAge) external onlyOwner {
+        minKeyAge = _minKeyAge;
+    }
+
+    function setMinKeyClaims(uint256 _minKeyClaims) external onlyOwner {
+        minKeyClaims = _minKeyClaims;
+    }
+
+    function setCooldownPeriod(uint256 _cooldownPeriod) external onlyOwner {
+        cooldownPeriod = _cooldownPeriod;
     }
 
     function setRewardToken(address _rewardToken) external onlyOwner {
