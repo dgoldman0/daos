@@ -96,7 +96,7 @@ async function main() {
         console.log("Minted 5 initial NFTs to owner");
 
 
-        /* INSTEAD OF MANCALA DEPLOY THE LOTTO SINCE IT'S READY */
+        /* INSTEAD OF MANCALA DEPLOY THE LOTTO SINCE IT'S READY
 
         // Deploy Mancala Match NFT
         const MancalaMatchNFT = new web3.eth.Contract(mancalaMatchArtifact.abi);
@@ -126,6 +126,39 @@ async function main() {
         // Setting the game address in the NFT
         await mancalaMatchNFT.methods.setMancalaGame(mancalaGame.options.address).send({ from: deployer });
         console.log("MancalaGame deployed to:", mancalaGame.options.address);
+        */
+
+        // Deploy Lotto Game
+        const lottoArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/lotto.json'));
+        const Lotto = new web3.eth.Contract(lottoArtifact.abi);
+        const lotto = await Lotto.deploy({ data: lottoArtifact.data.bytecode.object,
+            arguments: [rewardPoolNFT.options.address, claimManager.options.address] })
+            .send({ from: deployer, gas: 5000000 });
+
+        console.log("Lotto deployed to:", lotto.options.address);
+
+        // Set the lotto parameters: Still working on this...
+        await lotto.methods.setOdds(200).send({ from: deployer });
+        await lotto.methods.setMinKeyHealth(255).send({ from: deployer });
+        await lotto.methods.setMinKeyAge(3600).send({ from: deployer });
+        await lotto.methods.setMinKeyClaims(10).send({ from: deployer });
+
+        // Set the reward token to ACM
+        await lotto.methods.setRewardToken(acmToken).send({ from: deployer });
+        // Set the prize amount to 12600 ACM
+        await lotto.methods.setPrizeAmount(web3.utils.toWei("12600", "ether")).send({ from: deployer });
+
+        // Set the fee token to ACM
+        await lotto.methods.setFeeToken(acmToken).send({ from: deployer });
+        // Set the fee amount to 50 ACM
+        await lotto.methods.setFeeAmount(web3.utils.toWei("50", "ether")).send({ from: deployer });
+
+        // Set the key NFT contract to the RewardPoolNFT
+        await lotto.methods.setKeyNFTContract(rewardPoolNFT.options.address).send({ from: deployer });
+        // Set the key data manager to the ClaimManager
+        await lotto.methods.setKeyDataManager(claimManager.options.address).send({ from: deployer });
+
+        console.log("Lotto parameters set, except for the random number generator, which will be deployed separately...");
 
     } catch (error) {
         // Log full error details for better debugging
