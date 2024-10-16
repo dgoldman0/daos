@@ -11,3 +11,5 @@ ClaimManager deployed to:
 0x6Ed1c7185da8B225c292d9d4c7ad675637a5C0b4
 Lotto deployed to:
 0x58C5f8ED50aDb8B2c8E8bBe847d98283B519e3f0
+
+Still need random and need to deploy another lotto because I noticed another error...
