@@ -36,7 +36,7 @@ contract LottoMachine is Ownable {
     constructor() Ownable() {
     }
 
-    function play(uint256 _key) public payable returns (uint256) {
+    function play(uint256 _key) public payable returns (uint256 _prize) {
         // If contract is 0 then it's ETH, otherwise ERC20
         require((feeToken == address(0) && msg.value >= feeAmount) || IERC20(feeToken).balanceOf(msg.sender) >= feeAmount, "No funds sent");
         
@@ -73,10 +73,11 @@ contract LottoMachine is Ownable {
                 IERC20(rewardToken).transfer(msg.sender, actualPrize);
             }
             emit Play(msg.sender, _key, seed, random, true, actualPrize);
+            return actualPrize;
         } else {
             emit Play(msg.sender, _key, seed, random, false, 0);
+            return 0;
         }
-
     }
 
     function getPrizeAmount() public view returns (uint256) {
