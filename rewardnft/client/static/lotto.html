@@ -288,7 +288,10 @@
     </div>
 	<div class="section" id="keySection">
 		<h2>Keys</h2>
-		<div class="info">Select a key to play the lottery:</div>
+		<div class="info">Minimum Required Key Age: <span id="minKeyAge"></span></div>
+		<div class="info">Minimum Required Key Health: <span id="minKeyHealth"></span></div>
+		<div class="info">Minimum Required Key Claims: <span id="minKeyClaims"></span></div>
+		<h3 class="info">Select a key to play the lottery</h3>
 
 		<div class = "key-list" id = "keyList">
 		  </div>
@@ -317,13 +320,7 @@
     // Contract ABI (replace with actual ABI)
     const lottoAbi = [
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_randomseedgenerator",
-						"type": "address"
-					}
-				],
+				"inputs": [],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
 			},
@@ -382,6 +379,12 @@
 						"type": "address"
 					},
 					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "key",
+						"type": "uint256"
+					},
+					{
 						"indexed": false,
 						"internalType": "uint256",
 						"name": "seed",
@@ -438,6 +441,19 @@
 			},
 			{
 				"inputs": [],
+				"name": "cooldownPeriod",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
 				"name": "feeAmount",
 				"outputs": [
 					{
@@ -465,6 +481,83 @@
 			{
 				"inputs": [],
 				"name": "getPrizeAmount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_key",
+						"type": "uint256"
+					}
+				],
+				"name": "isKeyEligible",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "lastPlayed",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyAge",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyClaims",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyHealth",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -528,12 +621,18 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_key",
+						"type": "uint256"
+					}
+				],
 				"name": "play",
 				"outputs": [
 					{
 						"internalType": "uint256",
-						"name": "",
+						"name": "_prize",
 						"type": "uint256"
 					}
 				],
@@ -603,6 +702,19 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
+						"name": "_cooldownPeriod",
+						"type": "uint256"
+					}
+				],
+				"name": "setCooldownPeriod",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
 						"name": "_feeAmount",
 						"type": "uint256"
 					}
@@ -621,6 +733,71 @@
 					}
 				],
 				"name": "setFeeToken",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_keyDataManager",
+						"type": "address"
+					}
+				],
+				"name": "setKeyDataManager",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_keyNFTContract",
+						"type": "address"
+					}
+				],
+				"name": "setKeyNFTContract",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minKeyAge",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinKeyAge",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minKeyClaims",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinKeyClaims",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minKeyHealth",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinKeyHealth",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -2429,10 +2606,31 @@
 		  console.log(balance);
 		  for (let i = 0; i < balance; i++) {
 			const tokenId = await nftContract.methods.tokenOfOwnerByIndex(userAddress, i).call();
-			console.log(tokenId);
-			keys.push(tokenId);
-		  }
+			// Get key details. Consider the data manager abi. We need the mint date, health, and total claims.
+			const totalClaims = await claimManagerContract.methods.getTotalClaims(tokenId).call();
+			const health = await claimManagerContract.methods.getHealth(tokenId).call();
+			const mintDate = await claimManagerContract.methods.getMintDate(tokenId).call();
+			let age = 0;
+			try {
+				age = Math.floor((Date.now() / 1000) - parseInt(mintDate));
+			} catch (error) {
+				console.log(error);
+			}
+	
+			const minKeyHealth = await lottoContract.methods.minKeyHealth().call();
+			const minKeyAge = await lottoContract.methods.minKeyAge().call();
+			const minKeyClaims = await lottoContract.methods.minKeyClaims().call();
+			
+			// Update the UI with the minimum details
+			document.getElementById('minKeyHealth').textContent = minKeyHealth;
+			document.getElementById('minKeyAge').textContent = minKeyAge;
+			document.getElementById('minKeyClaims').textContent = minKeyClaims;
 
+
+			// Check if the key is eligible for the lottery
+			if (health >= minKeyHealth && age >= minKeyAge && totalClaims >= minKeyClaims)
+				keys.push(tokenId);
+		  }
 
 		  const keysList = document.getElementById('keyList');
 		  keysList.innerHTML = '';
@@ -2508,7 +2706,7 @@
 
           if (feeTokenAddress == '0x0000000000000000000000000000000000000000') {
             // ETH payment
-            txReceipt = await lottoContract.methods.play().send({ from: userAddress, value: entryFee });
+            txReceipt = await lottoContract.methods.play(keyid).send({ from: userAddress, value: entryFee });
           } else {
             // ERC20 payment
             const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
@@ -2516,7 +2714,7 @@
             if (allowance < entryFee) {
               await feeTokenContract.methods.approve(lottoContractAddress, entryFee).send({ from: userAddress });
             }
-            txReceipt = await lottoContract.methods.play().send({ from: userAddress });
+            txReceipt = await lottoContract.methods.play(keyid).send({ from: userAddress });
           }
 
           handlePlayEvent(txReceipt);
