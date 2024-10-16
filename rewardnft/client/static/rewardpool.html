@@ -14,7 +14,7 @@
     margin: 0;
     padding: 0;
     }
-	
+
 	/* Scrollbar styling */
 	::-webkit-scrollbar {
 	width: 12px; /* Set the width of the scrollbar */
@@ -3398,9 +3398,6 @@
         notificationArea.removeChild(notification);
       }, 4000);
     }
-
-	// Refresh data every 10 seconds
-    setInterval(refreshData, 10000);
 
     if (window.ethereum) {
       web3 = new Web3(window.ethereum);
