@@ -33,9 +33,9 @@ app = Flask(__name__)
 def index():
     return app.send_static_file('index.html')
 
-#@app.route('/pool')
-#def index():
-#    return app.send_static_file('rewardpool.html')
+@app.route('/pool')
+def pool():
+    return app.send_static_file('rewardpool.html')
 
 #@app.route('/games/mancala')
 #def mancala():
