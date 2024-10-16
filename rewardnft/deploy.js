@@ -95,7 +95,10 @@ async function main() {
         await rewardPoolNFT.methods.mintTo(deployer, 5).send({ from: deployer });
         console.log("Minted 5 initial NFTs to owner");
 
-        // Deplot Mancala Match NFT
+
+        /* INSTEAD OF MANCALA DEPLOY THE LOTTO SINCE IT'S READY */
+
+        // Deploy Mancala Match NFT
         const MancalaMatchNFT = new web3.eth.Contract(mancalaMatchArtifact.abi);
         const mancalaMatchNFT = await MancalaMatchNFT.deploy({ data: mancalaMatchArtifact.data.bytecode.object })
             .send({ from: deployer, gas: 5000000 });
