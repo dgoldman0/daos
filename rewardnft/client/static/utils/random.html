@@ -1,68 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Seed Polling</title>
-    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.3.0/dist/web3.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Welcome to Arcadium</title>
+  <!-- Google Fonts for better typography -->
+  <link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+  <style>
+    /* Reset some default browser styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Body styling */
+    body {
+      font-family: 'Press Start 2P', sans-serif;
+      background-color: #1a1a1a;
+      color: #e2e2e2;
+      line-height: 1.6;
+      letter-spacing: 0.05em;
+      overflow-x: hidden;
+    }
+
+    /* Header styling */
+    header {
+      background-color: #141414;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+      border-bottom: 2px solid #3a3a3a;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    header h1 {
+      font-size: 18px;
+      text-transform: uppercase;
+      color: #f5f5f5;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    }
+
+    .connect-wallet {
+      padding: 12px 25px;
+      background-color: #00ffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      text-transform: uppercase;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      box-shadow: 0 0 15px #00ffff;
+    }
+
+    .connect-wallet:hover {
+      background-color: #1a1a1a;
+      color: #00ffff;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+    }
+
+    /* Core content styling */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .hero-section {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .hero-section h2 {
+      font-size: 28px;
+      color: #00ffff;
+      text-shadow: 0 0 10px #ff00ff;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+    }
+
+    .hero-section p {
+      font-size: 14px;
+      color: #e2e2e2;
+      line-height: 1.8;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-section p span {
+      color: #ff00ff;
+      font-weight: 700;
+    }
+
+    .event-list {
+      margin-top: 40px;
+      padding: 20px;
+      background-color: #262626;
+      border-radius: 10px;
+      border: 2px solid #3a3a3a;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .event-scroll {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .event-list h3 {
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 5px #00ffff;
+      margin-bottom: 15px;
+    }
+
+    .event-item {
+      font-size: 14px;
+      color: #e2e2e2;
+      margin-bottom: 10px;
+    }
+
+    /* Footer styling */
+    footer {
+      background-color: #141414;
+      padding: 20px;
+      text-align: center;
+      color: #ffffff;
+      border-top: 2px solid #3a3a3a;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    footer p {
+      color: #00ffff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 12px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Current Random Seed</h1>
-    <div id="seedValue">Loading...</div>
-    <h2>Average Interval Between Seed Changes: <span id="avgInterval">N/A</span> seconds</h2>
+  <header>
+    <h1><i class="fas fa-shuffle"></i> Random</h1>
+    <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
+  </header>
+  <div class="top-menu">
+    <a class="menu-item" href="/">Home</a>
+    <a class="menu-item" href="/pool">Claim Pool</a>
+    <a class="menu-item" href="/lotto">Lotto</a>
+  </div>
 
-    <script>
-        const contractAddress = '0xB5947362797Cae76e6f0F4E0E9dE851fF97c2758';
-        const abi = [
+  <div class="container">
+    <div class="hero-section">
+      <h2>Welcome to Arcadium Random Number Generator (Uniswap Version)</h2>
+      <p>The current version of our random seed generator uses noise generated from users interacting with Uniswap liquidity pools.</p>
+    </div>
+
+    <div class="event-list">
+      <h3>Recent Seed Generated Events</h3>
+      <div class = "event-scroll" id="eventContainer"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2024 Arcadium DAO - Powered by Gamers, Creatives, and a Decentralized Future</p>
+  </footer>
+
+  <!-- Include web3.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
+
+  <script>
+    let web3;
+    let userAddress;
+    const contractAddress = '0xB66bAf29BAd8392763C0C51E88C6D731Ef5Ca31F';
+    const contractABI = [
             {
-                "constant": true,
                 "inputs": [],
                 "name": "getSeed",
                 "outputs": [
                     {
-                        "name": "",
+                        "internalType": "uint256",
+                        "name": "seed",
                         "type": "uint256"
                     }
                 ],
+                "stateMutability": "nonpayable",
                 "type": "function"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "seed",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "SeedGenerated",
+                "type": "event"
             }
         ];
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+      const connectWalletButton = document.getElementById('connectWalletButton');
+      connectWalletButton.addEventListener('click', async () => {
+        await connectWallet();
+      });
 
-        const web3 = new Web3(Web3.givenProvider || "ws://localhost:8545");
-        const randomSeedContract = new web3.eth.Contract(abi, contractAddress);
+      async function connectWallet() {
+        if (window.ethereum) {
+          try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            web3 = new Web3(window.ethereum);
+            const accounts = await web3.eth.getAccounts();
+            userAddress = accounts[0];
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+            fetchSeedGeneratedEvents();
+          } catch (error) {
+            console.error('User denied account access');
+          }
+        } else {
+          alert('Please install MetaMask!');
+        }
+      }
 
-        let previousSeed = null;
-        let lastChangeTime = Date.now();
-        let intervals = [];
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        const accounts = await web3.eth.getAccounts();
+        if (accounts.length > 0) {
+          userAddress = accounts[0];
+          connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+          fetchSeedGeneratedEvents();
+        }
+      }
+      async function fetchSeedGeneratedEvents() {
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+        const eventContainer = document.getElementById('eventContainer');
+        eventContainer.innerHTML = ''; // Clear previous events
+
+        const maxEvents = 100;
+        const blockBatchSize = 5000; // Adjust block range size based on your network's block frequency
+        const latestBlock = parseInt(await web3.eth.getBlockNumber());
+        let fromBlock = latestBlock - blockBatchSize; // Start fetching from a blockBatchSize blocks ago
+        let toBlock = latestBlock;
+        let fetchedEvents = [];
         
-        async function fetchSeed() {
+        // Get time of the block
+        let currentTimestamp = parseInt((await web3.eth.getBlock(latestBlock)).timestamp);  
+        const oneHour = 60 * 60;
+        const earliestTime = currentTimestamp - oneHour * 5;
+        while (fetchedEvents.length < maxEvents && currentTimestamp > earliestTime) {
+            console.log(`Fetching events from block ${fromBlock} to ${toBlock}`);
             try {
-                const seed = await randomSeedContract.methods.getSeed().call();
-                document.getElementById('seedValue').innerText = `Seed: ${seed}`;
-                
-                if (previousSeed !== null && previousSeed !== seed) {
-                    const currentTime = Date.now();
-                    const interval = (currentTime - lastChangeTime) / 1000; // Convert to seconds
-                    intervals.push(interval);
-                    lastChangeTime = currentTime;
-                    updateAverageInterval();
+                const events = await contract.getPastEvents('SeedGenerated', {
+                    fromBlock: fromBlock,
+                    toBlock: toBlock
+                });
+
+                fetchedEvents = fetchedEvents.concat(events);
+
+                // If we've fetched enough events, stop
+                if (fetchedEvents.length >= maxEvents) {
+                    break;
                 }
 
-                previousSeed = seed;
+                // Move to the next batch of blocks
+                toBlock = fromBlock - 1;
+                fromBlock = Math.max(toBlock - blockBatchSize, 0); // Ensure we don’t go below block 0
+                currentTimestamp = parseInt((await web3.eth.getBlock(toBlock)).timestamp);
             } catch (error) {
-                console.error('Error fetching seed:', error);
-                document.getElementById('seedValue').innerText = 'Error fetching seed';
+                console.error('Error fetching events:', error);
+                break;
             }
         }
 
-        function updateAverageInterval() {
-            const sum = intervals.reduce((acc, cur) => acc + cur, 0);
-            const avg = (sum / intervals.length).toFixed(2);
-            document.getElementById('avgInterval').innerText = avg;
-        }
+        // Limit the results to the most recent 100 events
+        const limitedEvents = fetchedEvents.slice(-maxEvents);
 
-        setInterval(fetchSeed, 1000);
-        fetchSeed();
-    </script>
+        // Display the events
+        limitedEvents.forEach(event => {
+            const seed = event.returnValues.seed;
+            const blockNumber = event.blockNumber;
+
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item';
+            eventItem.textContent = `Seed: ${seed}, Block: ${blockNumber}`;
+            eventContainer.appendChild(eventItem);
+        });
+
+        if (fetchedEvents.length === 0) {
+            eventContainer.textContent = 'No events found.';
+        }
+    }
+    });
+  </script>
 </body>
 </html>

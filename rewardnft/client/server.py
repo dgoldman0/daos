@@ -45,9 +45,9 @@ def pool():
 #def chess():
 #    return app.send_static_file('games/chess.html')
 
-#@app.route('/utils/random')
-#def random():
-#    return app.send_static_file('utils/random.html')
+@app.route('/utils/random')
+def random():
+    return app.send_static_file('utils/random.html')
 
 @app.route('/lotto')
 def lotto():
