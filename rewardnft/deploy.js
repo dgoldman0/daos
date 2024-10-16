@@ -13,7 +13,7 @@ async function main() {
         const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimNFTManager.json'));
         // const mancalaMatchArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/games/mancala/artifacts/MancalaMatchNFT.json'));
         // const mancalaGameArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/games/mancala/artifacts/MancalaGame.json'));
-        const lottoArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/lotto.json'));
+        const lottoArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/LottoMachine.json'));
 
         const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
         const paymentToken = acmToken;
@@ -132,7 +132,7 @@ async function main() {
         // Deploy Lotto Game
         const Lotto = new web3.eth.Contract(lottoArtifact.abi);
         const lotto = await Lotto.deploy({ data: lottoArtifact.data.bytecode.object,
-            arguments: [rewardPoolNFT.options.address, claimManager.options.address] })
+            arguments: [] })
             .send({ from: deployer, gas: 5000000 });
 
         console.log("Lotto deployed to:", lotto.options.address);
