@@ -11,8 +11,9 @@ async function main() {
         const rewardPoolNFTArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/RewardPoolNFT.json'));
         const paymentManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/PaymentManager.json'));
         const claimManagerArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/ClaimNFTManager.json'));
-        const mancalaMatchArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/games/mancala/artifacts/MancalaMatchNFT.json'));
-        const mancalaGameArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/games/mancala/artifacts/MancalaGame.json'));
+        // const mancalaMatchArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/games/mancala/artifacts/MancalaMatchNFT.json'));
+        // const mancalaGameArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/games/mancala/artifacts/MancalaGame.json'));
+        const lottoArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/lotto.json'));
 
         const maxPotionSupply = web3.utils.toBN(1000000000); // Maximum supply of repair potions as BN
         const paymentToken = acmToken;
@@ -52,7 +53,7 @@ async function main() {
 
         // Deploy ClaimManager
         const claimerLimit = web3.utils.toBN(25); // Maximum number of claimants in a period as BN
-        const claimPeriod = web3.utils.toBN(300); // Claim period in seconds as BN
+        const claimPeriod = web3.utils.toBN(6000); // Claim period in seconds as BN: 10 minutes
         const min_health = web3.utils.toBN(250); // Minimum health required to claim rewards as BN
 
         const ClaimManager = new web3.eth.Contract(claimManagerArtifact.abi);
@@ -129,7 +130,6 @@ async function main() {
         */
 
         // Deploy Lotto Game
-        const lottoArtifact = JSON.parse(await remix.call('fileManager', 'getFile', 'rewardnft/artifacts/lotto.json'));
         const Lotto = new web3.eth.Contract(lottoArtifact.abi);
         const lotto = await Lotto.deploy({ data: lottoArtifact.data.bytecode.object,
             arguments: [rewardPoolNFT.options.address, claimManager.options.address] })
