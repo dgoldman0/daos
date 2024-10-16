@@ -15,7 +15,7 @@ interface IUniswapV3Factory {
     function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
 }
 
-contract UniswapRandomSeedGenerator is Ownable {
+contract UniswapNoiseRandomSeedGenerator is Ownable {
     IUniswapV3Factory public factory;
     struct Pool {
         address tokenA;
