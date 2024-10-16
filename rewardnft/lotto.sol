@@ -31,7 +31,7 @@ contract LottoMachine is Ownable {
     mapping (uint256 => uint256) public lastPlayed; // Record of when the NFT last used to play
 
     // Events
-    event Play(address indexed player, uint256 seed, uint256 random, bool win, uint256 prize);
+    event Play(address indexed player, uint256 indexed key, uint256 seed, uint256 random, bool win, uint256 prize);
 
     constructor(address _randomseedgenerator, address _keyNFTContract, address _keyDataManager) Ownable() {
         randomseedgenerator = _randomseedgenerator;
@@ -75,9 +75,9 @@ contract LottoMachine is Ownable {
             } else {
                 IERC20(rewardToken).transfer(msg.sender, actualPrize);
             }
-            emit Play(msg.sender, seed, random, true, actualPrize);
+            emit Play(msg.sender, _key, seed, random, true, actualPrize);
         } else {
-            emit Play(msg.sender, seed, random, false, 0);
+            emit Play(msg.sender, _key, seed, random, false, 0);
         }
 
     }
@@ -88,6 +88,26 @@ contract LottoMachine is Ownable {
             return (bal * prizePermyriad) / 10000;
         }
         return prizeAmount;
+    }
+
+    // Check if the key is eligible to play
+    function isKeyEligible(uint256 _key) public view returns (bool) {
+        if (IERC721(keyNFTContract).ownerOf(_key) != msg.sender) {
+            return false;
+        }
+        if (IClaimNFTManager(keyDataManager).getHealth(_key) < minKeyHealth) {
+            return false;
+        }
+        if (block.timestamp - IClaimNFTManager(keyDataManager).getMintDate(_key) < minKeyAge) {
+            return false;
+        }
+        if (IClaimNFTManager(keyDataManager).getTotalClaims(_key) < minKeyClaims) {
+            return false;
+        }
+        if (block.timestamp - lastPlayed[_key] < cooldownPeriod) {
+            return false;
+        }
+        return true;
     }
     
     function setRandomSeedGenerator(address _randomseedgenerator) external onlyOwner {
