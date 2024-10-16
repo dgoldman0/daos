@@ -33,10 +33,7 @@ contract LottoMachine is Ownable {
     // Events
     event Play(address indexed player, uint256 indexed key, uint256 seed, uint256 random, bool win, uint256 prize);
 
-    constructor(address _randomseedgenerator, address _keyNFTContract, address _keyDataManager) Ownable() {
-        randomseedgenerator = _randomseedgenerator;
-        keyNFTContract = _keyNFTContract;
-        keyDataManager = _keyDataManager;
+    constructor() Ownable() {
     }
 
     function play(uint256 _key) public payable returns (uint256) {
