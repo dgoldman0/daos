@@ -15,6 +15,26 @@
       padding: 0;
     }
 
+	/* Scrollbar styling */
+	::-webkit-scrollbar {
+	width: 12px; /* Set the width of the scrollbar */
+	}
+
+	::-webkit-scrollbar-track {
+	background: #141414; /* Dark background to match the overall color scheme */
+	border-radius: 10px;
+	}
+
+	::-webkit-scrollbar-thumb {
+	background: #00ffff; /* Bright cyan color to match the button and text highlights */
+	border-radius: 10px;
+	box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff; /* Add neon glow */
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+	background: #ff00ff; /* Change color on hover to neon magenta for interaction feedback */
+	}
+
     /* Body styling */
     body {
       font-family: 'Press Start 2P', sans-serif; /* Futuristic gamer font */
@@ -220,7 +240,7 @@
 		white-space: nowrap;
 		margin-top: 10px;
 		margin-bottom: 20px;
-		padding: 10px 0;
+		padding: 20px 0px;
 		
 	}
 	.key-item {
@@ -270,7 +290,7 @@ ea -->
 	<div class="section" id="keySection">
 		<h2>Keys</h2>
 		<div class="info">Select a key to play the lottery:</div>
-		
+
 		<div class = "key-list" id = "keyList">
 			<div class = "key-item" onclick = "playLottery(0)">Key 0</div>
 			<div class = "key-item" onclick = "playLottery(1)">Key 1</div>
