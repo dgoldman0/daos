@@ -288,9 +288,10 @@
     </div>
 	<div class="section" id="keySection">
 		<h2>Keys</h2>
-		<div class="info">Minimum Required Key Age: <span id="minKeyAge"></span></div>
-		<div class="info">Minimum Required Key Health: <span id="minKeyHealth"></span></div>
-		<div class="info">Minimum Required Key Claims: <span id="minKeyClaims"></span></div>
+		<div class="info">Minimum Key Age: <span id="minKeyAge"></span></div>
+		<div class="info">Minimum Key Health: <span id="minKeyHealth"></span></div>
+		<div class="info">Minimum Key Claims: <span id="minKeyClaims"></span></div>
+		<div class="info">Cooldown Period: <span id="cooldownPeriod"></span></div>
 		<h3 class="info">Select a key to play the lottery</h3>
 
 		<div class = "key-list" id = "keyList">
@@ -2620,15 +2621,25 @@
 			const minKeyHealth = await lottoContract.methods.minKeyHealth().call();
 			const minKeyAge = await lottoContract.methods.minKeyAge().call();
 			const minKeyClaims = await lottoContract.methods.minKeyClaims().call();
-			
+			const cooldownPeriod = await lottoContract.methods.cooldownPeriod().call();
+
 			// Update the UI with the minimum details
 			document.getElementById('minKeyHealth').textContent = minKeyHealth;
 			document.getElementById('minKeyAge').textContent = minKeyAge;
 			document.getElementById('minKeyClaims').textContent = minKeyClaims;
+			document.getElementById('cooldownPeriod').textContent = cooldownPeriod + ' seconds';
 
+			// mapping (uint256 => uint256) public lastPlayed; // Record of when the NFT last used to play
+			const lastPlayed = await lottoContract.methods.lastPlayed(tokenId).call();
+			let timeSinceLastPlayed = 0;
+			try {
+				timeSinceLastPlayed = Math.floor((Date.now() / 1000) - parseInt(lastPlayed));
+			} catch (error) {
+				console.log(error);
+			}			
 
 			// Check if the key is eligible for the lottery
-			if (health >= minKeyHealth && age >= minKeyAge && totalClaims >= minKeyClaims)
+			if (timeSinceLastPlayed > cooldownPeriod && health >= minKeyHealth && age >= minKeyAge && totalClaims >= minKeyClaims)
 				keys.push(tokenId);
 		  }
 
