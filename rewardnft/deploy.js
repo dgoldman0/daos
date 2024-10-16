@@ -29,7 +29,7 @@ async function main() {
         // Deploy RewardPoolNFT
         const RewardPoolNFT = new web3.eth.Contract(rewardPoolNFTArtifact.abi);
         const rewardPoolNFT = await RewardPoolNFT.deploy({ data: rewardPoolNFTArtifact.data.bytecode.object })
-            .send({ from: deployer, gas: 5000000 });
+            .send({ from: deployer, gas: 10000000 });
         console.log("RewardPoolNFT deployed to:", rewardPoolNFT.options.address);
 
         // Deploy PaymentManager
