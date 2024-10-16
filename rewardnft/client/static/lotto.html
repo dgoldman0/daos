@@ -2620,7 +2620,7 @@
 		  
 			const minKeyAge = await lottoContract.methods.minKeyAge().call();
 			const minKeyClaims = await lottoContract.methods.minKeyClaims().call();
-			const cooldownPeriod = await lottoContract.methods.cooldownPeriod().call();
+			const cooldownPeriod = parseInt((await lottoContract.methods.cooldownPeriod().call()).toString());
 
 			// Update the UI with the minimum details
 			document.getElementById('minKeyHealth').textContent = minKeyHealth;
@@ -2643,7 +2643,8 @@
 				const lastPlayed = await lottoContract.methods.lastPlayed(tokenId).call();
 				const timeSinceLastPlayed = Math.floor((Date.now() / 1000) - parseInt(lastPlayed));
 			
-				if (age >= minKeyAge && totalClaims >= minKeyClaims && health >= minKeyHealth && timeSinceLastPlayed >= cooldownPeriod) {
+				const validKey = age >= minKeyAge && totalClaims >= minKeyClaims && health >= minKeyHealth;
+				if (validKey && timeSinceLastPlayed >= cooldownPeriod) {
 					const keyItem = document.createElement('div');
 					keyItem.className = 'key-item';
 					keyItem.innerHTML = "<i class='fas fa-key'></i> " + tokenId;
@@ -2656,8 +2657,19 @@
 					const keyItem = document.createElement('div');
 					keyItem.className = 'key-item-disabled';
 					keyItem.innerHTML = "<i class='fas fa-key'></i> " + tokenId;
-					keyItem.addEventListener('click', () => {
-						showNotification('This key is not eligible to play the lottery.', true);
+					keyItem.addEventListener('click', async () => {
+						if (validKey) {
+							const cooldownPeriod = parseInt((await lottoContract.methods.cooldownPeriod().call()).toString());
+							const timeSinceLastPlayed = Math.floor((Date.now() / 1000) - parseInt(lastPlayed));
+							if (timeSinceLastPlayed < cooldownPeriod) {
+								showNotification(`This key is on cooldown. Please wait ${cooldownPeriod - timeSinceLastPlayed} seconds.`, true);
+							} else {
+								await loadKeys();
+								showNotification('Cooldown elapsed. Reloading.', true);
+							}
+						} else {
+							showNotification('This key is not eligible to play the lottery.', true);
+						}
 					});
 					keysList.appendChild(keyItem);
 				}
