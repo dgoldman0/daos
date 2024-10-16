@@ -393,10 +393,10 @@
     <div class="section" id="contractAddresses">
       <h2>Contract Addresses:</h2>
       <ul>
-        <li>NFT Contract: <a href="#" id="nftContractAddress" target="_blank"></a></li>
-        <li>Claim Manager: <a href="#" id="claimManagerAddress" target="_blank"></a></li>
-        <li>Payment Manager: <a href="#" id="paymentManagerAddress" target="_blank"></a></li>
-        <li>Repair Potion: <a href="#" id="potionContractAddress" target="_blank"></a></li>
+        <li>NFT Contract: <a href="#" id="nftContractAddress"></a></li>
+        <li>Claim Manager: <a href="#" id="claimManagerAddress"></a></li>
+        <li>Payment Manager: <a href="#" id="paymentManagerAddress"></a></li>
+        <li>Repair Potion: <a href="#" id="potionContractAddress" ></a></li>
       </ul>
     </div>
   </div>
@@ -3135,7 +3135,24 @@
       claimManagerContract = new web3.eth.Contract(claimManagerAbi, claimManagerAddress);
       paymentManagerContract = new web3.eth.Contract(paymentManagerAbi, paymentManagerAddress);
       potionContract = new web3.eth.Contract(potionAbi, potionContractAddress);
-    }
+
+	  let element = document.getElementById('potionContractAddress');
+	  element.textContent = potionContractAddress;
+	  element.href = 'https://arbiscan.io/address/' + potionContractAddress;
+
+	  element = document.getElementById('nftContractAddress');
+	  element.textContent = nftContractAddress;
+	  element.href = 'https://arbiscan.io/address/' + nftContractAddress;
+	
+	  element = document.getElementById('claimManagerAddress');
+	  element.textContent = claimManagerAddress;
+	  element.href = 'https://arbiscan.io/address/' + claimManagerAddress;
+
+	  element = document.getElementById('paymentManagerAddress');
+	  element.textContent = paymentManagerAddress;
+	  element.href = 'https://arbiscan.io/address/' + paymentManagerAddress;
+
+	}
 
     async function refreshData() {
       await Promise.all([loadPaymentAddresses(), loadMintPrice(), loadPotionPrice(), loadPotionBalance(), loadUserNFTs(), loadClaimPeriodInfo(), loadSystemInfo()]);
