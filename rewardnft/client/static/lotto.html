@@ -255,11 +255,24 @@
 		margin-right: 20px;
 		margin-left: 20px;
 		box-shadow: 0 0 15px #00ffff;
-	}
+	}		
 	.key-item:hover {
 		background-color: #1a1a1a;
 		color: #00ffff;
 		box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+	}
+	.key-item-disabled {
+		padding: 20px 20px;
+		background-color: #ff0055;
+		color: #1a1a1a;
+		border-radius: 5px;
+		cursor: pointer;
+		font-weight: 500;
+		font-size: 14px;
+		letter-spacing: 0.1em;
+		margin-right: 20px;
+		margin-left: 20px;
+		box-shadow: 0 0 15px #ff0055;
 	}
 
   </style>
@@ -2601,24 +2614,10 @@
 	  // Load keys
 	  async function loadKeys() {
 		try {
-		  // Get list of keys owned by the user from the NFT contract (is ERC721 enumerable). Standard ERC721 enumerable method to get all tokens owned by an address is tokenOfOwnerByIndex
-		  const keys = [];
-		  const balance = parseInt((await nftContract.methods.balanceOf(userAddress).call()).toString());
-		  console.log(balance);
-		  for (let i = 0; i < balance; i++) {
-			const tokenId = await nftContract.methods.tokenOfOwnerByIndex(userAddress, i).call();
-			// Get key details. Consider the data manager abi. We need the mint date, health, and total claims.
-			const totalClaims = await claimManagerContract.methods.getTotalClaims(tokenId).call();
-			const health = await claimManagerContract.methods.getHealth(tokenId).call();
-			const mintDate = await claimManagerContract.methods.getMintDate(tokenId).call();
-			let age = 0;
-			try {
-				age = Math.floor((Date.now() / 1000) - parseInt(mintDate));
-			} catch (error) {
-				console.log(error);
-			}
-	
+			// Get list of keys owned by the user from the NFT contract (is ERC721 enumerable). Standard ERC721 enumerable method to get all tokens owned by an address is tokenOfOwnerByIndex
+		 	const balance = parseInt((await nftContract.methods.balanceOf(userAddress).call()).toString());
 			const minKeyHealth = await lottoContract.methods.minKeyHealth().call();
+		  
 			const minKeyAge = await lottoContract.methods.minKeyAge().call();
 			const minKeyClaims = await lottoContract.methods.minKeyClaims().call();
 			const cooldownPeriod = await lottoContract.methods.cooldownPeriod().call();
@@ -2629,32 +2628,42 @@
 			document.getElementById('minKeyClaims').textContent = minKeyClaims;
 			document.getElementById('cooldownPeriod').textContent = cooldownPeriod + ' seconds';
 
-			// mapping (uint256 => uint256) public lastPlayed; // Record of when the NFT last used to play
-			const lastPlayed = await lottoContract.methods.lastPlayed(tokenId).call();
-			let timeSinceLastPlayed = 0;
-			try {
-				timeSinceLastPlayed = Math.floor((Date.now() / 1000) - parseInt(lastPlayed));
-			} catch (error) {
-				console.log(error);
-			}			
+			const keysList = document.getElementById('keyList');
+			keysList.innerHTML = '';
 
-			// Check if the key is eligible for the lottery
-			if (timeSinceLastPlayed > cooldownPeriod && health >= minKeyHealth && age >= minKeyAge && totalClaims >= minKeyClaims)
-				keys.push(tokenId);
-		  }
-
-		  const keysList = document.getElementById('keyList');
-		  keysList.innerHTML = '';
-		  keys.forEach((key) => {
-			const keyItem = document.createElement('div');
-			keyItem.className = 'key-item';
-			keyItem.innerHTML = "<i class='fas fa-key'></i> " + key;
-			keyItem.addEventListener('click', () => {
-			  playLottery(key);
-			});
-			keysList.appendChild(keyItem);
-		  });
+			for (let i = 0; i < balance; i++) {
+				const tokenId = await nftContract.methods.tokenOfOwnerByIndex(userAddress, i).call();
+				// Get key details. Consider the data manager abi. We need the mint date, health, and total claims.
+				const totalClaims = await claimManagerContract.methods.getTotalClaims(tokenId).call();
+				const health = await claimManagerContract.methods.getHealth(tokenId).call();
+				const mintDate = await claimManagerContract.methods.getMintDate(tokenId).call();
+				const age = Math.floor((Date.now() / 1000) - parseInt(mintDate));
+	
+				// mapping (uint256 => uint256) public lastPlayed; // Record of when the NFT last used to play
+				const lastPlayed = await lottoContract.methods.lastPlayed(tokenId).call();
+				const timeSinceLastPlayed = Math.floor((Date.now() / 1000) - parseInt(lastPlayed));
+			
+				if (age >= minKeyAge && totalClaims >= minKeyClaims && health >= minKeyHealth && timeSinceLastPlayed >= cooldownPeriod) {
+					const keyItem = document.createElement('div');
+					keyItem.className = 'key-item';
+					keyItem.innerHTML = "<i class='fas fa-key'></i> " + tokenId;
+					keyItem.addEventListener('click', () => {
+						playLottery(tokenId);
+					});
+					keysList.appendChild(keyItem);
+				} else if (true) {
+					// If the key is not eligible, we can show it as disabled
+					const keyItem = document.createElement('div');
+					keyItem.className = 'key-item-disabled';
+					keyItem.innerHTML = "<i class='fas fa-key'></i> " + tokenId;
+					keyItem.addEventListener('click', () => {
+						showNotification('This key is not eligible to play the lottery.', true);
+					});
+					keysList.appendChild(keyItem);
+				}
+			}
 		} catch (error) {
+			console.log('Failed to load keys', error);
 		}
 	}
 
