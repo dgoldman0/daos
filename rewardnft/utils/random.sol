@@ -62,9 +62,9 @@ contract UniswapNoiseRandomSeedGenerator is Ownable {
 
     // Since this function writes to the chain it should update regularly
     function getSeed() public returns (uint256 seed) {
-        uint256 seed = getFreeSeed();
-        emit SeedGenerated(seed);
-        return seed;
+        uint256 theseed = getFreeSeed();
+        emit SeedGenerated(theseed);
+        return theseed;
     }
 
     // Works but seems to not update regularly beacuse it's a view
