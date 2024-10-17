@@ -536,4 +536,7 @@ contract MancalaGame is Ownable {
     function onERC721Received(address, address, uint256, bytes calldata) public pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
+    function withdrawERC721(address _token, uint256 _tokenId) public onlyOwner {
+        IERC721(_token).transferFrom(address(this), owner(), _tokenId);
+    }
 }
