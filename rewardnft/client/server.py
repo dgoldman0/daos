@@ -37,9 +37,9 @@ def index():
 def pool():
     return app.send_static_file('rewardpool.html')
 
-#@app.route('/games/mancala')
-#def mancala():
-#    return app.send_static_file('games/mancala.html')
+@app.route('/games/mancala')
+def mancala():
+    return app.send_static_file('games/mancala.html')
 
 #@app.route('/games/chess')
 #def chess():

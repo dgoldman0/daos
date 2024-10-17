@@ -1,3 +1,5 @@
+ACM Token: 0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f
+
 Deploying contracts with the account:
 0x7cEec4d52d270BC1c0dBF11D7e0174f762d489Ca
 
@@ -12,4 +14,8 @@ ClaimManager deployed to:
 Lotto deployed to:
 0x58C5f8ED50aDb8B2c8E8bBe847d98283B519e3f0
 
-Still need random and need to deploy another lotto because I noticed another error...
+Mancala Match NFT deployed to:
+0x614D912230904A0738493138fb1BaE6E4f2b1655
+
+Mancala Game deployed to:
+0x967548CE5b86552A2dEcD1F17f7273927506D2B5
