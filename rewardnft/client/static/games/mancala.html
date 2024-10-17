@@ -3012,21 +3012,31 @@
 			const potFee = BigInt(await mancalaContract.methods.potFee().call());
 			if (potFee > 0) {
 				const potToken = await mancalaContract.methods.potToken().call();
-				// Check if the user has enough of the pot token and if sufficient allowance is given
-				const potTokenContract = new web3.eth.Contract(erc20ABI, potToken);
-				const balance = BigInt(await potTokenContract.methods.balanceOf(accounts[0]).call());
-				if (balance < potFee) {
-					alert("You don't have enough of the pot token to start a match.");
-					return;
-				}
-				const allowance = await potTokenContract.methods.allowance(accounts[0], mancalaContractAddress).call();
-				try {
-					if (allowance < potFee) {
-						await potTokenContract.methods.approve(mancalaContractAddress, potFee).send({ from: accounts[0] });
+				// If token is 0x0, it's ETH otherwise it's an ERC20 token
+				if (potToken === "0x0000000000000000000000000000000000000000") {
+					// Check if the user has enough ETH
+					const balance = BigInt(await web3.eth.getBalance(accounts[0]));
+					if (balance < potFee) {
+						alert("You don't have enough ETH to start a match.");
+						return;
 					}
-				} catch (error) {
-					alert("You must approve the pot token to start a match.");
-					return;
+				} else {
+					// Check if the user has enough of the pot token and if sufficient allowance is given
+					const potTokenContract = new web3.eth.Contract(erc20ABI, potToken);
+					const balance = BigInt(await potTokenContract.methods.balanceOf(accounts[0]).call());
+					if (balance < potFee) {
+						alert("You don't have enough of the pot token to start a match.");
+						return;
+					}
+					const allowance = await potTokenContract.methods.allowance(accounts[0], mancalaContractAddress).call();
+					try {
+						if (allowance < potFee) {
+							await potTokenContract.methods.approve(mancalaContractAddress, potFee).send({ from: accounts[0] });
+						}
+					} catch (error) {
+						alert("You must approve the pot token to start a match.");
+						return;
+					}
 				}
 
 			}
@@ -3154,7 +3164,39 @@
 		// Accept a match request
 		async function acceptMatch(gameId) {
 			let accounts = await web3.eth.getAccounts();
-			console.log(gameId);
+
+			// Check if there's a pot fee, and what pot token if any.
+			const potFee = BigInt((await mancalaContract.methods.games(gameId).call()).potFee);
+			if (potFee > 0) {
+				const potToken = (await mancalaContract.methods.games(gameId).call()).potToken;
+				// If token is 0x0, it's ETH otherwise it's an ERC20 token
+				if (potToken === "0x0000000000000000000000000000000000000000") {
+					// Check if the user has enough ETH
+					const balance = BigInt(await web3.eth.getBalance(accounts[0]));
+					if (balance < potFee) {
+						alert("You don't have enough ETH to start a match.");
+						return;
+					}
+				} else {
+					// Check if the user has enough of the pot token and if sufficient allowance is given
+					const potTokenContract = new web3.eth.Contract(erc20ABI, potToken);
+					const balance = BigInt(await potTokenContract.methods.balanceOf(accounts[0]).call());
+					if (balance < potFee) {
+						alert("You don't have enough of the pot token to start a match.");
+						return;
+					}
+					const allowance = await potTokenContract.methods.allowance(accounts[0], mancalaContractAddress).call();
+					try {
+						if (allowance < potFee) {
+							await potTokenContract.methods.approve(mancalaContractAddress, potFee).send({ from: accounts[0] });
+						}
+					} catch (error) {
+						alert("You must approve the pot token to start a match.");
+						return;
+					}
+				}
+			}
+
 			await mancalaContract.methods.acceptMatch(gameId, selectedKeyId).send({ from: accounts[0] });
 			console.log("Match accepted!");
 			localStorage.setItem("gameId", gameId);
