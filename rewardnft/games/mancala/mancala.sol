@@ -89,7 +89,7 @@ contract MancalaGame is Ownable {
     uint8 constant PLAYER_A_STORE = 6;
     uint8 constant PLAYER_B_STORE = 13;
 
-    enum GameState { Pending, Ongoing, Ended, Cancelled }
+    enum GameState { Pending, Ongoing, Ended, Cancelled, Rejected }
 
     address public keyContract; // Contract for NFTs that act as keys to play games
     address public keyDataContract; // Contains the actual data
@@ -107,6 +107,9 @@ contract MancalaGame is Ownable {
 
     address public potToken;
     uint256 public potFee;
+    bool public returnPotIfRejected;
+
+    uint256 public roundTimeCap = 5 minutes;
 
     uint256 public requestTimeout = 1 days;
 
@@ -122,9 +125,11 @@ contract MancalaGame is Ownable {
         uint256 keyB;
         address potToken;
         uint256 potFee;
+        uint256 roundStartTime;
     }
 
     mapping(uint256 => Game) public games; // Mapping of game IDs to game instances
+
     uint256 public gameIdCounter;
     uint256 public spareGameId;
 
@@ -150,7 +155,7 @@ contract MancalaGame is Ownable {
         _;
     }
 
-    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims, bool _returnKeys, address payable _mancalaMatchNFT, address _potToken, uint256 _potFee) Ownable() {
+    constructor(address _keyContract, address _keyDataContract, uint256 _minKeyHealth, uint256 _minKeyAge, uint256 _minKeyClaims, bool _returnKeys, address payable _mancalaMatchNFT, address _potToken, uint256 _potFee, bool _returnPotIfRejected, uint256 _roundTimeCap) Ownable() {
         keyContract = _keyContract;
         keyDataContract = _keyDataContract;
         minKeyHealth = _minKeyHealth;
@@ -160,6 +165,8 @@ contract MancalaGame is Ownable {
         mancalaMatchNFT = _mancalaMatchNFT;
         potToken = _potToken;
         potFee = _potFee;
+        returnPotIfRejected = _returnPotIfRejected;
+        roundTimeCap = _roundTimeCap;
     }
 
     // Get the players of a given game
@@ -268,8 +275,12 @@ contract MancalaGame is Ownable {
         }
         // Transfer the key to the contract
         IERC721(keyContract).transferFrom(msg.sender, address(this), keyId);
+
         games[gameId].keyB = keyId;
         games[gameId].state = GameState.Ongoing;
+        games[gameId].startTime = block.timestamp;
+        games[gameId].roundStartTime = block.timestamp;
+
         MancalaMatchNFT(mancalaMatchNFT).initializeMatch(gameId, games[gameId].playerA, games[gameId].playerB);
         emit GameStarted(gameId, games[gameId].playerA, games[gameId].playerB);
         emit TurnChanged(gameId, games[gameId].currentPlayer);
@@ -279,9 +290,20 @@ contract MancalaGame is Ownable {
     function rejectMatch(uint256 gameId) public {
         require(games[gameId].playerB == msg.sender, "You are not invited to this game");
         require(games[gameId].state == GameState.Pending, "Game is not pending");
-        games[gameId].state = GameState.Ended;
+        games[gameId].state = GameState.Rejected;
         spareGameId = gameId;
         IERC721(keyContract).transferFrom(address(this), games[gameId].playerA, games[gameId].keyA);
+        if (returnPotIfRejected) {
+            address potToken = games[gameId].potToken;
+            uint256 potFee = games[gameId].potFee;
+            if (potFee > 0) {
+                if (potToken != address(0)) {
+                    IERC20(potToken).transfer(games[gameId].playerA, potFee);
+                } else {
+                    payable(games[gameId].playerA).transfer(potFee);
+                }
+            }
+        }
     }
 
     // Cancel the game if the opponent does not respond within the timeout
@@ -292,6 +314,17 @@ contract MancalaGame is Ownable {
         games[gameId].state = GameState.Cancelled;
         spareGameId = gameId;
         IERC721(keyContract).transferFrom(address(this), games[gameId].playerA, games[gameId].keyA);
+        if (returnPotIfRejected) {
+            address potToken = games[gameId].potToken;
+            uint256 potFee = games[gameId].potFee;
+            if (potFee > 0) {
+                if (potToken != address(0)) {
+                    IERC20(potToken).transfer(games[gameId].playerA, potFee);
+                } else {
+                    payable(games[gameId].playerA).transfer(potFee);
+                }
+            }
+        }
     }
 
     // Function to move seeds
@@ -319,6 +352,27 @@ contract MancalaGame is Ownable {
             require(pitIndex >= 0 && pitIndex < 6, "Invalid pit for Player A");
         } else {
             require(pitIndex >= 7 && pitIndex < 13, "Invalid pit for Player B");
+        }
+
+        // If the allotted time for the round has passed, end the game w/ the other player as the winner
+        if (block.timestamp >= game.roundStartTime + roundTimeCap) {
+            game.state = GameState.Ended;
+            address winner = (msg.sender == game.playerA) ? game.playerB : game.playerA;
+            if (returnKeys) {
+                IERC721(keyContract).transferFrom(address(this), game.playerA, game.keyA);
+                IERC721(keyContract).transferFrom(address(this), game.playerB, game.keyB);
+            }
+            // Payout to the winner
+            if (payout > 0) {
+                if (potToken != address(0)) {
+                    IERC20(potToken).transfer(winner, payout);
+                } else {
+                    payable(winner).transfer(payout);
+                }
+            }
+            emit GameEnded(gameId, winner, potToken, payout);
+
+            return;
         }
 
         uint8 seeds = game.board[pitIndex];
@@ -356,6 +410,7 @@ contract MancalaGame is Ownable {
             return;
         }
 
+        game.roundStartTime = block.timestamp;
         if (!extraTurn) {
             // Switch turns
             game.currentPlayer = (msg.sender == game.playerA) ? game.playerB : game.playerA;
@@ -472,4 +527,10 @@ contract MancalaGame is Ownable {
     function setPotFee(uint256 _potFee) public onlyOwner {
         potFee = _potFee;
     }    
+    function setReturnPotIfRejected(bool _returnPotIfRejected) public onlyOwner {
+        returnPotIfRejected = _returnPotIfRejected;
+    }
+    function setRoundTimeCap(uint256 _roundTimeCap) public onlyOwner {
+        roundTimeCap = _roundTimeCap;
+    }
 }
