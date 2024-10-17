@@ -80,7 +80,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arcadium Server')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     parser.add_argument('--port', type=int, default=5000, help='Port number')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host IP address')
     args = parser.parse_args()
 
     # Run the Flask app
-    app.run(debug=args.debug, port=args.port, host='0.0.0.0')  # Set host to '
+    app.run(debug=args.debug, port=args.port, host=args.host)  # Set host to '
