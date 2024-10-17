@@ -533,4 +533,7 @@ contract MancalaGame is Ownable {
     function setRoundTimeCap(uint256 _roundTimeCap) public onlyOwner {
         roundTimeCap = _roundTimeCap;
     }
+    function onERC721Received(address, address, uint256, bytes calldata) public pure returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
 }
