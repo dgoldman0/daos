@@ -384,163 +384,172 @@
 		let keyContractAddress = "0xe75c2251478A2DA595B29e417d813B042D5d83aC";
 		let keyDataManagerContractAddress = "0x6Ed1c7185da8B225c292d9d4c7ad675637a5C0b4";
 
-        let mancalaABI = [
+        const mancalaABI = [
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_keyContract",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_keyDataContract",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_minKeyHealth",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_minKeyAge",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_minKeyClaims",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "_returnKeys",
+						"type": "bool"
+					},
+					{
+						"internalType": "address payable",
+						"name": "_mancalaMatchNFT",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_potToken",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_potFee",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "_returnPotIfRejected",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_roundTimeCap",
+						"type": "uint256"
+					}
+				],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "sender",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "tokenId",
-						"type": "uint256"
-					},
-					{
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
-					}
-				],
-				"name": "ERC721IncorrectOwner",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "operator",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "tokenId",
-						"type": "uint256"
-					}
-				],
-				"name": "ERC721InsufficientApproval",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "approver",
-						"type": "address"
-					}
-				],
-				"name": "ERC721InvalidApprover",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "operator",
-						"type": "address"
-					}
-				],
-				"name": "ERC721InvalidOperator",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
-					}
-				],
-				"name": "ERC721InvalidOwner",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "receiver",
-						"type": "address"
-					}
-				],
-				"name": "ERC721InvalidReceiver",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "sender",
-						"type": "address"
-					}
-				],
-				"name": "ERC721InvalidSender",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "tokenId",
-						"type": "uint256"
-					}
-				],
-				"name": "ERC721NonexistentToken",
-				"type": "error"
 			},
 			{
 				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "approved",
-						"type": "address"
-					},
-					{
-						"indexed": true,
+						"indexed": false,
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "winner",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "balance",
 						"type": "uint256"
 					}
 				],
-				"name": "Approval",
+				"name": "GameEnded",
 				"type": "event"
 			},
 			{
 				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
 					},
 					{
-						"indexed": true,
+						"indexed": false,
 						"internalType": "address",
-						"name": "operator",
+						"name": "playerA",
 						"type": "address"
 					},
 					{
 						"indexed": false,
-						"internalType": "bool",
-						"name": "approved",
-						"type": "bool"
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
 					}
 				],
-				"name": "ApprovalForAll",
+				"name": "GameStarted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					}
+				],
+				"name": "MatchRequested",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "player",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint8",
+						"name": "pitIndex",
+						"type": "uint8"
+					}
+				],
+				"name": "MoveMade",
 				"type": "event"
 			},
 			{
@@ -592,26 +601,38 @@
 				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "from",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"indexed": true,
+						"indexed": false,
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					}
+				],
+				"name": "TurnChanged",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyId",
 						"type": "uint256"
 					}
 				],
-				"name": "Transfer",
-				"type": "event"
+				"name": "acceptMatch",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
 			},
 			{
 				"inputs": [],
@@ -624,55 +645,13 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "gameId",
 						"type": "uint256"
-					},
-					{
-						"internalType": "uint8[14]",
-						"name": "board",
-						"type": "uint8[14]"
 					}
 				],
-				"name": "addBoardState",
+				"name": "cancelMatch",
 				"outputs": [],
 				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "tokenId",
-						"type": "uint256"
-					}
-				],
-				"name": "approve",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
-					}
-				],
-				"name": "balanceOf",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -696,14 +675,115 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
+				"inputs": [],
+				"name": "gameIdCounter",
+				"outputs": [
 					{
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "",
 						"type": "uint256"
 					}
 				],
-				"name": "getApproved",
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "games",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "playerA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "playerB",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "currentPlayer",
+						"type": "address"
+					},
+					{
+						"internalType": "enum MancalaGame.GameState",
+						"name": "state",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "requestTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyA",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "keyB",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "potToken",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "potFee",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "roundStartTime",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getBoard",
+				"outputs": [
+					{
+						"internalType": "uint8[14]",
+						"name": "",
+						"type": "uint8[14]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getCurrentPlayer",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -720,123 +800,137 @@
 						"internalType": "uint256",
 						"name": "gameId",
 						"type": "uint256"
-					},
+					}
+				],
+				"name": "getGameState",
+				"outputs": [
+					{
+						"internalType": "enum MancalaGame.GameState",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					}
+				],
+				"name": "getPlayers",
+				"outputs": [
 					{
 						"internalType": "address",
-						"name": "playerA",
+						"name": "",
 						"type": "address"
 					},
 					{
 						"internalType": "address",
-						"name": "playerB",
+						"name": "",
 						"type": "address"
 					}
 				],
-				"name": "initializeMatch",
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "keyContract",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "keyDataContract",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "mancalaMatchNFT",
+				"outputs": [
+					{
+						"internalType": "address payable",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyAge",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyClaims",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minKeyHealth",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "pitIndex",
+						"type": "uint8"
+					}
+				],
+				"name": "moveSeeds",
 				"outputs": [],
 				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "operator",
-						"type": "address"
-					}
-				],
-				"name": "isApprovedForAll",
-				"outputs": [
-					{
-						"internalType": "bool",
-						"name": "",
-						"type": "bool"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "mancalaGame",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"name": "matches",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "gameId",
-						"type": "uint256"
-					},
-					{
-						"internalType": "address",
-						"name": "playerA",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "playerB",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "winner",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "rounds",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "name",
-				"outputs": [
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "nextTokenId",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -879,14 +973,21 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
+				"inputs": [],
+				"name": "potFee",
+				"outputs": [
 					{
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "",
 						"type": "uint256"
 					}
 				],
-				"name": "ownerOf",
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "potToken",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -900,20 +1001,14 @@
 			{
 				"inputs": [
 					{
-						"internalType": "uint8[14]",
-						"name": "board",
-						"type": "uint8[14]"
+						"internalType": "uint256",
+						"name": "gameId",
+						"type": "uint256"
 					}
 				],
-				"name": "packBoardState",
-				"outputs": [
-					{
-						"internalType": "uint112",
-						"name": "",
-						"type": "uint112"
-					}
-				],
-				"stateMutability": "pure",
+				"name": "rejectMatch",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -927,111 +1022,42 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "from",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "to",
+						"name": "opponent",
 						"type": "address"
 					},
 					{
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "keyId",
 						"type": "uint256"
 					}
 				],
-				"name": "safeTransferFrom",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "from",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
+				"name": "requestMatch",
+				"outputs": [
 					{
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "",
 						"type": "uint256"
-					},
-					{
-						"internalType": "bytes",
-						"name": "data",
-						"type": "bytes"
 					}
 				],
-				"name": "safeTransferFrom",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"stateMutability": "payable",
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "operator",
-						"type": "address"
-					},
-					{
-						"internalType": "bool",
-						"name": "approved",
-						"type": "bool"
-					}
-				],
-				"name": "setApprovalForAll",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_mancalaGame",
-						"type": "address"
-					}
-				],
-				"name": "setMancalaGame",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
+				"inputs": [],
+				"name": "requestTimeout",
+				"outputs": [
 					{
 						"internalType": "uint256",
-						"name": "tokenId",
+						"name": "",
 						"type": "uint256"
-					},
-					{
-						"internalType": "address",
-						"name": "winner",
-						"type": "address"
 					}
 				],
-				"name": "setWinner",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "bytes4",
-						"name": "interfaceId",
-						"type": "bytes4"
-					}
-				],
-				"name": "supportsInterface",
+				"inputs": [],
+				"name": "returnKeys",
 				"outputs": [
 					{
 						"internalType": "bool",
@@ -1044,31 +1070,25 @@
 			},
 			{
 				"inputs": [],
-				"name": "symbol",
+				"name": "returnPotIfRejected",
 				"outputs": [
 					{
-						"internalType": "string",
+						"internalType": "bool",
 						"name": "",
-						"type": "string"
+						"type": "bool"
 					}
 				],
 				"stateMutability": "view",
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "tokenId",
-						"type": "uint256"
-					}
-				],
-				"name": "tokenURI",
+				"inputs": [],
+				"name": "roundTimeCap",
 				"outputs": [
 					{
-						"internalType": "string",
+						"internalType": "uint256",
 						"name": "",
-						"type": "string"
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -1078,21 +1098,11 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "from",
+						"name": "_keyContract",
 						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "tokenId",
-						"type": "uint256"
 					}
 				],
-				"name": "transferFrom",
+				"name": "setKeyContract",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -1100,20 +1110,144 @@
 			{
 				"inputs": [
 					{
-						"internalType": "uint112",
-						"name": "packedBoard",
-						"type": "uint112"
+						"internalType": "address",
+						"name": "_keyDataContract",
+						"type": "address"
 					}
 				],
-				"name": "unpackBoardState",
+				"name": "setKeyDataContract",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address payable",
+						"name": "_mancalaMatchNFT",
+						"type": "address"
+					}
+				],
+				"name": "setMancalaMatchNFT",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minKeyAge",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinKeyAge",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minKeyClaims",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinKeyClaims",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_minKeyHealth",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinKeyHealth",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_potFee",
+						"type": "uint256"
+					}
+				],
+				"name": "setPotFee",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_potToken",
+						"type": "address"
+					}
+				],
+				"name": "setPotToken",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bool",
+						"name": "_returnKeys",
+						"type": "bool"
+					}
+				],
+				"name": "setReturnKeys",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bool",
+						"name": "_returnPotIfRejected",
+						"type": "bool"
+					}
+				],
+				"name": "setReturnPotIfRejected",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_roundTimeCap",
+						"type": "uint256"
+					}
+				],
+				"name": "setRoundTimeCap",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "spareGameId",
 				"outputs": [
 					{
-						"internalType": "uint8[14]",
+						"internalType": "uint256",
 						"name": "",
-						"type": "uint8[14]"
+						"type": "uint256"
 					}
 				],
-				"stateMutability": "pure",
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -1133,9 +1267,9 @@
 				"stateMutability": "payable",
 				"type": "receive"
 			}
-		];
-		
-		let keyABI = [
+		];	
+
+		const keyABI = [
 			{
 				"inputs": [],
 				"stateMutability": "nonpayable",
@@ -1883,7 +2017,7 @@
 			}
 		];
 
-		let keyDataManagerABI = [
+		const keyDataManagerABI = [
 			{
 				"inputs": [
 					{
@@ -2522,6 +2656,284 @@
 			}
 		];
 
+		const erc20ABI = [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "value",
+						"type": "uint256"
+					}
+				],
+				"name": "Approval",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "value",
+						"type": "uint256"
+					}
+				],
+				"name": "Transfer",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					}
+				],
+				"name": "allowance",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "approve",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "balanceOf",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "decimals",
+				"outputs": [
+					{
+						"internalType": "uint8",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "subtractedValue",
+						"type": "uint256"
+					}
+				],
+				"name": "decreaseAllowance",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "addedValue",
+						"type": "uint256"
+					}
+				],
+				"name": "increaseAllowance",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "name",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "symbol",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalSupply",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "transfer",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "transferFrom",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		];
+
 		let web3;
         let mancalaContract;
 		let keyContract;
@@ -2595,9 +3007,31 @@
 
 		async function startNewMatch(tokenId, opponent) {
 			let accounts = await web3.eth.getAccounts();
+
+			// Check if there's a pot fee, and what pot token if any. 
+			const potFee = BigInt(await mancalaContract.methods.potFee().call());
+			if (potFee > 0) {
+				const potToken = await mancalaContract.methods.potToken().call();
+				// Check if the user has enough of the pot token and if sufficient allowance is given
+				const potTokenContract = new web3.eth.Contract(erc20ABI, potToken);
+				const balance = BigInt(await potTokenContract.methods.balanceOf(accounts[0]).call());
+				if (balance < potFee) {
+					alert("You don't have enough of the pot token to start a match.");
+					return;
+				}
+				const allowance = await potTokenContract.methods.allowance(accounts[0], mancalaContractAddress).call();
+				try {
+					if (allowance < potFee) {
+						await potTokenContract.methods.approve(mancalaContractAddress, potFee).send({ from: accounts[0] });
+					}
+				} catch (error) {
+					alert("You must approve the pot token to start a match.");
+					return;
+				}
+
+			}
             gameId = await mancalaContract.methods.requestMatch(opponent, tokenId).send({ from: accounts[0] });  
 			// Convert to integer
-			console.log(gameId);
 			gameId = parseInt(gameId.events.MatchRequested.returnValues.gameId);
             localStorage.setItem("gameId", gameId);
 
