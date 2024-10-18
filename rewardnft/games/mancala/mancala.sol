@@ -530,6 +530,9 @@ contract MancalaGame is Ownable {
     function setReturnPotIfRejected(bool _returnPotIfRejected) public onlyOwner {
         returnPotIfRejected = _returnPotIfRejected;
     }
+    function setrequestTimeout(uint256 _requestTimeout) public onlyOwner {
+        requestTimeout = _requestTimeout;
+    }
     function setRoundTimeCap(uint256 _roundTimeCap) public onlyOwner {
         roundTimeCap = _roundTimeCap;
     }
