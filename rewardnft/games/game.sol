@@ -201,9 +201,19 @@ abstract contract GameContract is Ownable {
         return true;
     }
 
+    /* Abstract functions to get various game info, such as how many players are allowed, etc. */
+    // Returns the minimum number of players required to start the game
+    function getMinPlayers() public view virtual returns (uint256);
+
+    // Returns the maximum number of players allowed in the game
+    function getMaxPlayers() public view virtual returns (uint256);
+
+    // Checks if the game is ready to start based on game-specific conditions
+    function isGameReady(uint256 gameId) internal view virtual returns (bool);
+
     // Abstract function to initialize game-specific data
     function initializeGame(uint256 gameId) internal virtual;
-
+        
     // Owner-only setter functions
     function setKeyContract(address _keyContract) public onlyOwner {
         keyContract = _keyContract;
@@ -244,7 +254,7 @@ abstract contract GameContract is Ownable {
     function setPrizeAmount(uint256 _prizeAmount) public onlyOwner {
         prizeAmount = _prizeAmount;
     }
-    
+
     function setReturnPotIfRejected(bool _returnPotIfRejected) public onlyOwner {
         returnPotIfRejected = _returnPotIfRejected;
     }
