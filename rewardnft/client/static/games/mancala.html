@@ -3123,12 +3123,15 @@
 			// Get the current game count and then get a list of ongoing games involving the user
 			let gameIdCounter = await mancalaContract.methods.gameIdCounter().call();
 			let ongoingGames = [];
+			let pendingGames = [];
 			for (let i = 1; i <= gameIdCounter; i++) {
 				let gameState = await mancalaContract.methods.getGameState(i).call();
-				if (gameState === "1") {
-					let players = await mancalaContract.methods.getPlayers(i).call();
-					if (players[0] === accounts[0] || players[1] === accounts[0]) {
+				let players = await mancalaContract.methods.getPlayers(i).call();
+				if (players[0] === accounts[0] || players[1] === accounts[0]) {
+					if (gameState === "1") {
 						ongoingGames.push(i);
+ 					} else {
+						pendingGames.push(i);
 					}
 				}
 			}
