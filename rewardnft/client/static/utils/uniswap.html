@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Uniswap V3 Positions on Arbitrum</title>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.3/dist/web3.min.js"></script>
+</head>
+<body>
+    <h1>Uniswap V3 Positions on Arbitrum</h1>
+    <label for="address">Enter your wallet address:</label>
+    <input type="text" id="address" placeholder="0x...">
+    <button id="fetchButton">Fetch Positions</button>
+    <div id="output"></div>
+
+    <script>
+        let web3;
+
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                } catch (error) {
+                    console.error("User denied account access", error);
+                }
+            } else {
+                alert('MetaMask is required to use this feature. Please install MetaMask.');
+            }
+        });
+
+        document.getElementById('fetchButton').addEventListener('click', fetchPositions);
+
+        // Uniswap V3 NFT contract address on Arbitrum
+        const uniswapV3NFTAddress = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
+        const poolAbi = [
+            {
+                "constant": true,
+                "inputs": [{"name": "tokenId", "type": "uint256"}],
+                "name": "positions",
+                "outputs": [
+                    {"name": "liquidity", "type": "uint128"},
+                    {"name": "tickLower", "type": "int24"},
+                    {"name": "tickUpper", "type": "int24"},
+                    {"name": "token0", "type": "address"},
+                    {"name": "token1", "type": "address"},
+                    {"name": "fee", "type": "uint24"},
+                    {"name": "tick", "type": "int24"},
+                    {"name": "liquidityToken0", "type": "uint256"},
+                    {"name": "liquidityToken1", "type": "uint256"}
+                ],
+                "type": "function"
+            }
+        ];
+
+        // ERC-721 ABI (partial)
+        const erc721Abi = [
+            {
+                "constant": true,
+                "inputs": [{"name": "owner", "type": "address"}],
+                "name": "balanceOf",
+                "outputs": [{"name": "", "type": "uint256"}],
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {"name": "owner", "type": "address"},
+                    {"name": "index", "type": "uint256"}
+                ],
+                "name": "tokenOfOwnerByIndex",
+                "outputs": [{"name": "tokenId", "type": "uint256"}],
+                "type": "function"
+            }
+        ];
+
+        async function fetchPositions() {
+            const address = document.getElementById("address").value;
+            const output = document.getElementById("output");
+            output.innerHTML = "Fetching positions...";
+
+            if (!web3.utils.isAddress(address)) {
+                output.innerHTML = "Invalid address.";
+                return;
+            }
+
+            try {
+                const uniswapV3NFTContract = new web3.eth.Contract(erc721Abi, uniswapV3NFTAddress);
+                const balance = await uniswapV3NFTContract.methods.balanceOf(address).call();
+                let positions = [];
+
+                for (let i = 0; i < balance; i++) {
+                    const tokenId = await uniswapV3NFTContract.methods.tokenOfOwnerByIndex(address, i).call();
+                    const positionDetails = await fetchPositionDetails(tokenId);
+                    positions.push(positionDetails);
+                }
+
+                output.innerHTML = `<p>Found ${positions.length} positions:</p><ul>` +
+                                   positions.map(pos => `<li>Token ID: ${pos.tokenId}, Token0: ${pos.token0}, Token1: ${pos.token1}, Liquidity: ${pos.liquidity}</li>`).join('') +
+                                   `</ul>`;
+            } catch (error) {
+                output.innerHTML = `Error fetching positions: ${error.message}`;
+            }
+        }
+
+        async function fetchPositionDetails(tokenId) {
+            const uniswapV3NFTContract = new web3.eth.Contract(poolAbi, uniswapV3NFTAddress);
+            try {
+                const position = await uniswapV3NFTContract.methods.positions(tokenId).call();
+                return {
+                    tokenId: tokenId,
+                    liquidity: position.liquidity,
+                    tickLower: position.tickLower,
+                    tickUpper: position.tickUpper,
+                    token0: position.token0,
+                    token1: position.token1
+                };
+            } catch (error) {
+                console.error(`Error fetching details for tokenId ${tokenId}: ${error.message}`);
+                return { tokenId, error: error.message };
+            }
+        }
+    </script>
+</body>
+</html>

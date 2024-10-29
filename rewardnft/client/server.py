@@ -49,6 +49,10 @@ def mancala():
 def random():
     return app.send_static_file('utils/random.html')
 
+@app.route('/utils/uniswap')
+def uniswap():
+    return app.send_static_file('utils/uniswap.html')
+
 @app.route('/lotto')
 def lotto():
     return app.send_static_file('lotto.html')
