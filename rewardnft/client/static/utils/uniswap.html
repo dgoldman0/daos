@@ -10,7 +10,10 @@
     <label for="address">Enter your wallet address:</label>
     <input type="text" id="address" placeholder="0x...">
     <button id="fetchButton">Fetch Positions</button>
-    <div id="output"></div>
+    
+    <div id="output-summary"></div>
+    <div id="output-positions"></div>
+    <div id="output-aggregated"></div>
 
     <script>
         let web3;
@@ -33,22 +36,27 @@
 
         // Uniswap V3 NFT contract address on Arbitrum
         const uniswapV3NFTAddress = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
+        
+        // Pool ABI
         const poolAbi = [
             {
-                "constant": true,
-                "inputs": [{"name": "tokenId", "type": "uint256"}],
+                "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
                 "name": "positions",
                 "outputs": [
-                    {"name": "liquidity", "type": "uint128"},
-                    {"name": "tickLower", "type": "int24"},
-                    {"name": "tickUpper", "type": "int24"},
-                    {"name": "token0", "type": "address"},
-                    {"name": "token1", "type": "address"},
-                    {"name": "fee", "type": "uint24"},
-                    {"name": "tick", "type": "int24"},
-                    {"name": "liquidityToken0", "type": "uint256"},
-                    {"name": "liquidityToken1", "type": "uint256"}
+                    {"internalType": "uint96", "name": "nonce", "type": "uint96"},
+                    {"internalType": "address", "name": "operator", "type": "address"},
+                    {"internalType": "address", "name": "token0", "type": "address"},
+                    {"internalType": "address", "name": "token1", "type": "address"},
+                    {"internalType": "uint24", "name": "fee", "type": "uint24"},
+                    {"internalType": "int24", "name": "tickLower", "type": "int24"},
+                    {"internalType": "int24", "name": "tickUpper", "type": "int24"},
+                    {"internalType": "uint128", "name": "liquidity", "type": "uint128"},
+                    {"internalType": "uint256", "name": "feeGrowthInside0LastX128", "type": "uint256"},
+                    {"internalType": "uint256", "name": "feeGrowthInside1LastX128", "type": "uint256"},
+                    {"internalType": "uint128", "name": "tokensOwed0", "type": "uint128"},
+                    {"internalType": "uint128", "name": "tokensOwed1", "type": "uint128"}
                 ],
+                "stateMutability": "view",
                 "type": "function"
             }
         ];
@@ -76,11 +84,16 @@
 
         async function fetchPositions() {
             const address = document.getElementById("address").value;
-            const output = document.getElementById("output");
-            output.innerHTML = "Fetching positions...";
+            const outputSummary = document.getElementById("output-summary");
+            const outputPositions = document.getElementById("output-positions");
+            const outputAggregated = document.getElementById("output-aggregated");
+
+            outputSummary.innerHTML = "Fetching positions...";
+            outputPositions.innerHTML = "";
+            outputAggregated.innerHTML = "";
 
             if (!web3.utils.isAddress(address)) {
-                output.innerHTML = "Invalid address.";
+                outputSummary.innerHTML = "Invalid address.";
                 return;
             }
 
@@ -88,18 +101,57 @@
                 const uniswapV3NFTContract = new web3.eth.Contract(erc721Abi, uniswapV3NFTAddress);
                 const balance = await uniswapV3NFTContract.methods.balanceOf(address).call();
                 let positions = [];
+                let tokenBalances = {};
 
                 for (let i = 0; i < balance; i++) {
                     const tokenId = await uniswapV3NFTContract.methods.tokenOfOwnerByIndex(address, i).call();
                     const positionDetails = await fetchPositionDetails(tokenId);
+
+                    // Aggregate liquidity for each token
+                    [positionDetails.token0, positionDetails.token1].forEach(tokenAddress => {
+                        if (!tokenBalances[tokenAddress]) {
+                            tokenBalances[tokenAddress] = { liquidity: 0, decimals: 0, symbol: 'Unknown' };
+                        }
+                        tokenBalances[tokenAddress].liquidity += parseFloat(positionDetails.liquidity);
+                    });
+
                     positions.push(positionDetails);
                 }
 
-                output.innerHTML = `<p>Found ${positions.length} positions:</p><ul>` +
-                                   positions.map(pos => `<li>Token ID: ${pos.tokenId}, Token0: ${pos.token0}, Token1: ${pos.token1}, Liquidity: ${pos.liquidity}</li>`).join('') +
-                                   `</ul>`;
+                // Fetch token symbols and decimals for better readability
+                for (let tokenAddress in tokenBalances) {
+                    tokenBalances[tokenAddress].symbol = await fetchTokenSymbol(tokenAddress);
+                    tokenBalances[tokenAddress].decimals = await fetchTokenDecimals(tokenAddress);
+                }
+
+                // Update the output elements
+                outputSummary.innerHTML = `Found ${positions.length} positions:`;
+
+                outputPositions.innerHTML = positions.map(pos => `
+                    <div>
+                        <strong>Token ID:</strong> ${pos.tokenId}<br>
+                        <strong>Token0:</strong> ${pos.token0Symbol} (${pos.token0})<br>
+                        <strong>Token1:</strong> ${pos.token1Symbol} (${pos.token1})<br>
+                        <strong>Liquidity:</strong> ${pos.liquidity}<br>
+                        <strong>Tick Lower:</strong> ${pos.tickLower}<br>
+                        <strong>Tick Upper:</strong> ${pos.tickUpper}<br>
+                        <strong>Fee:</strong> ${pos.fee}
+                    </div><br>
+                `).join('');
+
+                outputAggregated.innerHTML = `<h2>Total Liquidity per Token:</h2>` +
+                    `<ul>` +
+                    Object.keys(tokenBalances).map(tokenAddress => {
+                        const formattedLiquidity = (tokenBalances[tokenAddress].liquidity / Math.pow(10, tokenBalances[tokenAddress].decimals)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+                        return `
+                            <li>
+                                <strong>${tokenBalances[tokenAddress].symbol} (${tokenAddress}):</strong> ${formattedLiquidity}
+                            </li>
+                        `;
+                    }).join('') +
+                    `</ul>`;
             } catch (error) {
-                output.innerHTML = `Error fetching positions: ${error.message}`;
+                outputSummary.innerHTML = `Error fetching positions: ${error.message}`;
             }
         }
 
@@ -107,17 +159,63 @@
             const uniswapV3NFTContract = new web3.eth.Contract(poolAbi, uniswapV3NFTAddress);
             try {
                 const position = await uniswapV3NFTContract.methods.positions(tokenId).call();
+                const token0Symbol = await fetchTokenSymbol(position.token0);
+                const token1Symbol = await fetchTokenSymbol(position.token1);
+
                 return {
                     tokenId: tokenId,
                     liquidity: position.liquidity,
                     tickLower: position.tickLower,
                     tickUpper: position.tickUpper,
                     token0: position.token0,
-                    token1: position.token1
+                    token1: position.token1,
+                    token0Symbol: token0Symbol,
+                    token1Symbol: token1Symbol,
+                    fee: position.fee,
                 };
             } catch (error) {
                 console.error(`Error fetching details for tokenId ${tokenId}: ${error.message}`);
                 return { tokenId, error: error.message };
+            }
+        }
+
+        async function fetchTokenSymbol(tokenAddress) {
+            const erc20Abi = [
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "symbol",
+                    "outputs": [{"name": "", "type": "string"}],
+                    "type": "function"
+                }
+            ];
+            const tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
+            try {
+                return await tokenContract.methods.symbol().call();
+            } catch (error) {
+                console.error(`Error fetching symbol for token ${tokenAddress}: ${error.message}`);
+                return 'Unknown';
+            }
+        }
+
+        async function fetchTokenDecimals(tokenAddress) {
+            const erc20Abi = [
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "decimals",
+                    "outputs": [{"name": "", "type": "uint8"}],
+                    "type": "function"
+                }
+            ];
+            const tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
+            try {
+                let res = parseInt(await tokenContract.methods.decimals().call(), 10);
+                console.log(`Decimals for token ${tokenAddress}: ${res}`);
+                return res;
+            } catch (error) {
+                console.error(`Error fetching decimals for token ${tokenAddress}: ${error.message}`);
+                return 18; // Default to 18 decimals if fetching fails
             }
         }
     </script>
