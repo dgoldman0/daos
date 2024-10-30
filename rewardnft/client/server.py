@@ -74,9 +74,9 @@ def media():
     return send_file(img_io, mimetype='image/png')
 
 # New route to serve trading pools static page pool_info.html
-@app.route('/pools')
+@app.route('/liquidity')
 def pools():
-    return app.send_static_file('pool_info.html')
+    return app.send_static_file('liquidity_info.html')
 
 @app.route('/tokens')
 def tokenlist():
