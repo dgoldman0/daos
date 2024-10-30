@@ -73,7 +73,11 @@ def media():
     # Use send_file to send the image from the buffer
     return send_file(img_io, mimetype='image/png')
 
-# New route to serve token list
+# New route to serve trading pools static page pool_info.html
+@app.route('/pools')
+def pools():
+    return app.send_static_file('pool_info.html')
+
 @app.route('/tokens')
 def tokenlist():
     # Updated token list with additional metadata
