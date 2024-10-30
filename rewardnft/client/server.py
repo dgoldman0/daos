@@ -74,7 +74,7 @@ def media():
     return send_file(img_io, mimetype='image/png')
 
 # New route to serve token list
-@app.route('/tokenlist')
+@app.route('/tokens')
 def tokenlist():
     # Updated token list with additional metadata
     token_list = {
@@ -83,7 +83,15 @@ def tokenlist():
         "keywords": [
             "barayin",
             "ecosystem",
-            "tokens"
+            "tokens",
+            "governance",
+            "community",
+            "freedom",
+            "prosperity",
+            "decentralization",
+            "cooperation",
+            "heritage",
+            "entertainment"
         ],
         "tags": {
             "gaming": {
@@ -93,6 +101,14 @@ def tokenlist():
             "social": {
                 "name": "Social",
                 "description": "Tokens related to social and community projects."
+            },
+            "governance": {
+                "name": "Governance",
+                "description": "Tokens related to governance within the Barayin ecosystem."
+            },
+            "heritage": {
+                "name": "Heritage",
+                "description": "Tokens focused on preserving cultural heritage and reconciliation."
             }
         },
         "timestamp": "2024-10-30T00:00:00Z",
@@ -104,7 +120,7 @@ def tokenlist():
                 "name": "Ayin",
                 "decimals": 18,
                 "logoURI": "http://98.15.196.137:5000/img/tokens/0xf70bad81af569a6a0e6a0096530585606ac68725",
-                "tags": ["social"]
+                "tags": ["social", "governance"]
             },
             {
                 "chainId": 42161,
@@ -113,7 +129,7 @@ def tokenlist():
                 "name": "Arcadium",
                 "decimals": 18,
                 "logoURI": "http://98.15.196.137:5000/img/tokens/0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
-                "tags": ["gaming"]
+                "tags": ["gaming", "entertainment"]
             },
             {
                 "chainId": 42161,
@@ -122,7 +138,7 @@ def tokenlist():
                 "name": "Olive",
                 "decimals": 18,
                 "logoURI": "http://98.15.196.137:5000/img/tokens/0x332ab16ce09f0fb18618219ba8658682e78bffe0",
-                "tags": ["social"]
+                "tags": ["social", "heritage"]
             },
             {
                 "chainId": 42161,
@@ -131,7 +147,7 @@ def tokenlist():
                 "name": "Sewan",
                 "decimals": 18,
                 "logoURI": "http://98.15.196.137:5000/img/tokens/0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
-                "tags": ["social"]
+                "tags": ["social", "heritage"]
             },
             {
                 "chainId": 42161,
@@ -140,13 +156,60 @@ def tokenlist():
                 "name": "Shekel",
                 "decimals": 18,
                 "logoURI": "http://98.15.196.137:5000/img/tokens/0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
-                "tags": ["social"]
+                "tags": ["social", "heritage"]
             }
         ],
         "version": {
             "major": 1,
             "minor": 0,
             "patch": 0
+        },
+        "tokenMap": {
+            "42161_0xf70bad81af569a6a0e6a0096530585606ac68725": {
+                "chainId": 42161,
+                "address": "0xf70bad81af569a6a0e6a0096530585606ac68725",
+                "symbol": "AYIN",
+                "name": "Ayin",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0xf70bad81af569a6a0e6a0096530585606ac68725",
+                "tags": ["social", "governance"]
+            },
+            "42161_0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f": {
+                "chainId": 42161,
+                "address": "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
+                "symbol": "ACM",
+                "name": "Arcadium",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
+                "tags": ["gaming", "entertainment"]
+            },
+            "42161_0x332ab16ce09f0fb18618219ba8658682e78bffe0": {
+                "chainId": 42161,
+                "address": "0x332ab16ce09f0fb18618219ba8658682e78bffe0",
+                "symbol": "OLV",
+                "name": "Olive",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0x332ab16ce09f0fb18618219ba8658682e78bffe0",
+                "tags": ["social", "heritage"]
+            },
+            "42161_0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA": {
+                "chainId": 42161,
+                "address": "0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
+                "symbol": "WAN",
+                "name": "Sewan",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
+                "tags": ["social", "heritage"]
+            },
+            "42161_0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615": {
+                "chainId": 42161,
+                "address": "0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
+                "symbol": "SKL",
+                "name": "Shekel",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
+                "tags": ["social", "heritage"]
+            }
         }
     }
     return jsonify(token_list)
