@@ -1,6 +1,5 @@
-# A quick flask application that serves rewardpool.html as index.
-
-from flask import Flask, render_template, send_file
+# Import necessary libraries
+from flask import Flask, render_template, send_file, jsonify
 from PIL import Image, ImageEnhance
 from io import BytesIO
 import argparse
@@ -73,6 +72,84 @@ def media():
 
     # Use send_file to send the image from the buffer
     return send_file(img_io, mimetype='image/png')
+
+# New route to serve token list
+@app.route('/tokenlist')
+def tokenlist():
+    # Updated token list with additional metadata
+    token_list = {
+        "name": "Barayin Ecosystem Tokens",
+        "logoURI": "http://98.15.196.137:5000/img/tokens/barayin_logo.png",
+        "keywords": [
+            "barayin",
+            "ecosystem",
+            "tokens"
+        ],
+        "tags": {
+            "gaming": {
+                "name": "Gaming",
+                "description": "Tokens related to gaming projects."
+            },
+            "social": {
+                "name": "Social",
+                "description": "Tokens related to social and community projects."
+            }
+        },
+        "timestamp": "2024-10-30T00:00:00Z",
+        "tokens": [
+            {
+                "chainId": 42161,
+                "address": "0xf70bad81af569a6a0e6a0096530585606ac68725",
+                "symbol": "AYIN",
+                "name": "Ayin",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0xf70bad81af569a6a0e6a0096530585606ac68725",
+                "tags": ["social"]
+            },
+            {
+                "chainId": 42161,
+                "address": "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
+                "symbol": "ACM",
+                "name": "Arcadium",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
+                "tags": ["gaming"]
+            },
+            {
+                "chainId": 42161,
+                "address": "0x332ab16ce09f0fb18618219ba8658682e78bffe0",
+                "symbol": "OLV",
+                "name": "Olive",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0x332ab16ce09f0fb18618219ba8658682e78bffe0",
+                "tags": ["social"]
+            },
+            {
+                "chainId": 42161,
+                "address": "0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
+                "symbol": "WAN",
+                "name": "Sewan",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
+                "tags": ["social"]
+            },
+            {
+                "chainId": 42161,
+                "address": "0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
+                "symbol": "SKL",
+                "name": "Shekel",
+                "decimals": 18,
+                "logoURI": "http://98.15.196.137:5000/img/tokens/0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
+                "tags": ["social"]
+            }
+        ],
+        "version": {
+            "major": 1,
+            "minor": 0,
+            "patch": 0
+        }
+    }
+    return jsonify(token_list)
 
 # All other routes should go to a static page about feature not yet being implemented rather than basic 404
 @app.errorhandler(404)
