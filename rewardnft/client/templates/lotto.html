@@ -1,111 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Lotto Game Interface</title>
-  <!-- Google Fonts for better typography -->
-  <link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <!-- Include Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-  <style>
-    /* Reset some default browser styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+{% extends 'base.html' %}
 
-	/* Scrollbar styling */
-	::-webkit-scrollbar {
-	width: 12px; /* Set the width of the scrollbar */
-	}
+{% block title %}Lotto Game Interface{% endblock %}
+{% block icon_class %}fas fa-dice{% endblock %}
+{% block title_text %}Lotto Game{% endblock %}
 
-	::-webkit-scrollbar-track {
-	background: #141414; /* Dark background to match the overall color scheme */
-	border-radius: 10px;
-	}
-
-	::-webkit-scrollbar-thumb {
-	background: #00ffff; /* Bright cyan color to match the button and text highlights */
-	border-radius: 10px;
-	box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff; /* Add neon glow */
-	}
-
-	::-webkit-scrollbar-thumb:hover {
-	background: #ff00ff; /* Change color on hover to neon magenta for interaction feedback */
-	}
-
-    /* Body styling */
-    body {
-      font-family: 'Press Start 2P', sans-serif; /* Futuristic gamer font */
-      background-color: #1a1a1a;
-      color: #e2e2e2;
-      line-height: 1.6;
-      letter-spacing: 0.05em;
-      overflow-x: hidden;
-    }
-
-    /* Header styling */
-    header {
-      background-color: #141414;
-      padding: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #ffffff;
-      border-bottom: 2px solid #3a3a3a;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    }
-
-    header h1 {
-      font-size: 18px;
-      text-transform: uppercase;
-      color: #f5f5f5;
-      letter-spacing: 0.1em;
-      text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
-    }
-
-    .connect-wallet {
-      padding: 12px 25px;
-      background-color: #00ffff;
-      color: #1a1a1a;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background-color 0.3s, box-shadow 0.3s;
-      text-transform: uppercase;
-      font-size: 14px;
-      letter-spacing: 0.1em;
-      box-shadow: 0 0 15px #00ffff;
-    }
-
-    .connect-wallet:hover {
-      background-color: #1a1a1a;
-      color: #00ffff;
-      box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
-    }
-
-    /* Container styling */
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    /* Section styling */
-    .section h2 {
-      margin-top: 40px;
-      margin-bottom: 20px;
-      font-size: 18px;
-      color: #ffffff;
-      border-bottom: 3px solid #00ffff;
-      padding-bottom: 10px;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px #ff00ff;
-      letter-spacing: 0.1em;
-    }
-
+{% block styles %}
+<!-- Additional styles specific to the Lotto Game -->
+<style>
     .info {
       margin-bottom: 10px;
       font-size: 12px;
@@ -274,65 +175,52 @@
 		margin-left: 20px;
 		box-shadow: 0 0 15px #ff0055;
 	}
+</style>
+{% endblock %}
 
-  </style>
-</head>
-<body>
-  <header>
-    <h1><i class="fas fa-dice"></i> Lotto Game Interface</h1>
-    <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
-  </header>
-  <div class = "top-menu">
-	<a class = "menu-item" href="/">Home</a>
-	<a class = "menu-item" href="/pool">Claim Pool</a>
-    <a class = "menu-item" href="/liquidity">Liquidity Pools</a>
+{% block content %}
+<div class="container">
+  <!-- Lotto Game Section -->
+  <div class="section" id="lottoGameSection">
+    <h2>Lotto Game</h2>
+    <div class="info">Entry Fee: <span id="entryFee">Loading...</span></div>
+    <div class="info">Prize Amount: <span id="prizeAmount">Loading...</span></div>
+    <div class="info">Odds of Winning: <span id="odds">Loading...</span></div>
+    <div class="info">Expected Gain/Loss: <span id="expectedGainLoss">Loading...</span></div>
   </div>
 
-  <!-- Notification Area -->
-  <div id="notificationArea"></div>
-
-  <div class="container">
-    <!-- Lotto Game Section -->
-    <div class="section" id="lottoGameSection">
-      <h2>Lotto Game</h2>
-      <div class="info">Entry Fee: <span id="entryFee"></span></div>
-      <div class="info">Prize Amount: <span id="prizeAmount"></span></div>
-      <div class="info">Odds of Winning: <span id="odds"></span></div>
-	  <div class="info">Expected Gain/Loss: <span id="expectedGainLoss"></span></div>
-    </div>
-	<div class="section" id="keySection">
-		<h2>Keys</h2>
-		<div class="info">Minimum Key Age: <span id="minKeyAge"></span></div>
-		<div class="info">Minimum Key Health: <span id="minKeyHealth"></span></div>
-		<div class="info">Minimum Key Claims: <span id="minKeyClaims"></span></div>
-		<div class="info">Cooldown Period: <span id="cooldownPeriod"></span></div>
-
-		<div class = "key-list" id = "keyList">
-		  </div>
-		</div>
-    <!-- Result Section -->
-    <div class="section" id="resultSection">
-      <h2>Result</h2>
-      <div class="info" id="resultMessage">Select a key to test your luck!</div>
-    </div>
-
-	<!-- Contract Address Section -->
-	<div class="section" id="contractAddressSection">
-	  <h2>Contract Address</h2>
-	  <div class="info">Lotto Contract Address: <span id="lottoContractAddress"></span></div>
-	</div>
+  <!-- Keys Section -->
+  <div class="section" id="keySection">
+    <h2>Keys</h2>
+    <div class="info">Minimum Key Age: <span id="minKeyAge">Loading...</span></div>
+    <div class="info">Minimum Key Health: <span id="minKeyHealth">Loading...</span></div>
+    <div class="info">Minimum Key Claims: <span id="minKeyClaims">Loading...</span></div>
+    <div class="info">Cooldown Period: <span id="cooldownPeriod">Loading...</span></div>
+    <div class="key-list" id="keyList"></div>
   </div>
 
-  <footer>
-    <p>&copy; 2024 Arcadium DAO</p>
-  </footer>
+  <!-- Result Section -->
+  <div class="section" id="resultSection">
+    <h2>Result</h2>
+    <div class="info" id="resultMessage">Select a key to test your luck!</div>
+  </div>
 
-  <!-- Include web3.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bignumber.js/8.0.2/bignumber.min.js"></script>  
-  <script>
-    // Contract ABI (replace with actual ABI)
-    const lottoAbi = [
+  <!-- Contract Address Section -->
+  <div class="section" id="contractAddressSection">
+    <h2>Contract Address</h2>
+    <div class="info">Lotto Contract Address: <span id="lottoContractAddress">Loading...</span></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bignumber.js/8.0.2/bignumber.min.js"></script>  
+<script>
+  const lottoContractAddress = '0x58C5f8ED50aDb8B2c8E8bBe847d98283B519e3f0';
+  const claimManagerAddress = '0x6Ed1c7185da8B225c292d9d4c7ad675637a5C0b4';
+  const nftContractAddress = '0xe75c2251478A2DA595B29e417d813B042D5d83aC';
+
+  const lottoAbi = [
 			{
 				"inputs": [],
 				"stateMutability": "nonpayable",
@@ -2565,51 +2453,42 @@
 			}
 		];
 
-	// Replace with actual contract address
-    const lottoContractAddress = '0x58C5f8ED50aDb8B2c8E8bBe847d98283B519e3f0';
-    const claimManagerAddress = '0x6Ed1c7185da8B225c292d9d4c7ad675637a5C0b4';
-	const nftContractAddress = "0xe75c2251478A2DA595B29e417d813B042D5d83aC";
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      let web3;
-      let userAddress;
-      let lottoContract;
-	  let claimManagerContract;
-	  let nftContract;
+  let lottoContract, claimManagerContract, nftContract;
 
-      const connectWalletButton = document.getElementById('connectWalletButton');
-      connectWalletButton.addEventListener('click', async () => {
-        await connectWallet();
-      });
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Select the connect wallet button
+    const connectWalletButton = document.getElementById('connectWalletButton');
 
-      async function connectWallet() {
-        if (window.ethereum) {
-          try {
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            web3 = new Web3(window.ethereum);
-            const accounts = await web3.eth.getAccounts();
-            userAddress = accounts[0];
-            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-            initializeContracts();
-            refreshData();
-          } catch (error) {
-            console.error('User denied account access');
-          }
-        } else {
-          alert('Please install MetaMask!');
+    // MutationObserver callback to handle DOM changes
+    const mutationCallback = async (mutationsList, observer) => {
+        for (const mutation of mutationsList) {
+            // Check if the text content has changed, which might indicate a wallet connection
+            if (mutation.type === 'childList' && connectWalletButton.textContent.includes('...')) {
+            if (userAddress) {
+                // Initialize contracts only if userAddress is set
+                lottoContract = new web3.eth.Contract(lottoAbi, lottoContractAddress);
+                claimManagerContract = new web3.eth.Contract(claimManagerAbi, claimManagerAddress);
+                nftContract = new web3.eth.Contract(nftAbi, nftContractAddress);
+                refreshData();
+            }
+            // Stop observing once contracts are initialized
+            observer.disconnect();
+            break;
+            }
         }
-      }
+    };
 
-      function initializeContracts() {
-        lottoContract = new web3.eth.Contract(lottoAbi, lottoContractAddress);
-		claimManagerContract = new web3.eth.Contract(claimManagerAbi, claimManagerAddress);
-		nftContract = new web3.eth.Contract(nftAbi, nftContractAddress);
-      }
+    // Set up the observer and watch for childList changes
+    const observer = new MutationObserver(mutationCallback);
+    observer.observe(connectWalletButton, { childList: true });
+    
+  });
 
-      async function refreshData() {
-        await loadLottoParameters();
-		await loadKeys();		
-      }
+  async function refreshData() {
+    await loadLottoParameters();
+    await loadKeys();
+  }
 
 	  // Load keys
 	  async function loadKeys() {
@@ -2789,19 +2668,5 @@
           notificationArea.removeChild(notification);
         }, 4000);
       }
-
-      if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        web3.eth.getAccounts().then(accounts => {
-          if (accounts.length > 0) {
-            userAddress = accounts[0];
-            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-            initializeContracts();
-            refreshData();
-          }
-        });
-      }
-    });
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

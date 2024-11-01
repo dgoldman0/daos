@@ -60,7 +60,12 @@ def uniswap():
 
 @app.route('/lotto')
 def lotto():
-    return app.send_static_file('lotto.html')
+    menu_items = [
+        {"name": "Claim Pool", "endpoint": "pool"},
+        {"name": "Lotto", "endpoint": "lotto"},
+        {"name": "Token Info", "endpoint": "info"}
+    ]
+    return render_template('lotto.html', menu_items=menu_items)
 
 @app.route('/media')
 def media():
