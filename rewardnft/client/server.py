@@ -30,7 +30,13 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    # You can pass variables like 'menu_items' here if needed.
+    menu_items = [
+        {"name": "Claim Pool", "endpoint": "pool"},
+        {"name": "Lotto", "endpoint": "lotto"},
+        {"name": "Token Info", "endpoint": "info"}
+    ]
+    return render_template('index.html', menu_items=menu_items)
 
 @app.route('/pool')
 def pool():
@@ -74,9 +80,14 @@ def media():
     return send_file(img_io, mimetype='image/png')
 
 # New route to serve trading pools static page pool_info.html
-@app.route('/token')
-def pools():
-    return app.send_static_file('token_info.html')
+@app.route('/info')
+def info():
+    menu_items = [
+        {"name": "Claim Pool", "endpoint": "pool"},
+        {"name": "Lotto", "endpoint": "lotto"},
+        {"name": "Token Info", "endpoint": "info"}
+    ]
+    return render_template('token_info.html', menu_items=menu_items)
 
 @app.route('/tokens')
 def tokenlist():

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Welcome to Arcadium</title>
+  <title>{% block title %}Welcome to Arcadium{% endblock %}</title>
   <!-- Google Fonts for better typography -->
   <link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
   <!-- Include Font Awesome for icons -->
@@ -216,46 +216,25 @@
 	}
 	.menu-item:hover {
 		color: #167fa6;
-	}  </style>
+	}
+  {% block styles %}{% endblock %}
+  </style>
 </head>
 <body>
   <header>
-    <h1><i class="fas fa-gamepad"></i> Arcadium</h1>
+    <h1><i class="{% block icon_class %}fas fa-gamepad{% endblock %}"></i>
+      {% block title_text %}Arcadium{% endblock %}</h1>
     <button id="connectWalletButton" class="connect-wallet">Connect Wallet</button>
   </header>
   <div class = "top-menu">
-    <a class = "menu-item" href="/pool">Claim Pool</a>
-	  <a class = "menu-item" href="/lotto">Lotto</a>
-    <a class = "menu-item" href="/liquidity">Liquidity Pools</a>
+    {% block menu %}
+    {% for item in menu_items %}
+      <a class="menu-item" href="/{{ item.endpoint }}">{{ item.name }}</a>
+    {% endfor %}
+    {% endblock %}
   </div>
 
-  <div class="container">
-    <div class="hero-section">
-      <h2>Welcome to Arcadium</h2>
-      <p>Your new **homebase** where **gamers** and **creatives** lead the charge. <span>The future of fun</span> is in your hands. Ready to dive in?</p>
-    </div>
-  
-    <div class="highlights">
-      <div class="highlight">
-        <h3><i class="fas fa-exclamation-triangle"></i> Pre-Alpha Status</h3>
-        <p><i>Arcadium is in pre-alpha status</i>. This means that the platform is still in development and may experience bugs or other issues. Please be patient as we work to improve the platform.</p>
-      </div>
-      <div class="highlight">
-        <h3><i class="fas fa-dice"></i> Mini Games</h3>
-        <p>Endless fun, endless rewards. From classics to brand-new <b>Arcadium originals</b>, there’s always a game waiting for you.</p>
-      </div>
-      <div class="highlight">
-        <h3><i class="fas fa-cogs"></i> Community Driven</h3>
-        <p>Arcadium is run by **you**. Want a say in the action? This is where players and creators shape the game and the world.</p>
-      </div>
-      <div class="highlight">
-        <h3><i class="fas fa-heart"></i> Life & Play</h3>
-        <p>Entertainment goes beyond fun—it’s a way to **level up** life. Whether it's through **games for wellness** or creative projects, Arcadium's got your back.</p>
-      </div>
-    </div>
-  
-    <a href ="https://app.aragon.org/#/daos/arbitrum/0xa3be8738bdd17ea103ec1ba8f878793f0c4a38ed/dashboard" class="button">Discover More</a>
-  </div>
+  {% block content %}{% endblock %}
   
   <footer>
     <p>&copy; 2024 Arcadium DAO - Powered by Gamers, Creatives, and a Decentralized Future</p>
@@ -277,13 +256,18 @@
       async function connectWallet() {
         if (window.ethereum) {
           try {
+            await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xa4b1' }] }); // Ensure Arbitrum network
             await window.ethereum.request({ method: 'eth_requestAccounts' });
             web3 = new Web3(window.ethereum);
             const accounts = await web3.eth.getAccounts();
             userAddress = accounts[0];
             connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
           } catch (error) {
-            console.error('User denied account access');
+            if (error.code === 4902) {
+              alert('Please add the Arbitrum network to MetaMask.');
+            } else {
+              console.error('User denied account access or network change failed');
+            }
           }
         } else {
           alert('Please install MetaMask!');
@@ -291,11 +275,20 @@
       }
 
       if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        const accounts = await web3.eth.getAccounts();
-        if (accounts.length > 0) {
-          userAddress = accounts[0];
-          connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+        try {
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xa4b1' }] }); // Ensure Arbitrum network
+          web3 = new Web3(window.ethereum);
+          const accounts = await web3.eth.getAccounts();
+          if (accounts.length > 0) {
+            userAddress = accounts[0];
+            connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+          }
+        } catch (error) {
+          if (error.code === 4902) {
+            alert('Please add the Arbitrum network to MetaMask.');
+          } else {
+            console.error('User denied account access or network change failed');
+          }
         }
       }
     });

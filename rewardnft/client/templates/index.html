@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to Arcadium{% endblock %}
+{% block icon_class %}fas fa-dice{% endblock %}
+{% block title_text %}Arcadium Home{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="container">
+  <div class="hero-section">
+    <h2>Welcome to Arcadium</h2>
+    <p>Your new **homebase** where **gamers** and **creatives** lead the charge. <span>The future of fun</span> is in your hands. Ready to dive in?</p>
+  </div>
+
+  <!-- Highlights Section -->
+  <div class="highlights">
+    <div class="highlight">
+      <h3><i class="fas fa-exclamation-triangle"></i> Pre-Alpha Status</h3>
+      <p><i>Arcadium is in pre-alpha status</i>. This means that the platform is still in development and may experience bugs or other issues. Please be patient as we work to improve the platform.</p>
+    </div>
+    <div class="highlight">
+      <h3><i class="fas fa-dice"></i> Mini Games</h3>
+      <p>Endless fun, endless rewards. From classics to brand-new <b>Arcadium originals</b>, there’s always a game waiting for you.</p>
+    </div>
+    <div class="highlight">
+      <h3><i class="fas fa-cogs"></i> Community Driven</h3>
+      <p>Arcadium is run by **you**. Want a say in the action? This is where players and creators shape the game and the world.</p>
+    </div>
+    <div class="highlight">
+      <h3><i class="fas fa-heart"></i> Life & Play</h3>
+      <p>Entertainment goes beyond fun—it’s a way to **level up** life. Whether it's through **games for wellness** or creative projects, Arcadium's got your back.</p>
+    </div>
+  </div>
+
+  <!-- Discover More Button -->
+  <a href="https://app.aragon.org/#/daos/arbitrum/0xa3be8738bdd17ea103ec1ba8f878793f0c4a38ed/dashboard" class="button">Discover More</a>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.12.1/web3.min.js"></script>
+{% endblock %}
