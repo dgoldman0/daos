@@ -2,16 +2,8 @@
 pragma solidity ^0.8.0;
 import "./ownable.sol";
 
-interface IERC20 {
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
-
 contract TimeBasedEscrow is Ownable {
     address public beneficiary;  // The beneficiary of the funds
-    address public ownerNominee;     // Previous owner of the contract, if any.
-    uint256 public nominationDate; // Date at which ownership transfer occurred.
-    address public owner;        // Owner of the contract
     uint256 public drawdownAmountPerDay;   // Fixed amount of tokens released per day
     uint256 public lastDrawdownTime;       // Timestamp of the last withdrawal
     IERC20 public escrowToken;             // Token used for the escrow
@@ -20,9 +12,6 @@ contract TimeBasedEscrow is Ownable {
     uint256 public constant MINIMUM_DRAWDOWN_INTERVAL = 1 hours; // Minimum time between drawdowns (1 hour)
 
     event Drawdown(address indexed trigger, uint256 amount);
-    event OwnershipTransferred(address indexed newOwner);
-    event OwnerNominated(address indexed newOwner);
-    event NominationCancelled(address indexed cancelledBy);
 
     constructor(
         address _beneficiary,
@@ -69,7 +58,4 @@ contract TimeBasedEscrow is Ownable {
 
         emit Drawdown(msg.sender, amountToWithdraw);
     }
-
-    // Fallback function to receive ETH
-    receive() external payable {}
 }
