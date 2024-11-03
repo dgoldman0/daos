@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "./ownable.sol";
 
 interface IERC20 {
     function transfer(address recipient, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract TimeBasedEscrow {
+contract TimeBasedEscrow is Ownable {
     address public beneficiary;  // The beneficiary of the funds
     address public ownerNominee;     // Previous owner of the contract, if any.
     uint256 public nominationDate; // Date at which ownership transfer occurred.
@@ -23,11 +24,6 @@ contract TimeBasedEscrow {
     event OwnerNominated(address indexed newOwner);
     event NominationCancelled(address indexed cancelledBy);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not the owner");
-        _;
-    }
-
     constructor(
         address _beneficiary,
         address _escrowToken,
@@ -38,41 +34,6 @@ contract TimeBasedEscrow {
         drawdownAmountPerDay = _drawdownAmountPerDay;
         owner = msg.sender;
         lastDrawdownTime = block.timestamp;  // Set the start of the drawdown period
-    }
-
-    // Allow owner to change owner
-    function changeOwner(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "New owner is the zero address");
-        ownerNominee = newOwner;
-        // Forgot to include the nominationDate = block.timestamp;
-        // nominationDate = block.timestamp;
-        emit OwnerNominated(newOwner);
-    }
-
-    // Revert ownership if it's been over 30 days since the transfer.
-    function cancelTransfer() external {
-        require(owner == msg.sender, "Not owner");
-        require(block.timestamp >= nominationDate + 30 days, "Ownership transfer is still within the 30-day period");
-        ownerNominee = address(0);
-        nominationDate = 0;
-        emit NominationCancelled(msg.sender);
-    }
-
-    // Accept the ownership transfer
-    function acceptOwnership() external {
-        require(msg.sender == ownerNominee, "Only the nominee can accept ownership");
-        owner = ownerNominee;
-        ownerNominee = address(0);
-        nominationDate = 0;
-        emit OwnershipTransferred(owner);
-    }
-
-    // Reject the ownership transfer
-    function rejectOwnership() external {
-        require(msg.sender == ownerNominee, "Only the nominee can reject ownership");
-        ownerNominee = address(0);
-        nominationDate = 0;
-        emit NominationCancelled(msg.sender);
     }
 
     // Function to calculate the amount available for withdrawal based on the number of days since the last drawdown
@@ -107,21 +68,6 @@ contract TimeBasedEscrow {
         require(escrowToken.transfer(beneficiary, amountToWithdraw), "Transfer failed");
 
         emit Drawdown(msg.sender, amountToWithdraw);
-    }
-
-    // Allow the owner to withdraw any mistakenly deposited ETH or other ERC-20 tokens
-    function withdrawETH() external onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No ETH balance to withdraw");
-        payable(owner).transfer(balance);
-    }
-
-    function withdrawOtherTokens(address tokenAddress) external onlyOwner {
-        require(tokenAddress != address(escrowToken), "Cannot withdraw escrow tokens");
-        IERC20 token = IERC20(tokenAddress);
-        uint256 balance = token.balanceOf(address(this));
-        require(balance > 0, "No token balance to withdraw");
-        require(token.transfer(owner, balance), "Token transfer failed");
     }
 
     // Fallback function to receive ETH
