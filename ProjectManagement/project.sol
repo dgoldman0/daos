@@ -246,3 +246,4 @@ contract Project is Ownable {
         return metaDataManager.getMetaData(taskId); // Retrieve metadata details from MetaDataManager.
     }
 }
+
