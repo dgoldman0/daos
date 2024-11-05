@@ -83,11 +83,6 @@ def media():
 # New route to serve trading pools static page pool_info.html
 @app.route('/info')
 def info():
-    menu_items = [
-        {"name": "Claim Pool", "endpoint": "pool"},
-        {"name": "Lotto", "endpoint": "lotto"},
-        {"name": "Token Info", "endpoint": "info"}
-    ]
     return render_template('token_info.html', menu_items=menu_items)
 
 @app.route('/tokens')
