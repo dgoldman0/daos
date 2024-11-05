@@ -198,10 +198,13 @@ contract PaymentManager is Ownable {
     }
 }
 
-// Will want to use AccessControl to allow multiple contracts to interact with this contract. Maybe pull the potion repair out of this contract and put it in its own and give that access. But maybe not because it's default anyway.
+// Should really extract extract the data to yet another contract now and turn this into the claim contract controller
 // Handles NFT detials and claims... 
 contract ClaimNFTManager is Ownable {
-    address public potionToken;
+    mapping (address => bool) public controllers;
+
+    // Would just be another controller in the new system which means that potions also need to be extracted out
+    address public potionToken; 
 
     struct NFTInfo {
         uint256 mintDate;
@@ -336,6 +339,31 @@ contract ClaimNFTManager is Ownable {
         claimData[tokenId].health += uint8(_qnt);
         emit TokenRepaired(msg.sender, tokenId, _qnt);
     }
+
+    /* This stuff should be in a new data manager contract so this can be turned into the claim manager exclusive controller, but eh. */
+    function addController(address _controller) public onlyOwner {
+        controllers[_controller] = true;
+    }
+
+    function removeController(address _controller) public onlyOwner {
+        controllers[_controller] = false;
+    }
+
+    function reduceHealth(uint256 tokenId, uint8 _qnt) public {
+        require(controllers[msg.sender], "Only controllers can call this function");
+        require(claimData[tokenId].mintDate > 0, "NFT not initialized");
+        require(claimData[tokenId].health >= _qnt, "NFT health would be under limit");
+        claimData[tokenId].health -= _qnt;
+    }
+
+    function increaseHealth(uint256 tokenId, uint8 _qnt) public {
+        require(controllers[msg.sender], "Only controllers can call this function");
+        require(claimData[tokenId].mintDate > 0, "NFT not initialized");
+        require(claimData[tokenId].health + _qnt <= 255, "NFT health would be over limit");
+        claimData[tokenId].health += _qnt;
+    }
+
+    /* End part that should be in its own data manager contract */
 
     // Owner can set the minimum health required to claim rewards
     function setMinHealth(uint8 _min_health) public onlyOwner {
