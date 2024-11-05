@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+// Access control is in the wrong place, and we need a way to create custom roles. 
+
 // DataManager contract: Responsible for managing the core details of tasks, such as creation, assignment, and completion.
 // This contract is intended to serve as the main storage of all task data, allowing only the Project contract to interact with tasks by ID.
 contract DataManager is AccessControl {
