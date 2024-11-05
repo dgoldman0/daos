@@ -4,6 +4,13 @@ from PIL import Image, ImageEnhance
 from io import BytesIO
 import argparse
 
+
+menu_items = [
+    {"name": "Claim Pool", "endpoint": "pool"},
+    {"name": "Mine", "endpoint": "mine"},
+    {"name": "Token Info", "endpoint": "info"}
+]
+
 # Load base images
 treasure_img = Image.open("assets/treasure.png").convert("RGBA")  # Ensure it's in RGBA mode
 sparkles_img = Image.open("assets/sparkles.png").convert("RGBA")  # Ensure it's in RGBA mode
@@ -30,12 +37,6 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    # You can pass variables like 'menu_items' here if needed.
-    menu_items = [
-        {"name": "Claim Pool", "endpoint": "pool"},
-        {"name": "Lotto", "endpoint": "lotto"},
-        {"name": "Token Info", "endpoint": "info"}
-    ]
     return render_template('index.html', menu_items=menu_items)
 
 @app.route('/pool')
@@ -58,14 +59,9 @@ def random():
 def uniswap():
     return app.send_static_file('utils/uniswap.html')
 
-@app.route('/lotto')
-def lotto():
-    menu_items = [
-        {"name": "Claim Pool", "endpoint": "pool"},
-        {"name": "Lotto", "endpoint": "lotto"},
-        {"name": "Token Info", "endpoint": "info"}
-    ]
-    return render_template('lotto.html', menu_items=menu_items)
+@app.route('/mine')
+def mine():
+    return render_template('mine.html', menu_items=menu_items)
 
 @app.route('/media')
 def media():
