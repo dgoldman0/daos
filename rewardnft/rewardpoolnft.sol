@@ -198,6 +198,7 @@ contract PaymentManager is Ownable {
     }
 }
 
+// Will want to use AccessControl to allow multiple contracts to interact with this contract. Maybe pull the potion repair out of this contract and put it in its own and give that access. But maybe not because it's default anyway.
 // Handles NFT detials and claims... 
 contract ClaimNFTManager is Ownable {
     address public potionToken;
