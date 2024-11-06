@@ -130,7 +130,6 @@ def tokenlist():
                 "symbol": "AYIN",
                 "name": "Ayin",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0xf70bad81af569a6a0e6a0096530585606ac68725",
                 "tags": ["social", "governance"]
             },
             {
@@ -139,7 +138,6 @@ def tokenlist():
                 "symbol": "ACM",
                 "name": "Arcadium",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
                 "tags": ["gaming", "entertainment"]
             },
             {
@@ -148,7 +146,6 @@ def tokenlist():
                 "symbol": "OLV",
                 "name": "Olive",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0x332ab16ce09f0fb18618219ba8658682e78bffe0",
                 "tags": ["social", "heritage"]
             },
             {
@@ -157,7 +154,6 @@ def tokenlist():
                 "symbol": "WAN",
                 "name": "Sewan",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
                 "tags": ["social", "heritage"]
             },
             {
@@ -166,7 +162,14 @@ def tokenlist():
                 "symbol": "SKL",
                 "name": "Shekel",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
+                "tags": ["social", "heritage"]
+            },
+            {
+                "chainId": 42161,
+                "address": "0x6f6a5b1328ec5795f6b6f498a3e324aba59ad2e7",
+                "symbol": "BATO",
+                "name": "Bato",
+                "decimals": 18,
                 "tags": ["social", "heritage"]
             }
         ],
@@ -182,7 +185,6 @@ def tokenlist():
                 "symbol": "AYIN",
                 "name": "Ayin",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0xf70bad81af569a6a0e6a0096530585606ac68725",
                 "tags": ["social", "governance"]
             },
             "42161_0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f": {
@@ -191,7 +193,6 @@ def tokenlist():
                 "symbol": "ACM",
                 "name": "Arcadium",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
                 "tags": ["gaming", "entertainment"]
             },
             "42161_0x332ab16ce09f0fb18618219ba8658682e78bffe0": {
@@ -200,7 +201,6 @@ def tokenlist():
                 "symbol": "OLV",
                 "name": "Olive",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0x332ab16ce09f0fb18618219ba8658682e78bffe0",
                 "tags": ["social", "heritage"]
             },
             "42161_0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA": {
@@ -209,7 +209,6 @@ def tokenlist():
                 "symbol": "WAN",
                 "name": "Sewan",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
                 "tags": ["social", "heritage"]
             },
             "42161_0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615": {
@@ -218,7 +217,14 @@ def tokenlist():
                 "symbol": "SKL",
                 "name": "Shekel",
                 "decimals": 18,
-                "logoURI": "http://98.15.196.137:5000/img/tokens/0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
+                "tags": ["social", "heritage"]
+            },
+            "42161_0x6f6a5b1328ec5795f6b6f498a3e324aba59ad2e7": {
+                "chainId": 42161,
+                "address": "0x6f6a5b1328ec5795f6b6f498a3e324aba59ad2e7",
+                "symbol": "BATO",
+                "name": "Bato",
+                "decimals": 18,
                 "tags": ["social", "heritage"]
             }
         }
