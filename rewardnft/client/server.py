@@ -90,7 +90,6 @@ def tokenlist():
     # Updated token list with additional metadata
     token_list = {
         "name": "Barayin Ecosystem Tokens",
-        "logoURI": "http://98.15.196.137:5000/img/tokens/barayin_logo.png",
         "keywords": [
             "barayin",
             "ecosystem",
@@ -177,56 +176,6 @@ def tokenlist():
             "major": 1,
             "minor": 0,
             "patch": 0
-        },
-        "tokenMap": {
-            "42161_0xf70bad81af569a6a0e6a0096530585606ac68725": {
-                "chainId": 42161,
-                "address": "0xf70bad81af569a6a0e6a0096530585606ac68725",
-                "symbol": "AYIN",
-                "name": "Ayin",
-                "decimals": 18,
-                "tags": ["social", "governance"]
-            },
-            "42161_0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f": {
-                "chainId": 42161,
-                "address": "0x0657fa37cdebB602b73Ab437C62c48f02D8b3B8f",
-                "symbol": "ACM",
-                "name": "Arcadium",
-                "decimals": 18,
-                "tags": ["gaming", "entertainment"]
-            },
-            "42161_0x332ab16ce09f0fb18618219ba8658682e78bffe0": {
-                "chainId": 42161,
-                "address": "0x332ab16ce09f0fb18618219ba8658682e78bffe0",
-                "symbol": "OLV",
-                "name": "Olive",
-                "decimals": 18,
-                "tags": ["social", "heritage"]
-            },
-            "42161_0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA": {
-                "chainId": 42161,
-                "address": "0xd558fcFEce17e4B3591D9f718c4B8B67Ded81cBA",
-                "symbol": "WAN",
-                "name": "Sewan",
-                "decimals": 18,
-                "tags": ["social", "heritage"]
-            },
-            "42161_0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615": {
-                "chainId": 42161,
-                "address": "0xD24989CF630cc6b8EB3f70D1b56dFcE4d56c6615",
-                "symbol": "SKL",
-                "name": "Shekel",
-                "decimals": 18,
-                "tags": ["social", "heritage"]
-            },
-            "42161_0x6f6a5b1328ec5795f6b6f498a3e324aba59ad2e7": {
-                "chainId": 42161,
-                "address": "0x6f6a5b1328ec5795f6b6f498a3e324aba59ad2e7",
-                "symbol": "BATO",
-                "name": "Bato",
-                "decimals": 18,
-                "tags": ["social", "heritage"]
-            }
         }
     }
     return jsonify(token_list)
