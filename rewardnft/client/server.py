@@ -85,6 +85,12 @@ def media():
 def info():
     return render_template('token_info.html', menu_items=menu_items)
 
+# Route to serve socials
+@app.route('/socials')
+def socials():
+    return render_template('socials.html', menu_items=menu_items)
+
+# Route to serve token list as JSON
 @app.route('/tokens')
 def tokenlist():
     # Updated token list with additional metadata

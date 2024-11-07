@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Arcadium Socials{% endblock %}
+{% block icon_class %}fas fa-dice{% endblock %}
+{% block title_text %}Arcadium Socials{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="container">
+  <div class="hero-section">
+    <h2>Connect with Arcadium and Beyond</h2>
+    <p>Arcadium is part of a large ecosystem of projects that continues to grow daily. Learn more by connecting with our other projects and our socials.</p>
+  </div>
+
+  <!-- Highlights Section -->
+  <div class="highlights">
+    <div class="highlight">
+      <h3><i class="fa-brands fa-discord"></i> <a href = "https://discord.gg/AnrXxhs3b2">Barayin Discord</a></h3>
+      <p>We do not yet have an individual Discord server set up for Arcadium, but youu can join the conversation on the Barayin server.</p>
+    </div>
+  </div>
+  <!-- Discover More Button -->
+  <a href="https://app.aragon.org/#/daos/arbitrum/0xa3be8738bdd17ea103ec1ba8f878793f0c4a38ed/dashboard" class="button">Discover More</a>
+</div>
+{% endblock %}
