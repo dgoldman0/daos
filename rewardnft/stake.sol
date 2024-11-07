@@ -7,6 +7,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./utils/ownable.sol";
 
 // EnergyToken contract that can only be minted by the StakingContract
 contract EnergyToken is ERC20 {
