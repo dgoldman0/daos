@@ -41,18 +41,25 @@ contract StakingContract is ReentrancyGuard, Ownable {
     }
 
     mapping(address => StakeInfo) public stakes;
+    uint256 public totalStakers;
+    bool public stakingEnabled;
 
     constructor(IERC20 _stakingToken, uint256 _energyRate) {
         stakingToken = _stakingToken;
-        energyToken = new EnergyToken(address(this)); // Set staking contract as the only minter
         energyRate = _energyRate;
+        stakingEnabled = true;
     }
 
     // Stake tokens
     function stake(uint256 amount) external nonReentrant {
         require(amount > 0, "Amount must be greater than zero");
+        require(stakingEnabled, "Staking is currently disabled");
+        bool alreadyStaking = stakes[msg.sender].amount > 0;
         stakingToken.transferFrom(msg.sender, address(this), amount);
         _updateEnergy(msg.sender);
+        if (!alreadyStaking) {
+            totalStakers++;
+        }
         stakes[msg.sender].amount += amount;
         stakes[msg.sender].lastUpdate = block.timestamp;
     }
@@ -102,6 +109,10 @@ contract StakingContract is ReentrancyGuard, Ownable {
         if (userStake.weeksCompleted >= 4) {
             userStake.isUnstaking = false; // Complete the unstaking process
         }
+
+        if (userStake.amount == 0) {
+            totalStakers--;
+        }
     }
 
     // Internal function to update energy accrual
@@ -110,5 +121,25 @@ contract StakingContract is ReentrancyGuard, Ownable {
         uint256 timeElapsed = block.timestamp - userStake.lastUpdate;
         userStake.energyAccrued += userStake.amount * timeElapsed * energyRate;
         userStake.lastUpdate = block.timestamp;
+    }
+
+    function setStakingEnabled(bool _enabled) external onlyOwner {
+        stakingEnabled = _enabled;
+    }
+
+    function setStakingToken(IERC20 _stakingToken) external onlyOwner {
+        require(address(_stakingToken) != address(0), "Invalid address");
+        require(!stakingEnabled, "Cannot change token when staking is enabled");
+        stakingToken = _stakingToken;
+    }
+
+    function setEnergyRate(uint256 _energyRate) external onlyOwner {
+        energyRate = _energyRate;
+    }
+
+    function setEnergyToken(EnergyToken _energyToken) external onlyOwner {
+        require(address(_energyToken) != address(0), "Invalid address");
+        require(!stakingEnabled, "Cannot change token when staking is enabled");
+        energyToken = _energyToken;
     }
 }
