@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./utils/ownable.sol";
 
 // EnergyToken contract that can only be minted by the StakingContract
-contract EnergyToken is ERC20 {
+contract EnergyToken is ERC20, Ownable {
     address public stakingContract;
 
     constructor(address _stakingContract) ERC20("Energy", "ENG") {
@@ -27,7 +27,7 @@ contract EnergyToken is ERC20 {
     }
 }
 
-contract StakingContract is ReentrancyGuard {
+contract StakingContract is ReentrancyGuard, Ownable {
     IERC20 public stakingToken;
     EnergyToken public energyToken;
     uint256 public energyRate; // Rate of energy generation per second
