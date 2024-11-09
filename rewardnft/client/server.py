@@ -1,17 +1,8 @@
 # Import necessary libraries
-from flask import Flask, render_template, send_file, jsonify
+from flask import Flask, render_template, send_file, jsonify, request
 from PIL import Image, ImageEnhance
 from io import BytesIO
 import argparse
-
-
-menu_items = [
-    {"name": "Claim Pool", "endpoint": "pool"},
-    {"name": "Mine", "endpoint": "mine"},
-    {"name": "Token Info", "endpoint": "info"},
-    {"name": "Socials", "endpoint": "socials"},
-    {"name": "Staking", "endpoint": "staking"},
-]
 
 # Load base images
 treasure_img = Image.open("assets/treasure.png").convert("RGBA")  # Ensure it's in RGBA mode
@@ -36,14 +27,29 @@ def apply_sparkles(base_img, overlay_img, sparkle_opacity=1.0):
 
 app = Flask(__name__)
 
+menu_items = [
+    {"name": "Home", "endpoint": "index"},
+    {"name": "Staking", "endpoint": "staking"},
+    {"name": "Claim Pool", "endpoint": "pool"},
+    {"name": "Mine", "endpoint": "mine"},
+    {"name": "Token Info", "endpoint": "info"},
+    {"name": "Socials", "endpoint": "socials"},
+]
+
+def get_filtered_menu():
+    # Filter out the current endpoint from the menu items
+    current_endpoint = request.endpoint
+    print(f"Current endpoint: {current_endpoint}")  # Debugging
+    return [item for item in menu_items if item["endpoint"] != current_endpoint]
+
 
 @app.route('/')
 def index():
-    return render_template('index.html', menu_items=menu_items)
+    return render_template('index.html', menu_items=get_filtered_menu())
 
 @app.route('/pool')
 def pool():
-    return render_template('rewardpool.html', menu_items=menu_items)
+    return render_template('rewardpool.html', menu_items=get_filtered_menu())
 
 @app.route('/games/mancala')
 def mancala():
@@ -63,7 +69,7 @@ def uniswap():
 
 @app.route('/mine')
 def mine():
-    return render_template('mine.html', menu_items=menu_items)
+    return render_template('mine.html', menu_items=get_filtered_menu())
 
 @app.route('/media')
 def media():
@@ -85,16 +91,16 @@ def media():
 # New route to serve trading pools static page pool_info.html
 @app.route('/info')
 def info():
-    return render_template('token_info.html', menu_items=menu_items)
+    return render_template('token_info.html', menu_items=get_filtered_menu())
 
 # Route to serve socials
 @app.route('/socials')
 def socials():
-    return render_template('socials.html', menu_items=menu_items)
+    return render_template('socials.html', menu_items=get_filtered_menu())
 
 @app.route('/staking')
 def staking():
-    return render_template('staking.html', menu_items=menu_items)
+    return render_template('staking.html', menu_items=get_filtered_menu())
 
 # Route to serve token list as JSON
 @app.route('/tokens')

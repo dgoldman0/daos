@@ -263,7 +263,7 @@
   <div class = "top-menu">
     {% block menu %}
     {% for item in menu_items %}
-      <a class="menu-item" href="/{{ item.endpoint }}">{{ item.name }}</a>
+      <a class="menu-item" href="{{ url_for(item.endpoint) }}">{{ item.name }}</a>
     {% endfor %}
     {% endblock %}
   </div>
