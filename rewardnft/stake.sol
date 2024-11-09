@@ -44,7 +44,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
     constructor(IERC20 _stakingToken, uint256 _energyRate) {
         stakingToken = _stakingToken;
         energyRate = _energyRate;
-        stakingEnabled = true;
+        stakingEnabled = false;
     }
 
     // Stake tokens
