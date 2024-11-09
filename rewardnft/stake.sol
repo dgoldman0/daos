@@ -44,7 +44,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
     constructor(IERC20 _stakingToken, uint256 _energyRate) {
         stakingToken = _stakingToken;
         energyRate = _energyRate;
-        stakingEnabled = true;
+        stakingEnabled = false;
     }
 
     // Stake tokens
@@ -86,6 +86,9 @@ contract StakingContract is ReentrancyGuard, Ownable {
         StakeInfo storage userStake = stakes[msg.sender];
         require(userStake.isUnstaking, "Not unstaking");
         userStake.isUnstaking = false;
+        userStake.unstakeTime = 0;
+        userStake.weeklyUnlock = 0;
+        userStake.weeksCompleted = 0;
     }
 
     // Claim unlocked portion of staked tokens
@@ -134,6 +137,11 @@ contract StakingContract is ReentrancyGuard, Ownable {
     }
 
     function setStakingEnabled(bool _enabled) external onlyOwner {
+        // If enabling, make sure everything is set...
+        if (_enabled) {
+            require(address(energyToken) != address(0), "Energy token not set");
+            require(energyRate > 0, "Energy rate not set");
+        }
         stakingEnabled = _enabled;
     }
 
