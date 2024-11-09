@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Claim Pool NFT Interface{% endblock %}
+{% block icon_class %}fas fa-gem{% endblock %}
+{% block title_text %}Claim Pool NFT Interface{% endblock %}
+
+{% block styles %}
+<!-- Additional styles specific to the Claim Pool NFT Interface -->
+<style>
+  /* NFT Grid styling */
+  .nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  /* NFT Card styling */
+  .nft-card {
+    background-color: #262626;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #3a3a3a;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    transition: transform 0.2s, border 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+
+  .nft-card:hover {
+    transform: translateY(-5px);
+    border: 2px solid #00ffff;
+    box-shadow: 0 4px 30px #00ffff, 0 0 40px #ff00ff;
+  }
+
+  .nft-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #ffffff;
+    text-shadow: 0 0 5px #ff00ff;
+  }
+
+  .nft-card .nft-image {
+    width: 100%;
+    height: 200px;
+    background-color: #1a1a1a;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid #3a3a3a;
+  }
+
+  /* Health Bar */
+  .nft-card .health-bar {
+    background-color: #3a3a3a;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .nft-card .health-bar div {
+    height: 10px;
+    background-color: #00ff00;
+    transition: width 0.3s;
+  }
+
+  .nft-card .action-buttons {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 15px;
+  }
+
+  /* Button styling */
+  .button:disabled {
+    background-color: #333;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Info text styling */
+  .info {
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: #dcdcdc;
+  }
+
+  .info span {
+    font-weight: 600;
+    color: #00ffff;
+  }
+
+  /* Input styling */
+  input[type="number"] {
+    padding: 10px;
+    width: 100px;
+    margin-right: 10px;
+    border: 2px solid #3a3a3a;
+    border-radius: 5px;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    font-size: 12px;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 10px #00ffff;
+  }
+
+  /* Notification area */
+  #notificationArea {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 300px;
+    z-index: 1000;
+  }
+
+  .notification {
+    background-color: #00ffff;
+    color: #1a1a1a;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    animation: fadeOut 4s forwards;
+    box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+  }
+
+  .error-notification {
+    background-color: #ff0055;
+    box-shadow: 0 0 20px #ff0055, 0 0 40px #ff00ff;
+  }
+
+  /* Fade out animation */
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    75% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .container {
+      padding: 20px;
+    }
+
+    header h1 {
+      font-size: 20px;
+    }
+
+    .connect-wallet {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+
+    .nft-card h3 {
+      font-size: 10px;
+    }
+
+    .button {
+      padding: 8px 12px;
+      font-size: 10px;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      font-size: 12px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Notification Area -->
+<div id="notificationArea"></div>
+
+<div class="container">
+  <!-- My NFTs Section -->
+  <div class="section" id="myNftsSection">
+    <h2>My NFTs</h2>
+    <div id="nftGrid" class="nft-grid"></div>
+  </div>
+
+  <!-- Mint NFTs Section -->
+  <div class="section" id="mintSection">
+    <h2>Mint NFTs</h2>
+    <div class="info">Mint Price: <span id="mintPrice"></span></div>
+    <input type="number" id="mintAmt" placeholder="Amount" min="1" max="100">
+    <button id="mintButton" class="button">Mint NFT</button>
+  </div>
+
+  <!-- Buy Repair Potions Section -->
+  <div class="section" id="potionSection">
+    <h2>Buy Repair Potions</h2>
+    <div class="info">Potion Price: <span id="potionPrice"></span></div>
+    <div class="info">Your Potion Balance: <span id="potionBalance"></span></div>
+    <div class="purchase-form">
+      <input type="number" id="potionAmount" placeholder="Amount" min="1" max="100">
+      <button id="buyPotionButton" class="button">Buy Potions</button>
+    </div>
+  </div>
+
+  <!-- Claim Info Section -->
+  <div class="section" id="claimPeriodSection">
+    <h2>Claim Info</h2>
+    <div class="info">Time Remaining: <span id="timeRemaining"></span></div>
+    <div class="info">Claimants: <span id="claimantsCount"></span>/<span id="claimerLimit"></span></div>
+    <div class="info">Regular Reward Rate: <span id="rewardRate"></span></div>
+    <div class="info">Special Reward Rate: <span id="specialRewardRate"></span></div>
+    <div class="info">Minimum Claims Required: <span id="minClaims"></span></div>
+  </div>
+
+  <!-- System Information Section -->
+  <div class="section" id="systemInfoSection">
+    <h2>NFT Information</h2>
+    <div class="info">Total NFTs Minted: <span id="totalNfts"></span></div>
+  </div>
+  <div class="section" id="contractAddresses">
+    <h2>Contract Addresses:</h2>
+    <ul>
+      <li>NFT Contract: <a href="#" id="nftContractAddress"></a></li>
+      <li>Claim Manager: <a href="#" id="claimManagerAddress"></a></li>
+      <li>Payment Manager: <a href="#" id="paymentManagerAddress"></a></li>
+      <li>Repair Potion: <a href="#" id="potionContractAddress"></a></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- You can include your JavaScript here when ready -->
+{% endblock %}
