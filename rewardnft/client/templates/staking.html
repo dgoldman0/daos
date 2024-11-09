@@ -419,6 +419,10 @@
 
     // Calculate time until next unlock
     if (isUnstaking) {
+      // Set unstake button to invisible
+      document.getElementById('initiateUnstakeButton').style.display = 'none';
+      document.getElementById('cancelUnstakeButton').style.display = 'inline';
+      document.getElementById('claimUnlockedButton').style.display = 'inline';
       if (weeksCompleted >= 4) {
         document.getElementById('unlockTime').textContent = 'Unlocked!';
       } else {
@@ -432,6 +436,9 @@
       }
     } else {
       document.getElementById('unlockTime').textContent = 'Not unstaking';
+      document.getElementById('initiateUnstakeButton').style.display = 'inline';
+      document.getElementById('cancelUnstakeButton').style.display = 'none';
+      document.getElementById('claimUnlockedButton').style.display = 'none';
     }
 
     const segments = progressBar.children;
