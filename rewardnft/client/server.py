@@ -43,7 +43,7 @@ def index():
 
 @app.route('/pool')
 def pool():
-    return app.send_static_file('rewardpool.html')
+    return render_template('rewardpool.html', menu_items=menu_items)
 
 @app.route('/games/mancala')
 def mancala():
