@@ -147,17 +147,23 @@ contract StakingContract is ReentrancyGuard, Ownable {
 
     function setStakingToken(IERC20 _stakingToken) external onlyOwner {
         require(address(_stakingToken) != address(0), "Invalid address");
-        require(!stakingEnabled, "Cannot change token when staking is enabled");
+        require(!stakingEnabled && totalStakers == 0, "Cannot change token when staking is active");
         stakingToken = _stakingToken;
     }
 
+    // Energy rate and token can be changed while staking is active. It only affects the most recent claims, though if someone was sitting on stuff for a while and didn't know, that might be a problem.
     function setEnergyRate(uint256 _energyRate) external onlyOwner {
-        energyRate = _energyRate;
+            energyRate = _energyRate;
     }
 
     function setEnergyToken(EnergyToken _energyToken) external onlyOwner {
         require(address(_energyToken) != address(0), "Invalid address");
-        require(!stakingEnabled, "Cannot change token when staking is enabled");
         energyToken = _energyToken;
+    }
+
+    // Override withdraw function to ensure that the staking token can only be withdrawn if staking is disabled and there are no active stakes
+    function withdraw(address _token) public override onlyOwner nonReentrant {
+        require(_token != address(stakingToken) || !stakingEnabled && totalStakers == 0, "Cannot withdraw staking tokens with active stakes");
+        super.withdraw(_token);
     }
 }
