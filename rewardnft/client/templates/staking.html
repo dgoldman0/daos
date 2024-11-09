@@ -53,6 +53,56 @@
       margin-bottom: 20px;
     }
 
+    .progress-bar-container {
+      width: 100%;
+      background-color: #3a3a3a;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 20px;
+      box-shadow: 0 0 10px #00ffff;
+      position: relative;
+    }
+
+    .progress-bar {
+      display: flex;
+      height: 20px;
+    }
+
+    .progress-segment {
+      flex: 1;
+      transition: width 0.5s;
+    }
+
+    .segment-completed {
+      background-color: darkgreen;
+    }
+
+    .segment-in-progress {
+      background-color: limegreen;
+    }
+
+    .segment-pending {
+      background-color: #5a5a5a;
+    }
+
+    .progress-marker {
+      position: absolute;
+      top: -5px;
+      height: 30px;
+      width: 2px;
+      background-color: #ffffff;
+    }
+
+    .progress-marker-1 {
+      left: 25%;
+    }
+    .progress-marker-2 {
+      left: 50%;
+    }
+    .progress-marker-3 {
+      left: 75%;
+    }
+
     /* Footer styling */
     footer {
       background-color: #141414;
@@ -135,9 +185,26 @@
   <div class="section" id="stakingSection">
     <h2>Staking</h2>
     <div class="info">Staking Token: <span id="stakingToken">Loading...</span></div>
+    <div class="info">Total Staked Amount: <span id="stakedAmount">Loading...</span></div>
     <div class="info">Energy Generation Rate: <span id="energyRate">Loading...</span></div>
     <input type="number" id="stakeAmount" placeholder="Amount to Stake" />
     <button class="button" id="stakeButton" onclick="stakeTokens()">Stake Tokens</button>
+    <h3>Unstaking</h3>
+    <div class="info">Time until next unlock: <span id="unlockTime">Loading...</span></div>
+    <div class="progress-bar-container" id="unstakeProgressContainer">
+      <div class="progress-bar" id="unstakeProgressBar">
+        <div class="progress-segment segment-pending" id="completedSegment1"></div>
+        <div class="progress-segment segment-pending" id="completedSegment2"></div>
+        <div class="progress-segment segment-pending" id="completedSegment3"></div>
+        <div class="progress-segment segment-pending" id="completedSegment4"></div>
+      </div>
+      <div class="progress-marker progress-marker-1"></div>
+      <div class="progress-marker progress-marker-2"></div>
+      <div class="progress-marker progress-marker-3"></div>
+    </div>
+    <button class="button" id="initiateUnstakeButton" onclick="initiateUnstake()">Initiate Unstake</button>
+    <button class="button" id="cancelUnstakeButton" onclick="cancelUnstake()">Cancel Unstake</button>
+    <button class="button" id="claimUnlockedButton" onclick="claimUnlocked()">Claim Unlocked Tokens</button>
   </div>
 
   <!-- Extract Energy Section -->
@@ -147,14 +214,6 @@
     <button class="button" id="extractEnergyButton" onclick="extractEnergy()">Extract Energy</button>
   </div>
 
-  <!-- Unstaking Section -->
-  <div class="section" id="unstakingSection">
-    <h2>Unstaking</h2>
-    <div class="info">Staked Amount: <span id="stakedAmount">Loading...</span></div>
-    <button class="button" id="initiateUnstakeButton" onclick="initiateUnstake()">Initiate Unstake</button>
-    <button class="button" id="cancelUnstakeButton" onclick="cancelUnstake()">Cancel Unstake</button>
-    <button class="button" id="claimUnlockedButton" onclick="claimUnlocked()">Claim Unlocked Tokens</button>
-  </div>
 </div>
 {% endblock %}
 
@@ -228,8 +287,73 @@
       ],
       "stateMutability": "view",
       "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "", "type": "address" }
+      ],
+      "name": "stakes",
+      "outputs": [
+        { "internalType": "uint256", "name": "amount", "type": "uint256" },
+        { "internalType": "uint256", "name": "energyAccrued", "type": "uint256" },
+        { "internalType": "uint256", "name": "lastUpdate", "type": "uint256" },
+        { "internalType": "uint256", "name": "unstakeTime", "type": "uint256" },
+        { "internalType": "uint256", "name": "weeklyUnlock", "type": "uint256" },
+        { "internalType": "uint8", "name": "weeksCompleted", "type": "uint8" },
+        { "internalType": "bool", "name": "isUnstaking", "type": "bool" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     }
-    
+  ];
+
+  let erc20Abi = [
+    // Define the ABI for the ERC20 token
+    {
+      "inputs": [
+        { "internalType": "address", "name": "spender", "type": "address" },
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "approve",
+      "outputs": [
+        { "internalType": "bool", "name": "", "type": "bool" }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "owner", "type": "address" },
+        { "internalType": "address", "name": "spender", "type": "address" }
+      ],
+      "name": "allowance",
+      "outputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "account", "type": "address" }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        { "internalType": "uint8", "name": "", "type": "uint8" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+
   ];
 
   let stakingContract;
@@ -261,24 +385,89 @@
 
   async function loadStakingParameters() {
     try {
-      const energyRate = await stakingContract.methods.energyRate().call();
-      const stakingToken = await stakingContract.methods.stakingToken().call();
-      const rate = energyRate*BigInt(3153600000)/BigInt(10**18);
-      console.log(rate);
+      const energyRate = Number(await stakingContract.methods.energyRate().call());
+      const stakingTokenAddress = await stakingContract.methods.stakingToken().call();
+      const stakingToken = new web3.eth.Contract(erc20Abi, stakingTokenAddress);
+      // 10^decimals
+      const decimals = 10**Number(await stakingToken.methods.decimals().call());
+      const rate = energyRate*Number(3153600000)/decimals;
       document.getElementById('energyRate').textContent = `${rate}% per year`;
 
-      const availableEnergy = await stakingContract.methods.availableEnergy(userAddress).call();
+      // Update staked amount
+      const userStake = await stakingContract.methods.stakes(userAddress).call();
+      const stakedAmount = Number(userStake.amount) / decimals;
+      document.getElementById('stakedAmount').textContent = `${stakedAmount} tokens staked`;
+
+      const availableEnergy = Number(await stakingContract.methods.availableEnergy(userAddress).call()) / decimals;
       document.getElementById('energyAvailable').textContent = `${availableEnergy} energy available`;
-      document.getElementById('stakingToken').textContent = stakingToken;
+      document.getElementById('stakingToken').textContent = stakingTokenAddress;
+
+      updateUnstakeProgressBar(userStake);
     } catch (error) {
       console.error('Failed to load staking parameters', error);
     }
   }
 
+  function updateUnstakeProgressBar(userStake) {
+    const progressBar = document.getElementById('unstakeProgressBar');
+    const weeksCompleted = userStake.weeksCompleted;
+    const isUnstaking = userStake.isUnstaking;
+    const unstakeTime = Number(userStake.unstakeTime);
+
+    // Calculate how far into the unstaking process the user is
+    const currentTime = Number(Math.floor(Date.now() / 1000));
+    const totalUnstakeDuration = 4 * 7 * 24 * 60 * 60; // 4 weeks in seconds
+    const elapsedTime = currentTime - unstakeTime;
+    const progressPercentage = Math.min((elapsedTime / totalUnstakeDuration) * 100, 100);
+
+    // Calculate time until next unlock
+    if (isUnstaking) {
+      if (weeksCompleted >= 4) {
+        document.getElementById('unlockTime').textContent = 'Unlocked!';
+      } else {
+        const nextUnlockTime = unstakeTime + (Number(weeksCompleted) + 1) * 7 * 24 * 60 * 60;
+        const timeUntilUnlock = nextUnlockTime - currentTime;
+        const days = Math.floor(timeUntilUnlock / (24 * 60 * 60));
+        const hours = Math.floor((timeUntilUnlock % (24 * 60 * 60)) / (60 * 60));
+        const minutes = Math.floor((timeUntilUnlock % (60 * 60)) / 60);
+        const seconds = Math.floor(timeUntilUnlock % 60);
+        document.getElementById('unlockTime').textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+      }
+    } else {
+      document.getElementById('unlockTime').textContent = 'Not unstaking';
+    }
+
+    const segments = progressBar.children;
+    for (let i = 0; i < segments.length; i++) {
+      if (i < weeksCompleted) {
+        segments[i].className = 'progress-segment segment-completed';
+      } else if (i === weeksCompleted && isUnstaking) {
+        segments[i].className = 'progress-segment segment-in-progress';
+        segments[i].style.width = `${progressPercentage}%`;
+      } else {
+        segments[i].className = 'progress-segment segment-pending';
+        segments[i].style.width = '100%';
+      }
+    }
+
+    if (!isUnstaking) {
+      for (let i = 0; i < segments.length; i++) {
+        segments[i].className = 'progress-segment segment-pending';
+      }
+    }
+  }
+
   async function stakeTokens() {
     try {
-      const stakeAmount = document.getElementById('stakeAmount').value;      
+      const stakeAmount = document.getElementById('stakeAmount').value * 10**18;      
       // Ensure that user is approved AND has enough tokens to stake
+      const stakingTokenAddress = await stakingContract.methods.stakingToken().call();
+      const tokenContract = new web3.eth.Contract(erc20Abi, stakingTokenAddress);
+      const balance = await tokenContract.methods.balanceOf(userAddress).call();
+      if (BigInt(balance) < BigInt(stakeAmount)) {
+        showNotification('Insufficient balance to stake.', true);
+        return;
+      }
       const allowance = await tokenContract.methods.allowance(userAddress, stakingContractAddress).call();
       if (BigInt(allowance) < BigInt(stakeAmount)) {
         // Approve the staking contract to spend the tokens
