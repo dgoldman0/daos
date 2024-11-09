@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Staking Game Interface{% endblock %}
+{% block title %}Staking Interface{% endblock %}
 {% block icon_class %}fas fa-battery-half{% endblock %}
-{% block title_text %}Staking Game{% endblock %}
+{% block title_text %}Staking{% endblock %}
 
 {% block styles %}
 <!-- Additional styles specific to the Staking Game -->
@@ -39,6 +39,18 @@
       color: #00ffff;
       box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
       transform: translateY(-2px);
+    }
+
+    input[type="number"] {
+      padding: 15px 20px;
+      border: 2px solid #3a3a3a;
+      border-radius: 5px;
+      background-color: #262626;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
     }
 
     /* Footer styling */
@@ -148,7 +160,7 @@
 
 {% block scripts %}
 <script>
-  const stakingContractAddress = '0xYourStakingContractAddress';
+  const stakingContractAddress = '0x9c291C0c781eA3B15fF3148f4B8346e9cfF7f16D';
   const stakingAbi = [
     // Define the ABI for the relevant staking functions
     {
@@ -198,24 +210,66 @@
       ],
       "stateMutability": "view",
       "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "energyRate",
+      "outputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakingToken",
+      "outputs": [
+        { "internalType": "contract IERC20", "name": "", "type": "address" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     }
+    
   ];
 
   let stakingContract;
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize the contract
-    stakingContract = new web3.eth.Contract(stakingAbi, stakingContractAddress);
-    await loadStakingParameters();
+    // Select the connect wallet button
+    const connectWalletButton = document.getElementById('connectWalletButton');
+
+    // MutationObserver callback to handle DOM changes
+    const mutationCallback = async (mutationsList, observer) => {
+        for (const mutation of mutationsList) {
+            // Check if the text content has changed, which might indicate a wallet connection
+            if (mutation.type === 'childList' && connectWalletButton.textContent.includes('...')) {
+            if (userAddress) {
+              stakingContract = new web3.eth.Contract(stakingAbi, stakingContractAddress);
+              await loadStakingParameters();
+            }
+            // Stop observing once contracts are initialized
+            observer.disconnect();
+            break;
+            }
+        }
+    };
+
+    // Set up the observer and watch for childList changes
+    const observer = new MutationObserver(mutationCallback);
+    observer.observe(connectWalletButton, { childList: true });
   });
 
   async function loadStakingParameters() {
     try {
       const energyRate = await stakingContract.methods.energyRate().call();
-      document.getElementById('energyRate').textContent = `${energyRate} energy per second`;
+      const stakingToken = await stakingContract.methods.stakingToken().call();
+      const rate = energyRate*BigInt(3153600000)/BigInt(10**18);
+      console.log(rate);
+      document.getElementById('energyRate').textContent = `${rate}% per year`;
 
       const availableEnergy = await stakingContract.methods.availableEnergy(userAddress).call();
       document.getElementById('energyAvailable').textContent = `${availableEnergy} energy available`;
+      document.getElementById('stakingToken').textContent = stakingToken;
     } catch (error) {
       console.error('Failed to load staking parameters', error);
     }
@@ -223,7 +277,13 @@
 
   async function stakeTokens() {
     try {
-      const stakeAmount = document.getElementById('stakeAmount').value;
+      const stakeAmount = document.getElementById('stakeAmount').value;      
+      // Ensure that user is approved AND has enough tokens to stake
+      const allowance = await tokenContract.methods.allowance(userAddress, stakingContractAddress).call();
+      if (BigInt(allowance) < BigInt(stakeAmount)) {
+        // Approve the staking contract to spend the tokens
+        await tokenContract.methods.approve(stakingContractAddress, stakeAmount).send({ from: userAddress });
+      }
       await stakingContract.methods.stake(stakeAmount).send({ from: userAddress });
       showNotification('Staked successfully!');
       await loadStakingParameters();
