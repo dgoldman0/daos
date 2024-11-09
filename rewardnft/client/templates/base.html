@@ -317,6 +317,15 @@
             userAddress = accounts[0];
             connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
           }
+          // Attack a listener to the account change event
+          window.ethereum.on('accountsChanged', async (accounts) => {
+            if (accounts.length > 0) {
+              userAddress = accounts[0];
+              connectWalletButton.textContent = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+            } else {
+              connectWalletButton.textContent = 'Connect Wallet';
+            }
+          });
         } catch (error) {
           if (error.code === 4902) {
             alert('Please add the Arbitrum network to MetaMask.');

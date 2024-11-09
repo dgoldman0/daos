@@ -371,9 +371,6 @@
               stakingContract = new web3.eth.Contract(stakingAbi, stakingContractAddress);
               await loadStakingParameters();
             }
-            // Stop observing once contracts are initialized
-            observer.disconnect();
-            break;
             }
         }
     };
