@@ -25,7 +25,7 @@ contract EnergyToken is ERC20, Ownable {
 contract StakingContract is ReentrancyGuard, Ownable {
     IERC20 public stakingToken;
     EnergyToken public energyToken;
-    uint256 public energyRate; // Rate of energy generation per second
+    uint256 public energyRate; // Rate of energy generation per second, scaled by 1e18 for precision
 
     struct StakeInfo {
         uint256 amount;            // Amount staked
@@ -44,7 +44,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
     constructor(IERC20 _stakingToken, uint256 _energyRate) {
         stakingToken = _stakingToken;
         energyRate = _energyRate;
-        stakingEnabled = false;
+        stakingEnabled = true;
     }
 
     // Stake tokens
@@ -115,16 +115,21 @@ contract StakingContract is ReentrancyGuard, Ownable {
     // Internal function to update energy accrual
     function _updateEnergy(address account) internal {
         StakeInfo storage userStake = stakes[account];
-        uint256 timeElapsed = block.timestamp - userStake.lastUpdate;
-        userStake.energyAccrued += userStake.amount * timeElapsed * energyRate;
+        uint256 newEnergy = _calculateEnergy(userStake);
+        userStake.energyAccrued += newEnergy;
         userStake.lastUpdate = block.timestamp;
+    }
+
+    // Internal function to calculate energy accrued
+    function _calculateEnergy(StakeInfo storage userStake) internal view returns (uint256) {
+        uint256 timeElapsed = block.timestamp - userStake.lastUpdate;
+        return (userStake.amount * timeElapsed * energyRate) / 1e18;
     }
 
     // View function to check how much energy is available for withdrawal
     function availableEnergy(address account) external view returns (uint256) {
         StakeInfo storage userStake = stakes[account];
-        uint256 timeElapsed = block.timestamp - userStake.lastUpdate;
-        uint256 pendingEnergy = userStake.amount * timeElapsed * energyRate;
+        uint256 pendingEnergy = _calculateEnergy(userStake);
         return userStake.energyAccrued + pendingEnergy;
     }
 
