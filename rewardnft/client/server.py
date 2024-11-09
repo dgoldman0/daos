@@ -201,7 +201,7 @@ def tokenlist():
 # All other routes should go to a static page about feature not yet being implemented rather than basic 404
 @app.errorhandler(404)
 def page_not_found(e):
-    return app.send_static_file('not_implemented.html')
+    return render_template('404.html', menu_items=get_filtered_menu()), 404
 
 if __name__ == '__main__':
     # Parse command line arguments, including debug mode, server port, etc.

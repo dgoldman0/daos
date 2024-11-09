@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Feature Not Available{% endblock %}
+{% block icon_class %}fas fa-ban{% endblock %}
+{% block title_text %}Feature Not Available{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="glitch" data-text="Feature Not Available">Feature Not Available</div>
+  <br/>
+  <p class="message">Oops! The page you're looking for is currently unavailable or doesn't exist.</p>
+</div>
+{% endblock %}
