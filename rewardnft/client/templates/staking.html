@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Staking Game Interface{% endblock %}
+{% block icon_class %}fas fa-battery-half{% endblock %}
+{% block title_text %}Staking Game{% endblock %}
+
+{% block styles %}
+<!-- Additional styles specific to the Staking Game -->
+<style>
+    .info {
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: #dcdcdc;
+    }
+
+    .info span {
+      font-weight: 600;
+      color: #00ffff;
+    }
+
+    .button {
+      padding: 15px 25px;
+      background-color: #00ffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      box-shadow: 0 0 15px #00ffff;
+      transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+      margin-top: 20px;
+    }
+
+    .button:hover {
+      background-color: #1a1a1a;
+      color: #00ffff;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+      transform: translateY(-2px);
+    }
+
+    /* Footer styling */
+    footer {
+      background-color: #141414;
+      padding: 20px;
+      text-align: center;
+      color: #ffffff;
+      border-top: 2px solid #3a3a3a;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    footer p {
+      margin: 0;
+      color: #00ffff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 12px;
+    }
+
+    /* Notification area */
+    #notificationArea {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      width: 300px;
+      z-index: 1000;
+    }
+
+    .notification {
+      background-color: #00ffff;
+      color: #1a1a1a;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      animation: fadeOut 4s forwards;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+    }
+
+    .error-notification {
+      background-color: #ff0055;
+      box-shadow: 0 0 20px #ff0055, 0 0 40px #ff00ff;
+    }
+
+    /* Fade out animation */
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      75% { opacity: 1; }
+      100% { opacity: 0; display: none; }
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+
+      header h1 {
+        font-size: 20px;
+      }
+
+      .connect-wallet {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+
+      .section h2 {
+        font-size: 22px;
+      }
+
+      .button {
+        padding: 12px 20px;
+        font-size: 14px;
+      }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Staking Section -->
+  <div class="section" id="stakingSection">
+    <h2>Staking</h2>
+    <div class="info">Staking Token: <span id="stakingToken">Loading...</span></div>
+    <div class="info">Energy Generation Rate: <span id="energyRate">Loading...</span></div>
+    <input type="number" id="stakeAmount" placeholder="Amount to Stake" />
+    <button class="button" id="stakeButton" onclick="stakeTokens()">Stake Tokens</button>
+  </div>
+
+  <!-- Extract Energy Section -->
+  <div class="section" id="energySection">
+    <h2>Extract Energy</h2>
+    <div class="info">Energy Available: <span id="energyAvailable">Loading...</span></div>
+    <button class="button" id="extractEnergyButton" onclick="extractEnergy()">Extract Energy</button>
+  </div>
+
+  <!-- Unstaking Section -->
+  <div class="section" id="unstakingSection">
+    <h2>Unstaking</h2>
+    <div class="info">Staked Amount: <span id="stakedAmount">Loading...</span></div>
+    <button class="button" id="initiateUnstakeButton" onclick="initiateUnstake()">Initiate Unstake</button>
+    <button class="button" id="cancelUnstakeButton" onclick="cancelUnstake()">Cancel Unstake</button>
+    <button class="button" id="claimUnlockedButton" onclick="claimUnlocked()">Claim Unlocked Tokens</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const stakingContractAddress = '0xYourStakingContractAddress';
+  const stakingAbi = [
+    // Define the ABI for the relevant staking functions
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "stake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "extractEnergy",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initiateUnstake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "cancelUnstake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claimUnlocked",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "account", "type": "address" }
+      ],
+      "name": "availableEnergy",
+      "outputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ];
+
+  let stakingContract;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize the contract
+    stakingContract = new web3.eth.Contract(stakingAbi, stakingContractAddress);
+    await loadStakingParameters();
+  });
+
+  async function loadStakingParameters() {
+    try {
+      const energyRate = await stakingContract.methods.energyRate().call();
+      document.getElementById('energyRate').textContent = `${energyRate} energy per second`;
+
+      const availableEnergy = await stakingContract.methods.availableEnergy(userAddress).call();
+      document.getElementById('energyAvailable').textContent = `${availableEnergy} energy available`;
+    } catch (error) {
+      console.error('Failed to load staking parameters', error);
+    }
+  }
+
+  async function stakeTokens() {
+    try {
+      const stakeAmount = document.getElementById('stakeAmount').value;
+      await stakingContract.methods.stake(stakeAmount).send({ from: userAddress });
+      showNotification('Staked successfully!');
+      await loadStakingParameters();
+    } catch (error) {
+      console.error('Failed to stake tokens', error);
+      showNotification('Failed to stake tokens.', true);
+    }
+  }
+
+  async function extractEnergy() {
+    try {
+      await stakingContract.methods.extractEnergy().send({ from: userAddress });
+      showNotification('Energy extracted successfully!');
+      await loadStakingParameters();
+    } catch (error) {
+      console.error('Failed to extract energy', error);
+      showNotification('Failed to extract energy.', true);
+    }
+  }
+
+  async function initiateUnstake() {
+    try {
+      await stakingContract.methods.initiateUnstake().send({ from: userAddress });
+      showNotification('Unstake process initiated!');
+      await loadStakingParameters();
+    } catch (error) {
+      console.error('Failed to initiate unstake', error);
+      showNotification('Failed to initiate unstake.', true);
+    }
+  }
+
+  async function cancelUnstake() {
+    try {
+      await stakingContract.methods.cancelUnstake().send({ from: userAddress });
+      showNotification('Unstake process cancelled!');
+      await loadStakingParameters();
+    } catch (error) {
+      console.error('Failed to cancel unstake', error);
+      showNotification('Failed to cancel unstake.', true);
+    }
+  }
+
+  async function claimUnlocked() {
+    try {
+      await stakingContract.methods.claimUnlocked().send({ from: userAddress });
+      showNotification('Unlocked tokens claimed!');
+      await loadStakingParameters();
+    } catch (error) {
+      console.error('Failed to claim unlocked tokens', error);
+      showNotification('Failed to claim unlocked tokens.', true);
+    }
+  }
+
+  function showNotification(message, isError = false) {
+    const notificationArea = document.getElementById('notificationArea');
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    if (isError) {
+      notification.classList.add('error-notification');
+    }
+    notification.textContent = message;
+    notificationArea.appendChild(notification);
+
+    // Limit the number of active notifications
+    if (notificationArea.childElementCount > 5) {
+      notificationArea.removeChild(notificationArea.firstChild);
+    }
+
+    setTimeout(() => {
+      notificationArea.removeChild(notification);
+    }, 4000);
+  }
+</script>
+{% endblock %}

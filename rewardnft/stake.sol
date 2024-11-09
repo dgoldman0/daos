@@ -1,6 +1,3 @@
-// Stake ENERGY 
-// This is a precursor to the stake repair system. In this system we just stake ACM or whatever and get ENERGY which is burned when playing the "mine" game.
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -121,6 +118,14 @@ contract StakingContract is ReentrancyGuard, Ownable {
         uint256 timeElapsed = block.timestamp - userStake.lastUpdate;
         userStake.energyAccrued += userStake.amount * timeElapsed * energyRate;
         userStake.lastUpdate = block.timestamp;
+    }
+
+    // View function to check how much energy is available for withdrawal
+    function availableEnergy(address account) external view returns (uint256) {
+        StakeInfo storage userStake = stakes[account];
+        uint256 timeElapsed = block.timestamp - userStake.lastUpdate;
+        uint256 pendingEnergy = userStake.amount * timeElapsed * energyRate;
+        return userStake.energyAccrued + pendingEnergy;
     }
 
     function setStakingEnabled(bool _enabled) external onlyOwner {

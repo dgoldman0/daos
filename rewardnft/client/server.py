@@ -8,7 +8,9 @@ import argparse
 menu_items = [
     {"name": "Claim Pool", "endpoint": "pool"},
     {"name": "Mine", "endpoint": "mine"},
-    {"name": "Token Info", "endpoint": "info"}
+    {"name": "Token Info", "endpoint": "info"},
+    {"name": "Socials", "endpoint": "socials"},
+    {"name": "Staking", "endpoint": "staking"},
 ]
 
 # Load base images
@@ -89,6 +91,10 @@ def info():
 @app.route('/socials')
 def socials():
     return render_template('socials.html', menu_items=menu_items)
+
+@app.route('/staking')
+def staking():
+    return render_template('staking.html', menu_items=menu_items)
 
 # Route to serve token list as JSON
 @app.route('/tokens')
