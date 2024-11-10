@@ -46,7 +46,7 @@ contract LottoMachine is Ownable {
         uint256 actualPrize = getPrizeAmount();
 
         // Ensure balance is enough
-        require(feeToken == address(0) ? address(this).balance >= actualPrize : IERC20(feeToken).balanceOf(address(this)) >= actualPrize, "Insufficient funds");
+        require(rewardToken == address(0) ? address(this).balance >= actualPrize : IERC20(rewardToken).balanceOf(address(this)) >= actualPrize, "Insufficient funds");
 
         // Check if the key is valid
         require(IERC721(keyNFTContract).ownerOf(_key) == msg.sender, "Not the owner of the key");
@@ -58,9 +58,7 @@ contract LottoMachine is Ownable {
         lastPlayed[_key] = block.timestamp;
 
         // Refund excess if there is any
-        if (feeToken == address(0) && msg.value > feeAmount) {
-            payable(msg.sender).transfer(msg.value - feeAmount);
-        } else if (feeToken != address(0) && IERC20(feeToken).balanceOf(msg.sender) > feeAmount) {
+        if (feeToken != address(0) && IERC20(feeToken).balanceOf(msg.sender) > feeAmount) {
             IERC20(feeToken).transferFrom(msg.sender, address(this), feeAmount);
         }
 
@@ -82,7 +80,7 @@ contract LottoMachine is Ownable {
 
     function getPrizeAmount() public view returns (uint256) {
         if (prizeAmount == 0) {
-            uint256 bal = feeToken == address(0) ? address(this).balance : IERC20(feeToken).balanceOf(address(this));
+            uint256 bal = rewardToken == address(0) ? address(this).balance : IERC20(rewardToken).balanceOf(address(this));
             return (bal * prizePermyriad) / 10000;
         }
         return prizeAmount;
