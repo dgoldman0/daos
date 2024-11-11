@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./utils/ownable.sol";
 
+// Maybe should allow immediate withdrawal of staked tokens if staking is disabled
 // EnergyToken contract that can only be minted by the StakingContract
 contract EnergyToken is ERC20, Ownable {
     address public stakingContract;
