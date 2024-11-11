@@ -7,7 +7,7 @@ import "@openzeppelin/contracts@4.9.0/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./iclaimnftmanager.sol";
 
-// Still a lot of work to do, gotta add minimum age, etc. 
+// Need to set the ability to burn the energy fee
 contract LottoMachine is Ownable {
     address public randomseedgenerator;
     address public rewardToken;
@@ -18,8 +18,8 @@ contract LottoMachine is Ownable {
     uint128 public odds; 
     uint256 public cooldownPeriod; // Cooldown period for NFTs
 
-    address keyNFTContract;
-    address keyDataManager;
+    address public keyNFTContract;
+    address public keyDataManager;
 
     // Minimum health of the key
     uint256 public minKeyHealth;
