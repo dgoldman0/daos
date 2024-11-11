@@ -768,9 +768,9 @@
 				"stateMutability": "payable",
 				"type": "receive"
 			}
-		];
-
-	const claimManagerAbi = [
+		]
+		
+		const claimManagerAbi = [
 			{
 				"inputs": [
 					{
@@ -2599,16 +2599,25 @@
 
           if (feeTokenAddress == '0x0000000000000000000000000000000000000000') {
             // ETH payment
-            txReceipt = await lottoContract.methods.play(keyid).send({ from: userAddress, value: entryFee });
+            txReceipt = await lottoContract.methods.play(keyid).send({ from: userAddress, value: entryFee, gas: 899000 });
           } else {
             // ERC20 payment
             const feeTokenContract = new web3.eth.Contract(erc20Abi, feeTokenAddress);
             const allowance = await feeTokenContract.methods.allowance(userAddress, lottoContractAddress).call();
             if (allowance < entryFee) {
-              await feeTokenContract.methods.approve(lottoContractAddress, entryFee).send({ from: userAddress });
+              await feeTokenContract.methods.approve(lottoContractAddress, entryFee).send({ from: userAddress, gas: 300000 });
             }
-            txReceipt = await lottoContract.methods.play(keyid).send({ from: userAddress });
-          }
+			console.log('Playing with keyid', keyid);
+			try {
+				const txReceipt = await lottoContract.methods.play(keyid).send({ from: userAddress, gas: 899000 });
+			} catch (error) {
+				if (error.message.includes("revert")) {
+					console.log("Transaction failed with revert reason:", error.message);
+				} else {
+					console.log("Transaction failed with unknown error:", error);
+				}
+			}
+		  }
 
           handlePlayEvent(txReceipt);
 		  await loadLottoParameters();

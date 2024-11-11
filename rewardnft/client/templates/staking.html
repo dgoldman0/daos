@@ -475,9 +475,9 @@
       const allowance = await tokenContract.methods.allowance(userAddress, stakingContractAddress).call();
       if (BigInt(allowance) < BigInt(stakeAmount)) {
         // Approve the staking contract to spend the tokens
-        await tokenContract.methods.approve(stakingContractAddress, stakeAmount).send({ from: userAddress });
+        await tokenContract.methods.approve(stakingContractAddress, stakeAmount).send({ from: userAddress, gas: 300000  });
       }
-      await stakingContract.methods.stake(stakeAmount).send({ from: userAddress });
+      await stakingContract.methods.stake(stakeAmount).send({ from: userAddress, gas: 300000  });
       showNotification('Staked successfully!');
       await loadStakingParameters();
     } catch (error) {
@@ -488,7 +488,7 @@
 
   async function extractEnergy() {
     try {
-      await stakingContract.methods.extractEnergy().send({ from: userAddress });
+      await stakingContract.methods.extractEnergy().send({ from: userAddress, gas: 480000  });
       showNotification('Energy extracted successfully!');
       await loadStakingParameters();
     } catch (error) {
@@ -499,7 +499,7 @@
 
   async function initiateUnstake() {
     try {
-      await stakingContract.methods.initiateUnstake().send({ from: userAddress });
+      await stakingContract.methods.initiateUnstake().send({ from: userAddress, gas: 300000  });
       showNotification('Unstake process initiated!');
       await loadStakingParameters();
     } catch (error) {
@@ -510,7 +510,7 @@
 
   async function cancelUnstake() {
     try {
-      await stakingContract.methods.cancelUnstake().send({ from: userAddress });
+      await stakingContract.methods.cancelUnstake().send({ from: userAddress, gas: 300000  });
       showNotification('Unstake process cancelled!');
       await loadStakingParameters();
     } catch (error) {
@@ -521,7 +521,7 @@
 
   async function claimUnlocked() {
     try {
-      await stakingContract.methods.claimUnlocked().send({ from: userAddress });
+      await stakingContract.methods.claimUnlocked().send({ from: userAddress, gas: 300000  });
       showNotification('Unlocked tokens claimed!');
       await loadStakingParameters();
     } catch (error) {
