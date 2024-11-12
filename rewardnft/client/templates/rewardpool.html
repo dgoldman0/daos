@@ -3178,15 +3178,16 @@
 		let mintAmt = document.getElementById('mintAmt').value;
 		let totalPrice = mintPrice * mintAmt;
 		// Send eth if the nft purchase address is address 0. Otherwise send the token
+		const gas = 593600 + (mintAmt * 141000);
 		if (nftPurchaseAddress == '0x0000000000000000000000000000000000000000') {
-			const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress, value: totalPrice });
+			const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress, value: totalPrice, gas: gas });
 		} else {
 			const tokenContract = new web3.eth.Contract(erc20Abi, nftPurchaseAddress);
 			const allowance = await tokenContract.methods.allowance(userAddress, nftContractAddress).call();
 			if (allowance < totalPrice) {
-				await tokenContract.methods.approve(nftContractAddress, totalPrice).send({ from: userAddress });
+				await tokenContract.methods.approve(nftContractAddress, totalPrice).send({ from: userAddress, gas: 300000 });
 			}
-			const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress });
+			const tx = await nftContract.methods.mint(mintAmt).send({ from: userAddress, gas: gas });
 		}
 
         showNotification('NFTs minted successfully!');
