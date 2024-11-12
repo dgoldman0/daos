@@ -152,6 +152,24 @@ contract StakingContract is ReentrancyGuard, Ownable {
         stakingToken = _stakingToken;
     }
 
+    // Kick stake allows manually removing a stake from the contract. This is useful if the staking token is changed and the user can't withdraw. Obviously only when staking is disabled.
+    function kickStake(address account) external onlyOwner {
+        StakeInfo storage userStake = stakes[account];
+        require(!userStake.isUnstaking, "Cannot kick stake while unstaking");
+        require(stakingEnabled == false, "Cannot kick stake while staking is active");
+        require(userStake.amount > 0, "No stake to kick");
+        stakingToken.transfer(account, userStake.amount);
+        userStake.amount = 0;
+        totalStakers--;
+    }
+
+    // Replace the above with one that does it for an array of addresses
+    function kickStakes(address[] calldata accounts) external onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            kickStake(accounts[i]);
+        }
+    }
+
     // Energy rate and token can be changed while staking is active. It only affects the most recent claims, though if someone was sitting on stuff for a while and didn't know, that might be a problem.
     function setEnergyRate(uint256 _energyRate) external onlyOwner {
             energyRate = _energyRate;
