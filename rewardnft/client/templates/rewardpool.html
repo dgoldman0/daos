@@ -3142,7 +3142,7 @@
 
     async function claimReward(tokenId) {
       try {
-        const tx = await claimManagerContract.methods.claim(tokenId).send({ from: userAddress });
+        const tx = await claimManagerContract.methods.claim(tokenId).send({ from: userAddress, gas: 300000 });
         showNotification('Reward claimed successfully!');
         refreshData();
       } catch (error) {
@@ -3156,9 +3156,9 @@
 		// Check approval for token and approve if needed
 		const allowance = await potionContract.methods.allowance(userAddress, potionContractAddress).call();
 		if (allowance == 0) {
-			await potionContract.methods.approve(potionContractAddress, 1).send({ from: userAddress });
+			await potionContract.methods.approve(potionContractAddress, 1).send({ from: userAddress, gas: 300000 });
 		}
-        const tx = await claimManagerContract.methods.repair(tokenId, 1).send({ from: userAddress });
+        const tx = await claimManagerContract.methods.repair(tokenId, 1).send({ from: userAddress, gas: 340000 });
         showNotification('NFT repaired successfully!');
         refreshData();
       } catch (error) {
