@@ -102,6 +102,11 @@ def socials():
 def staking():
     return render_template('staking.html', menu_items=get_filtered_menu())
 
+# signer in utils/signer.html
+@app.route('/utils/signer')
+def signer():
+    return render_template('utils/signer.html', menu_items=get_filtered_menu())
+
 # Route to serve token list as JSON
 @app.route('/tokens')
 def tokenlist():

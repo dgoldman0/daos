@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="card shadow mb-5">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Message Signing Interface</h3>
+        </div>
+        <div class="card-body p-5">
+            <form id="message-form" method="post" onsubmit="signMessage(event)">
+                <div class="form-group mb-5">
+                    <label for="message" class="form-label d-block mb-4">Enter a Message:</label>
+                    <textarea class="form-control neon-input w-100 mb-5" id="message" name="message" placeholder="Type your message here..." rows="6" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary neon-button w-100 mb-5">Sign Message</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-5 shadow">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">Signed Messages</h4>
+        </div>
+        <div class="card-body p-5">
+            <ul id="signed-messages-list" class="list-group">
+                <li class="list-group-item text-muted mb-4">No messages signed yet...</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .neon-input {
+        background-color: #1a1a1a;
+        color: #e2e2e2;
+        border: 2px solid #3a3a3a;
+        box-shadow: 0 0 10px #00ffff;
+        transition: box-shadow 0.3s, border-color 0.3s;
+        font-family: 'Press Start 2P', sans-serif;
+        padding: 20px;
+        margin-left: 5px;
+        margin-right: 5px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        width: 98%;
+    }
+    .neon-input:focus {
+        box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+        border-color: #00ffff;
+    }
+    .neon-button {
+        background-color: #00ffff;
+        color: #1a1a1a;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 14px;
+        letter-spacing: 0.1em;
+        box-shadow: 0 0 15px #00ffff;
+        transition: background-color 0.3s, box-shadow 0.3s;
+        padding: 15px;
+        margin-left: 5px;
+        margin-bottom: 15px;
+    }
+    .neon-button:hover {
+        background-color: #1a1a1a;
+        color: #00ffff;
+        box-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff;
+    }
+    .btn-outline-danger {
+        color: #ff4d4d;
+        border-color: #ff4d4d;
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    .btn-outline-danger:hover {
+        background-color: #ff4d4d;
+        color: #fff;
+        box-shadow: 0 0 10px #ff4d4d;
+    }
+    .list-group-item {
+        background-color: #1a1a1a;
+        color: #e2e2e2;
+        border: none;
+        border-bottom: 1px solid #3a3a3a;
+        padding: 25px;
+    }
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+    .list-group-item {
+        list-style-type: none;
+    }
+    .card {
+        border-radius: 12px;
+        background-color: #262626;
+        border: 2px solid #3a3a3a;
+        margin-top: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+    .card-header {
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        text-shadow: 0 0 10px #00ffff;
+    }
+    .container {
+        max-width: 800px;
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+</style>
+
+<script>
+    async function signMessage(event) {
+        event.preventDefault();
+        const message = document.getElementById('message').value;
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+        headers.append("Custom-Date", new Date().toISOString());
+
+        // Construct the message preamble
+        const preamble = `I ${account} affirm on ${headers.get("Custom-Date")} that my answer is as follows...`;
+
+        // Construct the full message to sign
+        const fullMessage = `${preamble}\n\n${message}`;
+
+        // Assuming you have connected to a wallet
+        try {
+            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            const account = accounts[0];
+
+            const signature = await ethereum.request({
+                method: "personal_sign",
+                params: [fullMessage, account]
+            });
+
+            // Remove placeholder text if present
+            const listElement = document.getElementById("signed-messages-list");
+            if (listElement.children.length === 1 && listElement.children[0].classList.contains('text-muted')) {
+                listElement.innerHTML = '';
+            }
+
+            // Display the signed message
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item mb-4";
+            listItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Message:</strong> ${message}<br>
+                        <strong>Signature:</strong> <span class="text-break">${signature}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeMessage(this)">Remove</button>
+                </div>
+            `;
+            listElement.appendChild(listItem);
+
+            document.getElementById("message-form").reset();
+        } catch (error) {
+            console.error("Error signing message:", error);
+        }
+    }
+
+    function removeMessage(button) {
+        const listItem = button.parentElement.parentElement;
+        listItem.remove();
+        const listElement = document.getElementById("signed-messages-list");
+        if (listElement.children.length === 0) {
+            listElement.innerHTML = '<li class="list-group-item text-muted mb-4">No messages signed yet...</li>';
+        }
+    }
+</script>
+{% endblock %}
+
