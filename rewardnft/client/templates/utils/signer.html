@@ -85,7 +85,14 @@
         border: none;
         border-bottom: 1px solid #3a3a3a;
         padding: 25px;
+        overflow-wrap: break-word; /* Ensure content wraps within the container */
+        word-wrap: break-word;
     }
+
+    .text-break {
+        word-break: break-all; /* Force breaking long words or unbreakable content */
+    }
+    
     .list-group-item:last-child {
         border-bottom: none;
     }
@@ -119,16 +126,17 @@
         headers.append("Content-Type", "application/json");
         headers.append("Custom-Date", new Date().toISOString());
 
-        // Construct the message preamble
-        const preamble = `I ${account} affirm on ${headers.get("Custom-Date")} that my answer is as follows...`;
-
-        // Construct the full message to sign
-        const fullMessage = `${preamble}\n\n${message}`;
-
         // Assuming you have connected to a wallet
         try {
             const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
             const account = accounts[0];
+
+            const account_censored = account.substring(0, 6) + "..." + account.substring(account.length - 4, account.length);
+            // Construct the message preamble
+            const preamble = `I, ${account_censored}, affirm on ${headers.get("Custom-Date")} that my answer is as follows...`;
+
+            // Construct the full message to sign
+            const fullMessage = `${preamble}\n\n${message}`;
 
             const signature = await ethereum.request({
                 method: "personal_sign",
