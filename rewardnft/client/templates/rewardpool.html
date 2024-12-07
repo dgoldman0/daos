@@ -3140,32 +3140,73 @@
       return card;
     }
 
-    async function claimReward(tokenId) {
-      try {
-        const tx = await claimManagerContract.methods.claim(tokenId).send({ from: userAddress, gas: 300000 });
-        showNotification('Reward claimed successfully!');
-        refreshData();
-      } catch (error) {
-        console.error(error);
-        showNotification('Failed to claim reward.', true);
-      }
-    }
-
-    async function repairNFT(tokenId) {
-      try {
-		// Check approval for token and approve if needed
-		const allowance = await potionContract.methods.allowance(userAddress, potionContractAddress).call();
-		if (allowance == 0) {
-			await potionContract.methods.approve(potionContractAddress, 1).send({ from: userAddress, gas: 300000 });
+	async function claimReward(tokenId) {
+		try {
+			await claimManagerContract.methods.claim(tokenId).send({ from: userAddress, gas: 300000 })
+				.on('transactionHash', (hash) => {
+					showNotification('Transaction sent. Awaiting confirmation...');
+				})
+				.on('receipt', (receipt) => {
+					showNotification('Reward claimed successfully!');
+					refreshData();
+				})
+				.on('error', (error) => {
+					if (error.message && error.message.includes('User denied transaction signature')) {
+						showNotification('Transaction cancelled by user.', true);
+					} else {
+						console.error(error);
+						showNotification('Failed to claim reward. Please try again.', true);
+					}
+				});
+		} catch (error) {
+			console.error('Unexpected error:', error);
+			showNotification('An unexpected error occurred. Please try again.', true);
 		}
-        const tx = await claimManagerContract.methods.repair(tokenId, 1).send({ from: userAddress, gas: 340000 });
-        showNotification('NFT repaired successfully!');
-        refreshData();
-      } catch (error) {
-        console.error(error);
-        showNotification('Failed to repair NFT.', true);
-      }
-    }
+	}
+
+	async function repairNFT(tokenId) {
+		try {
+			// Check approval for token and approve if needed
+			const allowance = await potionContract.methods.allowance(userAddress, claimManagerAddress).call();
+			if (allowance == 0) {
+				await potionContract.methods.approve(claimManagerAddress, 1).send({ from: userAddress, gas: 100000 })
+					.on('transactionHash', (hash) => {
+						showNotification('Approving token transfer. Awaiting confirmation...');
+					})
+					.on('receipt', (receipt) => {
+						showNotification('Approval successful. Proceeding with repair...');
+					})
+					.on('error', (error) => {
+						if (error.message && error.message.includes('User denied transaction signature')) {
+							showNotification('Approval cancelled by user.', true);
+						} else {
+							console.error(error);
+							showNotification('Failed to approve token transfer. Please try again.', true);
+						}
+					});
+			}
+
+			await claimManagerContract.methods.repair(tokenId, 1).send({ from: userAddress, gas: 300000 })
+				.on('transactionHash', (hash) => {
+					showNotification('Repairing NFT. Awaiting confirmation...');
+				})
+				.on('receipt', (receipt) => {
+					showNotification('NFT repaired successfully!');
+					refreshData();
+				})
+				.on('error', (error) => {
+					if (error.message && error.message.includes('User denied transaction signature')) {
+						showNotification('Transaction cancelled by user.', true);
+					} else {
+						console.error(error);
+						showNotification('Failed to repair NFT. Please try again.', true);
+					}
+				});
+		} catch (error) {
+			console.error('Unexpected error:', error);
+		}
+	}
+
 
     const mintButton = document.getElementById('mintButton');
     mintButton.addEventListener('click', async () => {
