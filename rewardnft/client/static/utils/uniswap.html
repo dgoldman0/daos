@@ -1,354 +1,169 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Uniswap V3 Positions on Arbitrum</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
-    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.3/dist/web3.min.js"></script>
-    <style>
-        body {
-            background-color: #f4f5f7;
-            font-family: 'Arial', sans-serif;
-        }
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        #fetchButton {
-            margin-top: 20px;
-        }
-        #output-summary, #output-positions, #output-aggregated {
-            margin-top: 30px;
-        }
-        .position-card {
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-        }
-        .aggregated-card {
-            padding: 15px;
-            margin-bottom: 20px;
-            background-color: #e9ecef;
-            border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Uniswap v4 Liquidity Utility</title>
+  <!-- Import web3.js from a CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f2f2f2; }
+  </style>
 </head>
 <body>
-    <section class="hero is-primary has-text-dark">
-        <div class="hero-body">
-            <div class="container">
-                <h1 class="title has-text-black">Uniswap V3 Positions on Arbitrum</h1>
-                <h2 class="subtitle has-text-black">Easily view your liquidity positions on Uniswap V3</h2>
-            </div>
-        </div>
-    </section>
+  <h1>Uniswap v4 Liquidity Utility</h1>
+  <div id="output">Connecting...</div>
 
-    <section class="section">
-        <div class="container">
-            <div class="field">
-                <label class="label" for="address">Enter your wallet address:</label>
-                <div class="control has-icons-left">
-                    <input class="input" type="text" id="address" placeholder="0x...">
-                    <span class="icon is-small is-left">
-                        <i class="fas fa-wallet"></i>
-                    </span>
-                </div>
-            </div>
-            <div class="control">
-                <button class="button is-primary is-fullwidth" id="fetchButton">Fetch Positions</button>
-            </div>
-
-            <div id="output-summary" class="notification is-info is-light"></div>
-            <div id="output-positions"></div>
-            <div id="output-aggregated"></div>
-        </div>
-    </section>
-
-    <script>
-        let web3;
-
-        window.addEventListener('load', async () => {
-            if (typeof window.ethereum !== 'undefined') {
-                web3 = new Web3(window.ethereum);
-                try {
-                    // Request account access if needed
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                } catch (error) {
-                    console.error("User denied account access", error);
-                }
-            } else {
-                alert('MetaMask is required to use this feature. Please install MetaMask.');
-            }
+  <script>
+    // Ensure the user has a web3 wallet (e.g., MetaMask) installed.
+    if (typeof window.ethereum !== 'undefined') {
+      window.web3 = new Web3(window.ethereum);
+      window.ethereum.request({ method: 'eth_requestAccounts' })
+        .then(init)
+        .catch(err => {
+          document.getElementById('output').innerText = 'User denied account access.';
         });
+    } else {
+      document.getElementById('output').innerText = 'Please install MetaMask or another web3 wallet.';
+    }
 
-        document.getElementById('fetchButton').addEventListener('click', fetchPositions);
+    // Hardcoded addresses and constants
+    const tokenY = '0xf70bad81af569a6a0e6a0096530585606ac68725'; // Replace with your token Y address
+    const USDC = '0xFF970A61A04b1cA14834A43f5de4533eBDDB5CC8'; // Arbitrum USDC address
+    // Placeholder subgraph endpoint – update if necessary.
+    const graphEndpoint = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v4-arbitrum';
 
-        // Uniswap V3 NFT contract address on Arbitrum
-        const uniswapV3NFTAddress = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
-        const uniswapV3FactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
+    // Entry point after connecting to web3
+    async function init() {
+      document.getElementById('output').innerText = 'Fetching pool data...';
+      try {
+        const poolsData = await fetchPoolsForToken(tokenY);
+        processPoolData(poolsData);
+      } catch (err) {
+        document.getElementById('output').innerText = 'Error fetching data: ' + err;
+      }
+    }
 
-        // ABI for Uniswap V3 Factory to get pool addresses
-        const factoryAbi = [
-            {
-                "inputs": [
-                    { "internalType": "address", "name": "tokenA", "type": "address" },
-                    { "internalType": "address", "name": "tokenB", "type": "address" },
-                    { "internalType": "uint24", "name": "fee", "type": "uint24" }
-                ],
-                "name": "getPool",
-                "outputs": [
-                    { "internalType": "address", "name": "pool", "type": "address" }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
-        
-        // Pool ABI
-        const poolAbi = [
-            {
-                "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
-                "name": "positions",
-                "outputs": [
-                    {"internalType": "uint96", "name": "nonce", "type": "uint96"},
-                    {"internalType": "address", "name": "operator", "type": "address"},
-                    {"internalType": "address", "name": "token0", "type": "address"},
-                    {"internalType": "address", "name": "token1", "type": "address"},
-                    {"internalType": "uint24", "name": "fee", "type": "uint24"},
-                    {"internalType": "int24", "name": "tickLower", "type": "int24"},
-                    {"internalType": "int24", "name": "tickUpper", "type": "int24"},
-                    {"internalType": "uint128", "name": "liquidity", "type": "uint128"},
-                    {"internalType": "uint256", "name": "feeGrowthInside0LastX128", "type": "uint256"},
-                    {"internalType": "uint256", "name": "feeGrowthInside1LastX128", "type": "uint256"},
-                    {"internalType": "uint128", "name": "tokensOwed0", "type": "uint128"},
-                    {"internalType": "uint128", "name": "tokensOwed1", "type": "uint128"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "protocolFees",
-                "outputs": [
-                    { "internalType": "uint128", "name": "token0", "type": "uint128" },
-                    { "internalType": "uint128", "name": "token1", "type": "uint128" }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
+    // Fetch pools where token Y appears as token0 or token1 using a GraphQL query.
+    async function fetchPoolsForToken(tokenAddress) {
+      const query = `
+      {
+        pools0: pools(where: { token0: "${tokenAddress.toLowerCase()}" }) {
+          id
+          token0 { id, symbol, decimals }
+          token1 { id, symbol, decimals }
+          liquidity
+          reserve0
+          reserve1
+        }
+        pools1: pools(where: { token1: "${tokenAddress.toLowerCase()}" }) {
+          id
+          token0 { id, symbol, decimals }
+          token1 { id, symbol, decimals }
+          liquidity
+          reserve0
+          reserve1
+        }
+      }
+      `;
+      const response = await fetch(graphEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query })
+      });
+      const json = await response.json();
+      return json.data;
+    }
 
-        // ERC-721 ABI (partial)
-        const erc721Abi = [
-            {
-                "constant": true,
-                "inputs": [{"name": "owner", "type": "address"}],
-                "name": "balanceOf",
-                "outputs": [{"name": "", "type": "uint256"}],
-                "type": "function"
-            },
-            {
-                "constant": true,
-                "inputs": [
-                    {"name": "owner", "type": "address"},
-                    {"name": "index", "type": "uint256"}
-                ],
-                "name": "tokenOfOwnerByIndex",
-                "outputs": [{"name": "tokenId", "type": "uint256"}],
-                "type": "function"
-            }
-        ];
+    // Process the returned pool data, calculate totals, and update the UI.
+    function processPoolData(data) {
+      // Combine pools from both queries
+      const pools = [...data.pools0, ...data.pools1];
+      if (pools.length === 0) {
+        document.getElementById('output').innerText = 'No pools found for token Y.';
+        return;
+      }
 
-        async function fetchPositions() {
-            const address = document.getElementById("address").value;
-            const outputSummary = document.getElementById("output-summary");
-            const outputPositions = document.getElementById("output-positions");
-            const outputAggregated = document.getElementById("output-aggregated");
+      let totalYAmount = 0; // Total token Y amount (assume 18 decimals)
+      let totalLiquidityUSD = 0;
+      let usdcYPool = null;
+      let tableRows = '';
 
-            outputSummary.innerHTML = "<i class='fas fa-spinner fa-pulse'></i> Fetching positions...";
-            outputPositions.innerHTML = "";
-            outputAggregated.innerHTML = "";
+      pools.forEach(pool => {
+        // Determine which token in the pool is token Y and which is the paired token.
+        let otherToken, tokenYReserve;
+        if (pool.token0.id.toLowerCase() === tokenY.toLowerCase()) {
+          tokenYReserve = parseFloat(pool.reserve0);
+          otherToken = pool.token1;
+        } else {
+          tokenYReserve = parseFloat(pool.reserve1);
+          otherToken = pool.token0;
+        }
+        // Accumulate token Y amount, adjusting for decimals (assuming token Y has 18 decimals)
+        totalYAmount += tokenYReserve / Math.pow(10, 18);
 
-            if (!web3.utils.isAddress(address)) {
-                outputSummary.innerHTML = "<i class='fas fa-exclamation-circle'></i> Invalid address.";
-                return;
-            }
-
-            try {
-                const uniswapV3NFTContract = new web3.eth.Contract(erc721Abi, uniswapV3NFTAddress);
-                const uniswapV3FactoryContract = new web3.eth.Contract(factoryAbi, uniswapV3FactoryAddress);
-                const balance = await uniswapV3NFTContract.methods.balanceOf(address).call();
-                let positions = [];
-                let tokenBalances = {};
-
-                for (let i = 0; i < balance; i++) {
-                    const tokenId = await uniswapV3NFTContract.methods.tokenOfOwnerByIndex(address, i).call();
-                    const positionDetails = await fetchPositionDetails(tokenId);
-
-                    // Fetch the actual pool address using the factory contract
-                    const poolAddress = await uniswapV3FactoryContract.methods.getPool(positionDetails.token0, positionDetails.token1, positionDetails.fee).call();
-                    positionDetails.poolAddress = poolAddress;
-
-                    // Fetch actual token balances in the pool
-                    positionDetails.token0Balance = await fetchTokenBalance(positionDetails.token0, poolAddress);
-                    positionDetails.token1Balance = await fetchTokenBalance(positionDetails.token1, poolAddress);
-
-                    // Fetch token symbols and assign them to positionDetails
-                    positionDetails.token0Symbol = await fetchTokenSymbol(positionDetails.token0);
-                    positionDetails.token1Symbol = await fetchTokenSymbol(positionDetails.token1);
-
-                    positions.push(positionDetails);
-
-                    // Track total balance for each token
-                    if (!tokenBalances[positionDetails.token0]) tokenBalances[positionDetails.token0] = { balance: 0, symbol: '', decimals: 0 };
-                    if (!tokenBalances[positionDetails.token1]) tokenBalances[positionDetails.token1] = { balance: 0, symbol: '', decimals: 0 };
-                    tokenBalances[positionDetails.token0].balance += parseFloat(positionDetails.token0Balance);
-                    tokenBalances[positionDetails.token1].balance += parseFloat(positionDetails.token1Balance);
-                }
-
-                // Fetch token symbols and decimals for better readability
-                for (let tokenAddress in tokenBalances) {
-                    tokenBalances[tokenAddress].symbol = await fetchTokenSymbol(tokenAddress);
-                    tokenBalances[tokenAddress].decimals = await fetchTokenDecimals(tokenAddress);
-                }
-
-                // Update the output elements
-                outputSummary.innerHTML = `<i class='fas fa-check-circle'></i> Found ${positions.length} positions:`;
-
-                outputPositions.innerHTML = positions.map(pos => {
-                    const formattedToken0Balance = (pos.token0Balance / Math.pow(10, tokenBalances[pos.token0].decimals)).toFixed(6);
-                    const formattedToken1Balance = (pos.token1Balance / Math.pow(10, tokenBalances[pos.token1].decimals)).toFixed(6);
-                    const formattedFeesToken0 = (pos.tokensOwed0 / Math.pow(10, tokenBalances[pos.token0].decimals)).toFixed(6);
-                    const formattedFeesToken1 = (pos.tokensOwed1 / Math.pow(10, tokenBalances[pos.token1].decimals)).toFixed(6);
-                    return `
-                    <div class="position-card">
-                        <strong>Pool:</strong> <a href="https://app.uniswap.org/pools/${pos.tokenId}" target="_blank">${pos.poolAddress}</a><br>
-                        <strong>Tick Range:</strong> ${pos.tickLower} to ${pos.tickUpper}<br>
-                        <strong>Fee Tier:</strong> ${pos.fee / 10000}%<br>
-                        <strong>Token0 Balance in Pool:</strong> ${formattedToken0Balance} ${pos.token0Symbol}<br>
-                        <strong>Token1 Balance in Pool:</strong> ${formattedToken1Balance} ${pos.token1Symbol}<br>
-                        <strong>Unclaimed Fees:</strong> ${formattedFeesToken0} ${pos.token0Symbol}, ${formattedFeesToken1} ${pos.token1Symbol}<br>
-                    </div>
-                `}).join('');
-
-                outputAggregated.innerHTML = '<h3 class="title is-4">Aggregated Token Balances:</h3>' + Object.keys(tokenBalances).map(tokenAddress => {
-                    const tokenInfo = tokenBalances[tokenAddress];
-                    const formattedBalance = (tokenInfo.balance / Math.pow(10, tokenInfo.decimals)).toFixed(6);
-                    return `
-                    <div class="aggregated-card">
-                        <strong>Token:</strong> ${tokenInfo.symbol} (<a href="https://arbiscan.io/address/${tokenAddress}" target="_blank">${tokenAddress}</a>)<br>
-                        <strong>Total Balance:</strong> ${formattedBalance} ${tokenInfo.symbol}<br>
-                    </div>
-                    `;
-                }).join('');
-            } catch (error) {
-                outputSummary.innerHTML = `<i class='fas fa-exclamation-triangle'></i> Error fetching positions: ${error.message}`;
-            }
+        // Identify the USDC-Y pool based on token addresses.
+        if (
+          (pool.token0.id.toLowerCase() === tokenY.toLowerCase() && pool.token1.id.toLowerCase() === USDC.toLowerCase()) ||
+          (pool.token1.id.toLowerCase() === tokenY.toLowerCase() && pool.token0.id.toLowerCase() === USDC.toLowerCase())
+        ) {
+          usdcYPool = pool;
         }
 
-        async function fetchPositionDetails(tokenId) {
-            const uniswapV3NFTContract = new web3.eth.Contract(poolAbi, uniswapV3NFTAddress);
-            try {
-                const position = await uniswapV3NFTContract.methods.positions(tokenId).call();
-                return {
-                    tokenId: tokenId,
-                    liquidity: position.liquidity,
-                    tickLower: position.tickLower,
-                    tickUpper: position.tickUpper,
-                    token0: position.token0,
-                    token1: position.token1,
-                    fee: position.fee,
-                    tokensOwed0: position.tokensOwed0,
-                    tokensOwed1: position.tokensOwed1
-                };
-            } catch (error) {
-                console.error(`Error fetching details for tokenId ${tokenId}: ${error.message}`);
-                return { tokenId, error: error.message };
-            }
-        }
+        tableRows += `
+          <tr>
+            <td>${pool.id}</td>
+            <td>${otherToken.symbol}</td>
+            <td>${(tokenYReserve / Math.pow(10, 18)).toFixed(4)}</td>
+            <td>${pool.liquidity}</td>
+          </tr>
+        `;
+      });
 
-        async function fetchProtocolFees(poolAddress) {
-            const poolContract = new web3.eth.Contract(poolAbi, poolAddress);
-            try {
-                const fees = await poolContract.methods.protocolFees().call();
-                return {
-                    token0: fees.token0,
-                    token1: fees.token1,
-                };
-            } catch (error) {
-                console.error(`Error fetching protocol fees for pool ${poolAddress}: ${error.message}`);
-                return { token0: 0, token1: 0 };
-            }
+      // Estimate token Y price using the USDC-Y pool's reserves.
+      let tokenYPrice = 'N/A';
+      if (usdcYPool) {
+        let price;
+        // If token0 is USDC, then token0 (USDC) / token1 (Y)
+        if (usdcYPool.token0.id.toLowerCase() === USDC.toLowerCase()) {
+          const usdcReserve = parseFloat(usdcYPool.reserve0) / Math.pow(10, 6); // USDC has 6 decimals
+          const yReserve = parseFloat(usdcYPool.reserve1) / Math.pow(10, 18);
+          price = usdcReserve / yReserve;
+        } else {
+          const usdcReserve = parseFloat(usdcYPool.reserve1) / Math.pow(10, 6);
+          const yReserve = parseFloat(usdcYPool.reserve0) / Math.pow(10, 18);
+          price = usdcReserve / yReserve;
         }
+        tokenYPrice = price.toFixed(4);
+        // Total liquidity in USD is estimated by multiplying total token Y by its price.
+        totalLiquidityUSD = (totalYAmount * price).toFixed(2);
+      }
 
-        async function fetchTokenSymbol(tokenAddress) {
-            const erc20Abi = [
-                {
-                    "constant": true,
-                    "inputs": [],
-                    "name": "symbol",
-                    "outputs": [{"name": "", "type": "string"}],
-                    "type": "function"
-                }
-            ];
-            const tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
-            try {
-                return await tokenContract.methods.symbol().call();
-            } catch (error) {
-                console.error(`Error fetching symbol for token ${tokenAddress}: ${error.message}`);
-                return 'Unknown';
-            }
-        }
-
-        async function fetchTokenDecimals(tokenAddress) {
-            const erc20Abi = [
-                {
-                    "constant": true,
-                    "inputs": [],
-                    "name": "decimals",
-                    "outputs": [{"name": "", "type": "uint8"}],
-                    "type": "function"
-                }
-            ];
-            const tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
-            try {
-                let res = parseInt(await tokenContract.methods.decimals().call(), 10);
-                console.log(`Decimals for token ${tokenAddress}: ${res}`);
-                return res;
-            } catch (error) {
-                console.error(`Error fetching decimals for token ${tokenAddress}: ${error.message}`);
-                return 18; // Default to 18 decimals if fetching fails
-            }
-        }
-
-        async function fetchTokenBalance(tokenAddress, poolAddress) {
-            const erc20Abi = [
-                {
-                    "constant": true,
-                    "inputs": [{"name": "account", "type": "address"}],
-                    "name": "balanceOf",
-                    "outputs": [{"name": "", "type": "uint256"}],
-                    "type": "function"
-                }
-            ];
-            const tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
-            try {
-                return await tokenContract.methods.balanceOf(poolAddress).call();
-            } catch (error) {
-                console.error(`Error fetching balance for token ${tokenAddress} in pool ${poolAddress}: ${error.message}`);
-                return 0;
-            }
-        }
-    </script>
+      // Build HTML output.
+      const html = `
+        <h2>Pool Data for Token Y</h2>
+        <p>Total Token Y across pools: ${totalYAmount.toFixed(4)}</p>
+        <p>Estimated Token Y Price (from USDC-Y pool): ${tokenYPrice} USD</p>
+        <p>Total Liquidity (based on token Y): ${totalLiquidityUSD} USD</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Pool ID</th>
+              <th>Other Token</th>
+              <th>Token Y Reserve</th>
+              <th>Liquidity (raw)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+        <p><em>Note: This example uses the current spot price from the USDC-Y pool. TWAP calculation can be added later.</em></p>
+      `;
+      document.getElementById('output').innerHTML = html;
+    }
+  </script>
 </body>
 </html>
-
-
